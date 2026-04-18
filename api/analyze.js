@@ -197,6 +197,17 @@ export default async function handler(req, res) {
           tier
         });
 
+        // Build ranked prop recommendations
+        const propRecs = buildPropRecommendations({
+          hitter: h,
+          matchedPitches,
+          maxXwoba,
+          overall,
+          parkFactor,
+          adjustments,
+          tier
+        });
+
         return {
           hitterId: h.id,
           hitter: h.name,
@@ -211,6 +222,7 @@ export default async function handler(req, res) {
           adjustments,
           tier,
           description,
+          propRecs,
           seasonStats: {
             xwoba: overall.xwoba?.value || null,
             barrelPct: overall.barrel_batted_rate?.value || null,
@@ -404,4 +416,151 @@ function computeLineupTier(analyzedHitters, arsenal) {
     totalScore,
     summary
   };
+}
+
+// ===== PROP RECOMMENDATIONS =====
+// Ranks prop types by edge quality for this specific matchup
+function buildPropRecommendations({ hitter, matchedPitches, maxXwoba, overall, parkFactor, adjustments, tier }) {
+  if (!tier || matchedPitches.length === 0) return [];
+
+  const barrel = parseFloat(overall.barrel_batted_rate?.value || 0);
+  const hardHit = parseFloat(overall.hard_hit_percent?.value || 0);
+  const ev = parseFloat(overall.avg_exit_velocity?.value || 0);
+  const kPct = parseFloat(overall.k_percent?.value || 22); // default to league avg if missing
+  const seasonXwoba = parseFloat(overall.xwoba?.value || 0);
+
+  // Compute max xSLG from matched pitches (power indicator)
+  const maxXslg = matchedPitches.reduce((max, mp) => {
+    const x = parseFloat(mp.hitterXslg || 0);
+    return x > max ? x : max;
+  }, 0);
+
+  // Park factor helpers
+  const hrParkBoost = parkFactor
+    ? (hitter.hand === 'L' ? (parkFactor.lhbHr || 100) : (parkFactor.rhbHr || 100)) / 100
+    : 1.0;
+  const runParkBoost = parkFactor ? (parkFactor.runs || 100) / 100 : 1.0;
+
+  // Is there an umpire adjustment favoring hitter?
+  const hitterFriendlyUmp = adjustments.some(a => a.type === 'umpire' && a.favor === 'hitter');
+
+  // ---- Score each prop type ----
+  // Scoring scale 0-100. Higher = stronger play.
+
+  // HIT prop — hitter gets at least 1 hit
+  // Good when: high xwOBA vs arsenal, low K% against, contact profile
+  let hitScore = 0;
+  hitScore += maxXwoba * 100;                         // base: pitch matchup quality
+  hitScore += (seasonXwoba * 50);                     // overall contact
+  hitScore += (hardHit / 2);                          // contact quality helps
+  hitScore -= Math.max(0, (kPct - 20)) * 1.2;         // strikeout risk penalty
+  hitScore += runParkBoost > 1.03 ? 8 : 0;            // offensive park bonus
+  hitScore += hitterFriendlyUmp ? 4 : 0;
+
+  // HR prop — hitter hits a homer
+  // Good when: high barrel%, high EV, hot HR park factor for handedness, strong xSLG vs arsenal
+  let hrScore = 0;
+  if (barrel >= 8) hrScore += barrel * 2;             // barrel% is the strongest HR signal
+  if (ev >= 90) hrScore += (ev - 88) * 3;
+  hrScore += maxXslg * 60;                            // power vs arsenal
+  if (hrParkBoost >= 1.05) hrScore += (hrParkBoost - 1) * 80;  // big park boost
+  if (hrParkBoost <= 0.92) hrScore -= (1 - hrParkBoost) * 60;  // HR suppressor park penalty
+  hrScore -= Math.max(0, (kPct - 25)) * 0.6;
+
+  // TB prop — 2+ total bases (extra-base hit or 2+ singles)
+  // Good when: high xSLG, barrel%, power park, but also decent contact
+  let tbScore = 0;
+  tbScore += maxXslg * 80;
+  tbScore += barrel * 1.3;
+  tbScore += maxXwoba * 40;
+  tbScore += hardHit / 3;
+  if (hrParkBoost >= 1.05) tbScore += (hrParkBoost - 1) * 40;
+  tbScore -= Math.max(0, (kPct - 22)) * 0.8;
+
+  // RBI prop — drives in a run
+  // Good when: overall mismatch quality + park runs + reasonable power
+  let rbiScore = 0;
+  rbiScore += maxXwoba * 90;
+  rbiScore += barrel * 0.8;
+  rbiScore += maxXslg * 25;
+  rbiScore += runParkBoost > 1.03 ? 10 : 0;
+  rbiScore += hitterFriendlyUmp ? 5 : 0;
+  rbiScore -= Math.max(0, (kPct - 22)) * 0.6;
+
+  // R prop — scores a run
+  // Mostly about getting on base + lineup environment
+  let rScore = 0;
+  rScore += maxXwoba * 80;
+  rScore += (seasonXwoba * 40);
+  rScore += runParkBoost > 1.03 ? 8 : 0;
+  rScore -= Math.max(0, (kPct - 22)) * 0.9;
+
+  // HRR (H+R+RBI any) — basically any offensive contribution
+  // Very good when at least one pathway is strong
+  const hrr = Math.max(hitScore * 0.9, rbiScore * 0.85, rScore * 0.85) + 8;
+
+  // FANTASY (any positive box score contribution) — widest net
+  const fantasy = Math.max(hitScore, rbiScore, rScore) * 0.88 + 12;
+
+  const allProps = [
+    { key: 'H',       label: 'HIT',       score: hitScore,   reason: hitReason(maxXwoba, kPct, hardHit, runParkBoost) },
+    { key: 'HR',      label: 'HR',        score: hrScore,    reason: hrReason(barrel, ev, maxXslg, hrParkBoost, hitter.hand, parkFactor) },
+    { key: 'TB',      label: 'TB',        score: tbScore,    reason: tbReason(maxXslg, barrel, hrParkBoost) },
+    { key: 'RBI',     label: 'RBI',       score: rbiScore,   reason: rbiReason(maxXwoba, barrel, runParkBoost) },
+    { key: 'R',       label: 'RUN',       score: rScore,     reason: rReason(maxXwoba, kPct, runParkBoost) },
+    { key: 'HRR',     label: 'H+R+RBI',   score: hrr,        reason: 'Multiple pathways to the over' },
+    { key: 'FANTASY', label: 'FANTASY',   score: fantasy,    reason: 'Any box score contribution' }
+  ];
+
+  // Sort by score, take top 4
+  allProps.sort((a, b) => b.score - a.score);
+  const ranked = allProps.slice(0, 4);
+
+  // Tag the first as best bet
+  ranked.forEach((p, i) => { p.rank = i; p.isBest = i === 0; });
+
+  return ranked;
+}
+
+function hitReason(maxXwoba, kPct, hardHit, parkBoost) {
+  const bits = [];
+  if (maxXwoba >= 0.420) bits.push('elite pitch-type edge');
+  else if (maxXwoba >= 0.370) bits.push('strong pitch-type edge');
+  if (hardHit >= 45) bits.push('high hard-hit rate');
+  if (kPct <= 18) bits.push('rarely strikes out');
+  if (parkBoost > 1.05) bits.push('offensive park');
+  return bits.length ? bits.join(', ') : 'Contact profile is solid';
+}
+
+function hrReason(barrel, ev, xslg, parkBoost, hand, park) {
+  const bits = [];
+  if (barrel >= 12) bits.push(`${barrel.toFixed(1)}% barrel rate`);
+  if (ev >= 92) bits.push(`${ev.toFixed(1)} mph EV`);
+  if (xslg >= 0.500) bits.push(`${xslg.toFixed(3)} xSLG vs arsenal`);
+  if (parkBoost >= 1.08) bits.push(`${park?.name || 'park'} big HR boost for ${hand}HB`);
+  return bits.length ? bits.join(', ') : 'Modest HR signals';
+}
+
+function tbReason(xslg, barrel, parkBoost) {
+  const bits = [];
+  if (xslg >= 0.500) bits.push(`${xslg.toFixed(3)} xSLG vs arsenal`);
+  if (barrel >= 10) bits.push(`${barrel.toFixed(1)}% barrel`);
+  if (parkBoost >= 1.05) bits.push('power park');
+  return bits.length ? bits.join(', ') : 'Moderate extra-base upside';
+}
+
+function rbiReason(xwoba, barrel, parkBoost) {
+  const bits = [];
+  if (xwoba >= 0.400) bits.push('elite matchup');
+  if (barrel >= 10) bits.push(`${barrel.toFixed(1)}% barrel`);
+  if (parkBoost > 1.03) bits.push('run-friendly park');
+  return bits.length ? bits.join(', ') : 'Middle-of-order opportunity';
+}
+
+function rReason(xwoba, kPct, parkBoost) {
+  const bits = [];
+  if (xwoba >= 0.400) bits.push('gets on base vs this arsenal');
+  if (kPct <= 18) bits.push('puts ball in play');
+  if (parkBoost > 1.03) bits.push('run-friendly park');
+  return bits.length ? bits.join(', ') : 'Decent OBP profile';
 }

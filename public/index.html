@@ -181,6 +181,69 @@
   .rc-notes{font-size:11.5px;color:#d6dcd6;margin-top:6px;padding:6px 10px;background:var(--panel-2);border-radius:4px;line-height:1.5}
   .rc-actions{display:flex;gap:6px;margin-top:8px}
 
+  /* =============== TRACK V2 =============== */
+  .track-subnav{display:flex;gap:4px;margin-bottom:16px;border-bottom:1px solid var(--line);overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .track-subnav-btn{background:none;border:none;color:var(--dim);font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;padding:8px 12px;cursor:pointer;letter-spacing:0.08em;border-bottom:2px solid transparent;white-space:nowrap;transition:all 0.12s}
+  .track-subnav-btn:hover{color:var(--ink)}
+  .track-subnav-btn.active{color:var(--heat);border-bottom-color:var(--heat)}
+
+  .track-card{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px 14px;margin-bottom:8px;position:relative}
+  .track-card.win{border-left:3px solid var(--accent)}
+  .track-card.loss{border-left:3px solid var(--danger)}
+  .track-card.pending{border-left:3px solid var(--warn)}
+  .track-card.didnotplay{border-left:3px solid var(--dim);opacity:0.7}
+  .tc-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap;margin-bottom:8px}
+  .tc-name{font-family:'Archivo Black',sans-serif;font-size:13px}
+  .tc-meta{font-size:10.5px;color:var(--dim);letter-spacing:0.03em;line-height:1.5;margin-top:2px}
+  .tc-outcome{font-family:'Archivo Black',sans-serif;font-size:11px;letter-spacing:0.12em;padding:4px 10px;border-radius:4px;margin-left:auto}
+  .tc-outcome.win{background:var(--accent);color:#0a0d0a}
+  .tc-outcome.loss{background:var(--danger);color:#0a0d0a}
+  .tc-outcome.pending{background:var(--warn);color:#0a0d0a}
+  .tc-outcome.didnotplay{background:var(--dim);color:#0a0d0a}
+  .tc-line{font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;margin:6px 0;color:var(--ink);background:var(--panel-2);padding:6px 10px;border-radius:4px;display:inline-block}
+  .tc-line b{color:var(--accent)}
+  .tc-outcome-select{display:flex;gap:4px;flex-wrap:wrap;margin-top:8px}
+  .outcome-btn{background:var(--panel-3);border:1px solid var(--line);color:var(--dim);padding:4px 9px;border-radius:3px;font-size:10px;font-weight:700;cursor:pointer;letter-spacing:0.04em;font-family:'JetBrains Mono',monospace}
+  .outcome-btn:hover{border-color:var(--dim);color:var(--ink)}
+  .outcome-btn.active{background:var(--heat);color:#0a0d0a;border-color:var(--heat)}
+  .tc-actions{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+
+  .streak-box{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:16px;margin-bottom:10px;text-align:center}
+  .streak-big{font-family:'Archivo Black',sans-serif;font-size:40px;line-height:1;margin-bottom:6px}
+  .streak-big.hot{color:var(--accent)}
+  .streak-big.cold{color:var(--danger)}
+  .streak-big.neutral{color:var(--ink)}
+  .streak-lbl{font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:var(--dim)}
+  .streak-history{display:flex;gap:3px;flex-wrap:wrap;justify-content:center;margin-top:10px}
+  .streak-dot{width:16px;height:16px;border-radius:3px;font-size:9px;display:flex;align-items:center;justify-content:center;font-weight:700}
+  .streak-dot.w{background:var(--accent);color:#0a0d0a}
+  .streak-dot.l{background:var(--danger);color:#0a0d0a}
+  .streak-dot.v{background:var(--dim);color:#0a0d0a}
+
+  .breakdown-row{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:10px 14px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+  .bd-label{font-size:11px;font-weight:700;letter-spacing:0.05em;color:var(--ink)}
+  .bd-stats{display:flex;gap:8px;align-items:center}
+  .bd-pct{font-family:'Archivo Black',sans-serif;font-size:16px}
+  .bd-pct.hot{color:var(--accent)}
+  .bd-pct.cold{color:var(--danger)}
+  .bd-pct.neutral{color:var(--warn)}
+  .bd-record{font-size:11px;color:var(--dim)}
+
+  /* =============== PROP RECOMMENDATIONS =============== */
+  .prop-recs{margin-top:10px;padding-top:10px;border-top:1px dashed var(--line)}
+  .prop-rec-label{font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:var(--dim);margin-bottom:6px}
+  .prop-rec-list{display:flex;gap:6px;flex-wrap:wrap}
+  .prop-pill{background:var(--panel-3);border:1px solid var(--line);padding:5px 9px;border-radius:6px;font-size:10.5px;display:flex;align-items:center;gap:6px;position:relative}
+  .prop-pill.best{background:rgba(198,255,61,0.1);border-color:var(--accent)}
+  .prop-pill.best::before{content:'★ BEST';position:absolute;top:-8px;left:50%;transform:translateX(-50%);background:var(--accent);color:#0a0d0a;font-size:8px;font-weight:700;padding:1px 6px;border-radius:100px;letter-spacing:0.08em;white-space:nowrap}
+  .pp-key{font-weight:700;color:var(--ink);letter-spacing:0.05em}
+  .prop-pill.best .pp-key{color:var(--accent)}
+  .pp-reason{color:var(--dim);font-size:10px;font-style:italic}
+  @media(max-width:480px){
+    .pp-reason{display:none}
+    .prop-pill{padding:6px 11px}
+  }
+
   .tier-filters{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap}
   .tier-filter{background:var(--panel);color:var(--dim);border:1px solid var(--line);padding:5px 10px;border-radius:100px;font-size:10.5px;cursor:pointer;letter-spacing:0.05em}
   .tier-filter.active{background:var(--heat);color:#0a0d0a;border-color:var(--heat)}
@@ -266,11 +329,41 @@
 <!-- TRACK -->
 <div class="panel-content" id="track-panel">
   <div class="stats-bar" id="statsBar"></div>
-  <h2>PICKS <span class="count" id="picksCount"></span></h2>
-  <div class="controls" style="margin-bottom:14px">
-    <button class="btn primary" onclick="openPickModal()">+ LOG PICK</button>
+  <div class="track-subnav">
+    <button class="track-subnav-btn active" data-track="today" onclick="switchTrackView('today')">TODAY</button>
+    <button class="track-subnav-btn" data-track="streaks" onclick="switchTrackView('streaks')">STREAKS</button>
+    <button class="track-subnav-btn" data-track="breakdown" onclick="switchTrackView('breakdown')">BREAKDOWN</button>
+    <button class="track-subnav-btn" data-track="picks" onclick="switchTrackView('picks')">BETS</button>
   </div>
-  <div id="picksList"></div>
+
+  <!-- TODAY view -->
+  <div id="track-today">
+    <div class="hint-box"><b>TRACK BOARD:</b> Tagged hitters auto-populate here on their game days. Pick the outcome type for each, then auto-grade after the game (or mark manually).</div>
+    <div class="controls" style="margin-bottom:14px">
+      <button class="btn" onclick="autoGradeAll()">⚡ AUTO-GRADE ALL</button>
+      <button class="btn sm" onclick="renderTrack()">⟳ REFRESH</button>
+    </div>
+    <div id="trackTodayList"></div>
+  </div>
+
+  <!-- STREAKS view -->
+  <div id="track-streaks" style="display:none">
+    <div id="streaksContent"></div>
+  </div>
+
+  <!-- BREAKDOWN view -->
+  <div id="track-breakdown" style="display:none">
+    <div id="breakdownContent"></div>
+  </div>
+
+  <!-- PICKS view (original bet tracker) -->
+  <div id="track-picks" style="display:none">
+    <h2>BETS <span class="count" id="picksCount"></span></h2>
+    <div class="controls" style="margin-bottom:14px">
+      <button class="btn primary" onclick="openPickModal()">+ LOG BET</button>
+    </div>
+    <div id="picksList"></div>
+  </div>
 </div>
 
 <!-- RESEARCH -->
@@ -376,12 +469,14 @@ let state = {
   banned: [],
   notes: '',
   currentDate: '',
-  researchTags: {}  // { 'player_id': { name, role: 'hitter'|'pitcher', tags: ['fantasy','hrr'], notes, updated, gamePk, team, opp } }
+  researchTags: {},  // { 'player_id': { name, role: 'hitter'|'pitcher', tags: [], notes, updated, gamePk, team, opp } }
+  tracking: {}       // { 'YYYY-MM-DD': { 'player_id': { name, gamePk, team, outcomeType, result, line, manual, graded } } }
 };
 let slateCache = {};      // {date: {games, fetchedAt}}
 let analysisCache = {};   // {gamePk: analysis}
 let currentTierFilter = 'all';
 let currentTagFilter = 'all';
+let currentTrackView = 'today';
 let tagModalContext = null;  // { id, name, role, team, gamePk, opp }
 const LS_KEY = 'mismatch_finder_v2';
 
@@ -401,6 +496,17 @@ const PITCHER_TAGS = [
   { key: 'fade',     label: 'Fade K',        desc: 'Under lean' }
 ];
 
+// Outcome types for track grading
+const OUTCOME_TYPES = [
+  { key: 'H',       label: 'HIT',       desc: '1+ hit' },
+  { key: 'R',       label: 'RUN',       desc: 'Scored' },
+  { key: 'RBI',     label: 'RBI',       desc: '1+ RBI' },
+  { key: 'HR',      label: 'HR',        desc: 'Homer' },
+  { key: 'TB',      label: 'TB',        desc: '2+ total bases' },
+  { key: 'HRR',     label: 'H+R+RBI',   desc: 'Any contribution' },
+  { key: 'FANTASY', label: 'FANTASY',   desc: 'Any box score +' }
+];
+
 function getTodayStr() {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
@@ -417,6 +523,7 @@ function loadState() {
   } catch(_) {}
   state.currentDate = state.currentDate || getTodayStr();
   state.researchTags = state.researchTags || {};
+  state.tracking = state.tracking || {};
 }
 function saveState() {
   try { localStorage.setItem(LS_KEY, JSON.stringify(state)); }
@@ -444,7 +551,7 @@ document.querySelectorAll('.tab').forEach(tab => {
     document.querySelectorAll('.panel-content').forEach(p=>p.classList.remove('active'));
     tab.classList.add('active');
     document.getElementById(tab.dataset.tab+'-panel').classList.add('active');
-    if (tab.dataset.tab === 'track') renderPicks();
+    if (tab.dataset.tab === 'track') renderTrack();
     if (tab.dataset.tab === 'history') renderHistory();
     if (tab.dataset.tab === 'settings') renderSettings();
     if (tab.dataset.tab === 'research') renderResearch();
@@ -587,6 +694,21 @@ function renderAnalysis(data) {
             ? `<div class="edge-desc">${m.description}</div>`
             : '';
 
+          // Prop recommendations
+          const propsHtml = (m.propRecs && m.propRecs.length > 0)
+            ? `<div class="prop-recs">
+                <div class="prop-rec-label">PROP RECOMMENDATIONS</div>
+                <div class="prop-rec-list">
+                  ${m.propRecs.map(p => `
+                    <div class="prop-pill ${p.isBest ? 'best' : ''}">
+                      <span class="pp-key">${p.label}</span>
+                      <span class="pp-reason">${p.reason}</span>
+                    </div>
+                  `).join('')}
+                </div>
+              </div>`
+            : '';
+
           // Tag UI
           const playerId = m.hitterId || m.hitter; // fallback to name if id missing
           const tagEntry = state.researchTags[playerId];
@@ -621,6 +743,7 @@ function renderAnalysis(data) {
                   ${xwobaDisplay}
                 </div>` : ''}
               ${adjHtml}
+              ${propsHtml}
               ${tagChipsHtml}
             </div>
           `;
@@ -758,7 +881,407 @@ function filterTier(tier, gamePk) {
   if (analysisCache[gamePk]) renderAnalysis(analysisCache[gamePk]);
 }
 
-// =============== PICKS ===============
+// =============== TRACK / STREAK ===============
+// Philosophy: tagged hitters automatically populate the track board on game days.
+// Auto-grade when game is final via /api/batter-line, with manual override.
+
+function switchTrackView(view) {
+  currentTrackView = view;
+  document.querySelectorAll('.track-subnav-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.track === view);
+  });
+  ['today','streaks','breakdown','picks'].forEach(v => {
+    document.getElementById('track-'+v).style.display = v === view ? 'block' : 'none';
+  });
+  renderTrack();
+}
+
+function renderTrack() {
+  renderTrackStatsBar();
+  if (currentTrackView === 'today') renderTrackToday();
+  else if (currentTrackView === 'streaks') renderStreaks();
+  else if (currentTrackView === 'breakdown') renderBreakdown();
+  else if (currentTrackView === 'picks') renderPicks();
+}
+
+function renderTrackStatsBar() {
+  // Aggregate all tracked hitter results
+  let wins = 0, losses = 0, dnp = 0, pending = 0;
+  const streak = computeOverallStreak();
+  Object.values(state.tracking || {}).forEach(day => {
+    Object.values(day).forEach(t => {
+      if (t.result === 'win') wins++;
+      else if (t.result === 'loss') losses++;
+      else if (t.result === 'didnotplay') dnp++;
+      else pending++;
+    });
+  });
+  const total = wins + losses;
+  const winPct = total > 0 ? ((wins/total)*100).toFixed(0) + '%' : '—';
+  const streakDisplay = streak.count === 0 ? '—' :
+    streak.type === 'win' ? `W${streak.count}` : `L${streak.count}`;
+  const streakColor = streak.type === 'win' ? 'var(--accent)' :
+                       streak.type === 'loss' ? 'var(--danger)' : 'var(--warn)';
+  document.getElementById('statsBar').innerHTML = `
+    <div class="stat-card"><div class="val">${wins}-${losses}</div><div class="lbl">RECORD</div></div>
+    <div class="stat-card"><div class="val">${winPct}</div><div class="lbl">WIN RATE</div></div>
+    <div class="stat-card"><div class="val" style="color:${streakColor}">${streakDisplay}</div><div class="lbl">STREAK</div></div>
+    <div class="stat-card"><div class="val" style="color:var(--warn)">${pending}</div><div class="lbl">PENDING</div></div>
+  `;
+}
+
+function renderTrackToday() {
+  const today = state.currentDate;
+  const list = document.getElementById('trackTodayList');
+  const slate = slateCache[today];
+
+  // Auto-populate: for any tagged hitter whose gamePk is in today's slate,
+  // ensure they have an entry in state.tracking[today]
+  if (slate && slate.games) {
+    const todayGamePks = new Set(slate.games.map(g => String(g.gamePk)));
+    if (!state.tracking[today]) state.tracking[today] = {};
+    Object.entries(state.researchTags).forEach(([pid, entry]) => {
+      if (entry.role !== 'hitter') return;
+      if (!entry.gamePk) return;
+      if (!todayGamePks.has(String(entry.gamePk))) return;
+      if (!state.tracking[today][pid]) {
+        state.tracking[today][pid] = {
+          name: entry.name,
+          team: entry.team || '',
+          opp: entry.opp || '',
+          gamePk: entry.gamePk,
+          outcomeType: null,
+          result: null,
+          line: null,
+          manual: false,
+          graded: false,
+          created: Date.now()
+        };
+      }
+    });
+    saveState();
+  }
+
+  const entries = Object.entries(state.tracking[today] || {});
+  if (entries.length === 0) {
+    list.innerHTML = `<div class="empty"><div class="empty-icon">○</div><div>No tracked hitters today. Tag hitters from the slate analysis — they'll auto-appear here on their game days.<br><br>Or load today's slate first: tap <b>SLATE → LOAD LIVE SLATE</b>.</div></div>`;
+    return;
+  }
+
+  // Sort: pending first, then graded by most recent
+  entries.sort((a, b) => {
+    const ar = a[1].result;
+    const br = b[1].result;
+    if (!ar && br) return -1;
+    if (ar && !br) return 1;
+    return (b[1].created || 0) - (a[1].created || 0);
+  });
+
+  list.innerHTML = entries.map(([pid, t]) => renderTrackCard(pid, t, today)).join('');
+}
+
+function renderTrackCard(pid, t, date) {
+  const resultClass = t.result || 'pending';
+  const resultLabel = t.result === 'win' ? 'WIN' :
+                      t.result === 'loss' ? 'LOSS' :
+                      t.result === 'didnotplay' ? 'DNP' : 'PENDING';
+
+  const lineHtml = t.line ? `
+    <div class="tc-line">
+      ${t.line.AB}AB · ${t.line.H}H · ${t.line.R}R · ${t.line.RBI}RBI · ${t.line.HR}HR · <b>${t.line.TB}TB</b>${t.line.BB?' · '+t.line.BB+'BB':''}${t.line.K?' · '+t.line.K+'K':''}
+    </div>
+  ` : '';
+
+  // Outcome type picker
+  const outcomeBtns = OUTCOME_TYPES.map(o => `
+    <button class="outcome-btn ${t.outcomeType === o.key ? 'active' : ''}" onclick="setTrackOutcome('${date}','${pid}','${o.key}')">${o.label}</button>
+  `).join('');
+
+  // Manual W/L/DNP override buttons
+  const manualBtns = `
+    <div class="tc-actions">
+      <button class="result-btn win ${t.result==='win'?'active':''}" onclick="setTrackResult('${date}','${pid}','win',true)">W</button>
+      <button class="result-btn loss ${t.result==='loss'?'active':''}" onclick="setTrackResult('${date}','${pid}','loss',true)">L</button>
+      <button class="result-btn void ${t.result==='didnotplay'?'active':''}" onclick="setTrackResult('${date}','${pid}','didnotplay',true)">DNP</button>
+      <button class="btn sm" onclick="autoGradeOne('${date}','${pid}')" title="Pull live from MLB">⚡ AUTO</button>
+      <button class="result-btn" style="color:var(--danger)" onclick="removeTracked('${date}','${pid}')">×</button>
+    </div>
+  `;
+
+  return `
+    <div class="track-card ${resultClass}">
+      <div class="tc-head">
+        <div>
+          <div class="tc-name">${t.name}</div>
+          <div class="tc-meta">${t.team || ''}${t.opp ? ' · '+t.opp : ''}${t.manual ? ' · manual' : t.graded ? ' · auto-graded' : ''}</div>
+        </div>
+        <div class="tc-outcome ${resultClass}">${resultLabel}${t.outcomeType ? ' · '+t.outcomeType : ''}</div>
+      </div>
+      ${lineHtml}
+      <div style="font-size:10px;letter-spacing:0.1em;color:var(--dim);margin-top:8px">OUTCOME TYPE:</div>
+      <div class="tc-outcome-select">${outcomeBtns}</div>
+      ${manualBtns}
+    </div>
+  `;
+}
+
+function setTrackOutcome(date, pid, outcomeType) {
+  const t = state.tracking[date]?.[pid];
+  if (!t) return;
+  // Toggle off if re-clicking the same
+  t.outcomeType = t.outcomeType === outcomeType ? null : outcomeType;
+  // If we have a line already, re-grade
+  if (t.line && t.outcomeType) {
+    t.result = gradeLine(t.line, t.outcomeType);
+    t.manual = false;
+    t.graded = true;
+  } else if (!t.outcomeType) {
+    // Clearing outcome clears the result too (unless manually set)
+    if (!t.manual) t.result = null;
+  }
+  saveState();
+  renderTrack();
+}
+
+function setTrackResult(date, pid, result, isManual) {
+  const t = state.tracking[date]?.[pid];
+  if (!t) return;
+  t.result = t.result === result ? null : result;
+  t.manual = isManual && !!t.result;
+  saveState();
+  renderTrack();
+}
+
+function removeTracked(date, pid) {
+  if (!confirm('Stop tracking this player for today?')) return;
+  delete state.tracking[date][pid];
+  saveState();
+  renderTrack();
+}
+
+function gradeLine(line, outcomeType) {
+  if (!line) return null;
+  switch(outcomeType) {
+    case 'H':       return line.H >= 1 ? 'win' : 'loss';
+    case 'R':       return line.R >= 1 ? 'win' : 'loss';
+    case 'RBI':     return line.RBI >= 1 ? 'win' : 'loss';
+    case 'HR':      return line.HR >= 1 ? 'win' : 'loss';
+    case 'TB':      return line.TB >= 2 ? 'win' : 'loss';
+    case 'HRR':     return (line.H + line.R + line.RBI) >= 1 ? 'win' : 'loss';
+    case 'FANTASY': return (line.H + line.R + line.RBI + line.HR + line.BB + line.SB) >= 1 ? 'win' : 'loss';
+    default:        return null;
+  }
+}
+
+async function autoGradeOne(date, pid) {
+  const t = state.tracking[date]?.[pid];
+  if (!t || !t.gamePk) { showToast('No game linked', true); return; }
+  showToast('Grading...');
+  try {
+    const res = await fetch(`/api/batter-line?gamePk=${t.gamePk}&mlbam=${pid}`);
+    const data = await res.json();
+    if (!data.found) {
+      t.result = 'didnotplay';
+      t.graded = true;
+      t.manual = false;
+      saveState();
+      renderTrack();
+      showToast('Not in lineup (DNP)');
+      return;
+    }
+    if (!data.isFinal) {
+      showToast(`Game status: ${data.detailedStatus || 'in progress'}`, true);
+      t.line = data.line;
+      saveState();
+      renderTrack();
+      return;
+    }
+    if (!data.didPlay) {
+      t.result = 'didnotplay';
+      t.line = data.line;
+      t.graded = true;
+      t.manual = false;
+      saveState();
+      renderTrack();
+      showToast('DNP (0 PA)');
+      return;
+    }
+    t.line = data.line;
+    t.graded = true;
+    t.manual = false;
+    if (t.outcomeType) {
+      t.result = gradeLine(data.line, t.outcomeType);
+    }
+    saveState();
+    renderTrack();
+    showToast(t.outcomeType ? `${t.name}: ${t.result === 'win' ? 'W' : 'L'}` : 'Line pulled - pick outcome');
+  } catch (err) {
+    console.error(err);
+    showToast('Grade failed', true);
+  }
+}
+
+async function autoGradeAll() {
+  const date = state.currentDate;
+  const entries = Object.entries(state.tracking[date] || {});
+  if (entries.length === 0) { showToast('Nothing to grade'); return; }
+  showToast(`Grading ${entries.length}...`);
+  let graded = 0;
+  for (const [pid, t] of entries) {
+    if (t.manual) continue;  // don't overwrite manual
+    if (!t.gamePk) continue;
+    try {
+      const res = await fetch(`/api/batter-line?gamePk=${t.gamePk}&mlbam=${pid}`);
+      const data = await res.json();
+      if (!data.found) {
+        t.result = 'didnotplay'; t.graded = true;
+      } else if (!data.isFinal) {
+        t.line = data.line; // partial, don't set result
+      } else if (!data.didPlay) {
+        t.result = 'didnotplay'; t.line = data.line; t.graded = true;
+      } else {
+        t.line = data.line; t.graded = true;
+        if (t.outcomeType) t.result = gradeLine(data.line, t.outcomeType);
+      }
+      graded++;
+    } catch (_) {}
+  }
+  saveState();
+  renderTrack();
+  showToast(`Graded ${graded}`);
+}
+
+function computeOverallStreak() {
+  // Walk backwards through dates chronologically, look at each graded result
+  const dates = Object.keys(state.tracking || {}).sort().reverse();
+  let streakCount = 0;
+  let streakType = null;
+  outer: for (const d of dates) {
+    const entries = Object.values(state.tracking[d] || {});
+    // Consider only graded W/L entries (ignore DNP and pending)
+    const graded = entries.filter(e => e.result === 'win' || e.result === 'loss');
+    for (const e of graded) {
+      if (!streakType) streakType = e.result;
+      if (e.result === streakType) streakCount++;
+      else break outer;
+    }
+  }
+  return { count: streakCount, type: streakType };
+}
+
+function renderStreaks() {
+  const container = document.getElementById('streaksContent');
+  const overall = computeOverallStreak();
+
+  // Get last 20 graded results chronologically
+  const allResults = [];
+  Object.keys(state.tracking || {}).sort().forEach(date => {
+    Object.entries(state.tracking[date] || {}).forEach(([pid, t]) => {
+      if (t.result === 'win' || t.result === 'loss' || t.result === 'didnotplay') {
+        allResults.push({ date, name: t.name, result: t.result, outcomeType: t.outcomeType });
+      }
+    });
+  });
+  const recent = allResults.slice(-20);
+
+  // Per-player streaks
+  const playerStreaks = {};
+  Object.keys(state.tracking || {}).sort().forEach(date => {
+    Object.entries(state.tracking[date] || {}).forEach(([pid, t]) => {
+      if (t.result !== 'win' && t.result !== 'loss') return;
+      if (!playerStreaks[pid]) playerStreaks[pid] = { name: t.name, results: [] };
+      playerStreaks[pid].results.push(t.result);
+    });
+  });
+
+  const playerStreakHtml = Object.entries(playerStreaks)
+    .map(([pid, p]) => {
+      const total = p.results.length;
+      const wins = p.results.filter(r => r === 'win').length;
+      // Current streak
+      let curStreak = 0; let curType = null;
+      for (let i = p.results.length - 1; i >= 0; i--) {
+        if (!curType) curType = p.results[i];
+        if (p.results[i] === curType) curStreak++;
+        else break;
+      }
+      return { name: p.name, total, wins, pct: total ? wins/total : 0, curStreak, curType };
+    })
+    .sort((a, b) => b.total - a.total);
+
+  const streakColor = overall.type === 'win' ? 'hot' : overall.type === 'loss' ? 'cold' : 'neutral';
+
+  container.innerHTML = `
+    <div class="streak-box">
+      <div class="streak-big ${streakColor}">${overall.count === 0 ? '—' : (overall.type === 'win' ? 'W' : 'L') + overall.count}</div>
+      <div class="streak-lbl">CURRENT STREAK</div>
+      ${recent.length > 0 ? `
+        <div class="streak-history">
+          ${recent.map(r => `<div class="streak-dot ${r.result==='win'?'w':r.result==='loss'?'l':'v'}" title="${r.name} (${r.date})">${r.result==='win'?'W':r.result==='loss'?'L':'V'}</div>`).join('')}
+        </div>
+      ` : ''}
+    </div>
+    <h2 style="margin-top:20px">PER-PLAYER STREAKS <span class="count">${playerStreakHtml.length}</span></h2>
+    ${playerStreakHtml.length === 0 ? '<div class="empty"><div class="empty-icon">○</div><div>Grade some hitters to build streak history.</div></div>' :
+      playerStreakHtml.map(p => `
+        <div class="breakdown-row">
+          <div>
+            <div class="bd-label">${p.name}</div>
+            <div class="bd-record">${p.wins}W-${p.total - p.wins}L · Current: ${p.curType === 'win' ? 'W' : 'L'}${p.curStreak}</div>
+          </div>
+          <div class="bd-stats">
+            <div class="bd-pct ${p.pct >= 0.6 ? 'hot' : p.pct <= 0.4 ? 'cold' : 'neutral'}">${(p.pct*100).toFixed(0)}%</div>
+          </div>
+        </div>
+      `).join('')
+    }
+  `;
+}
+
+function renderBreakdown() {
+  const container = document.getElementById('breakdownContent');
+  // Tally by outcome type
+  const tally = {};
+  OUTCOME_TYPES.forEach(o => tally[o.key] = { wins: 0, losses: 0, label: o.label });
+  Object.values(state.tracking || {}).forEach(day => {
+    Object.values(day).forEach(t => {
+      if (!t.outcomeType) return;
+      if (t.result === 'win') tally[t.outcomeType].wins++;
+      else if (t.result === 'loss') tally[t.outcomeType].losses++;
+    });
+  });
+
+  const rows = Object.entries(tally)
+    .filter(([k, v]) => v.wins + v.losses > 0)
+    .sort((a, b) => (b[1].wins + b[1].losses) - (a[1].wins + a[1].losses));
+
+  if (rows.length === 0) {
+    container.innerHTML = '<div class="empty"><div class="empty-icon">○</div><div>No graded results yet. Mark outcome types on your tracked hitters to see per-outcome breakdown.</div></div>';
+    return;
+  }
+
+  container.innerHTML = `
+    <h2>BY OUTCOME TYPE</h2>
+    ${rows.map(([key, v]) => {
+      const total = v.wins + v.losses;
+      const pct = total > 0 ? v.wins / total : 0;
+      const cls = pct >= 0.6 ? 'hot' : pct <= 0.4 ? 'cold' : 'neutral';
+      return `
+        <div class="breakdown-row">
+          <div>
+            <div class="bd-label">${v.label}</div>
+            <div class="bd-record">${v.wins}W-${v.losses}L · ${total} total</div>
+          </div>
+          <div class="bd-stats">
+            <div class="bd-pct ${cls}">${(pct*100).toFixed(0)}%</div>
+          </div>
+        </div>
+      `;
+    }).join('')}
+  `;
+}
+
+// =============== PICKS (bets) ===============
 function openPickModal() {
   ['pickTitle','pickStake','pickOdds','pickNotes'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('pickType').value='TB';
@@ -813,13 +1336,38 @@ function renderPicks() {
   const picks = state.picks[state.currentDate] || {};
   const ids = Object.keys(picks);
   document.getElementById('picksCount').textContent = ids.length ? `· ${ids.length}` : '';
-  renderStatsBar();
+
+  // Calculate P&L across all dates
+  let wins=0, losses=0, voids=0, pending=0, profit=0;
+  Object.values(state.picks).forEach(day => {
+    Object.values(day).forEach(p => {
+      if (p.result==='win') { wins++; profit += calcPayout(p.stake, p.odds); }
+      else if (p.result==='loss') { losses++; profit -= (p.stake||0); }
+      else if (p.result==='void') voids++;
+      else pending++;
+    });
+  });
+  const total = wins+losses;
+  const winPct = total>0 ? ((wins/total)*100).toFixed(0) + '%' : '—';
+  const pnlHtml = `
+    <div class="breakdown-row" style="margin-bottom:14px">
+      <div>
+        <div class="bd-label">BETS P&L (all-time)</div>
+        <div class="bd-record">${wins}W-${losses}L · ${pending} pending${voids?' · '+voids+' void':''}</div>
+      </div>
+      <div class="bd-stats">
+        <div class="bd-pct ${profit>=0?'hot':'cold'}">$${profit.toFixed(2)}</div>
+        <div class="bd-record">${winPct}</div>
+      </div>
+    </div>
+  `;
+
   if (ids.length === 0) {
-    list.innerHTML = `<div class="empty"><div class="empty-icon">$</div><div>No picks for ${formatDateDisplay(state.currentDate)}.</div></div>`;
+    list.innerHTML = pnlHtml + `<div class="empty"><div class="empty-icon">$</div><div>No bets logged for ${formatDateDisplay(state.currentDate)}.</div></div>`;
     return;
   }
   ids.sort((a,b)=>(picks[b].created||0)-(picks[a].created||0));
-  list.innerHTML = ids.map(id => {
+  list.innerHTML = pnlHtml + ids.map(id => {
     const p = picks[id];
     return `
       <div class="pick-row">
@@ -836,26 +1384,6 @@ function renderPicks() {
       </div>
     `;
   }).join('');
-}
-
-function renderStatsBar() {
-  let wins=0, losses=0, voids=0, pending=0, profit=0;
-  Object.values(state.picks).forEach(day => {
-    Object.values(day).forEach(p => {
-      if (p.result==='win') { wins++; profit += calcPayout(p.stake, p.odds); }
-      else if (p.result==='loss') { losses++; profit -= (p.stake||0); }
-      else if (p.result==='void') voids++;
-      else pending++;
-    });
-  });
-  const total = wins+losses;
-  const winPct = total>0 ? ((wins/total)*100).toFixed(1) : '—';
-  document.getElementById('statsBar').innerHTML = `
-    <div class="stat-card"><div class="val">${wins}-${losses}</div><div class="lbl">RECORD</div></div>
-    <div class="stat-card"><div class="val">${winPct}${winPct!=='—'?'%':''}</div><div class="lbl">WIN RATE</div></div>
-    <div class="stat-card"><div class="val" style="color:${profit>=0?'var(--accent)':'var(--danger)'}">$${profit.toFixed(2)}</div><div class="lbl">P&L</div></div>
-    <div class="stat-card"><div class="val" style="color:var(--warn)">${pending}</div><div class="lbl">PENDING</div></div>
-  `;
 }
 
 // =============== RESEARCH TAGS ===============
@@ -1114,7 +1642,7 @@ function saveNotes() {
 function confirmReset() {
   if (!confirm('Reset ALL data?')) return;
   if (!confirm('Are you sure? Cannot be undone.')) return;
-  state = { picks:{}, banned:[], notes:'', currentDate:getTodayStr(), researchTags:{} };
+  state = { picks:{}, banned:[], notes:'', currentDate:getTodayStr(), researchTags:{}, tracking:{} };
   saveState();
   location.reload();
 }
@@ -1144,13 +1672,14 @@ function importBackup(event) {
           banned: imp.banned || [],
           notes: imp.notes || '',
           currentDate: imp.currentDate || getTodayStr(),
-          researchTags: imp.researchTags || {}
+          researchTags: imp.researchTags || {},
+          tracking: imp.tracking || {}
         };
         saveState();
         showToast('Replaced · reloading...');
         setTimeout(()=>location.reload(), 800);
       } else {
-        let mergedPicks=0, mergedBans=0, mergedTags=0;
+        let mergedPicks=0, mergedBans=0, mergedTags=0, mergedTrack=0;
         Object.keys(imp.picks||{}).forEach(date => {
           if (!state.picks[date]) state.picks[date] = {};
           Object.keys(imp.picks[date]).forEach(id => {
@@ -1161,9 +1690,15 @@ function importBackup(event) {
         Object.entries(imp.researchTags||{}).forEach(([id, entry]) => {
           if (!state.researchTags[id]) { state.researchTags[id] = entry; mergedTags++; }
         });
+        Object.keys(imp.tracking||{}).forEach(date => {
+          if (!state.tracking[date]) state.tracking[date] = {};
+          Object.entries(imp.tracking[date]).forEach(([pid, entry]) => {
+            if (!state.tracking[date][pid]) { state.tracking[date][pid] = entry; mergedTrack++; }
+          });
+        });
         if (imp.notes && imp.notes !== state.notes) state.notes = (state.notes?state.notes+'\n\n--- IMPORTED ---\n':'') + imp.notes;
         saveState();
-        showToast(`Merged ${mergedPicks}p · ${mergedBans}b · ${mergedTags}t`);
+        showToast(`Merged ${mergedPicks}p · ${mergedBans}b · ${mergedTags}t · ${mergedTrack}tr`);
         setTimeout(()=>location.reload(), 1200);
       }
     } catch(err) {
