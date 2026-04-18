@@ -136,6 +136,51 @@
   .lt-count.solid{background:rgba(102,217,232,0.15);color:var(--cool)}
   .lt-count.size{background:var(--panel-3);color:var(--dim)}
 
+  /* =============== TAGS =============== */
+  .tag-btn{background:var(--panel-3);border:1px solid var(--line);color:var(--dim);border-radius:4px;padding:4px 8px;font-size:10px;font-weight:700;letter-spacing:0.05em;cursor:pointer;transition:all 0.12s;font-family:'JetBrains Mono',monospace}
+  .tag-btn:hover{border-color:var(--dim);color:var(--ink)}
+  .tag-btn.tagged{background:var(--panel-2);border-color:var(--heat);color:var(--heat)}
+  .tag-btn-sm{padding:2px 6px;font-size:9px}
+
+  .tag-chip{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:100px;font-size:10px;font-weight:700;letter-spacing:0.05em;font-family:'JetBrains Mono',monospace}
+  .tag-chip.fantasy{background:rgba(198,255,61,0.15);color:var(--accent);border:1px solid rgba(198,255,61,0.3)}
+  .tag-chip.hrr{background:rgba(255,122,61,0.15);color:var(--heat);border:1px solid rgba(255,122,61,0.3)}
+  .tag-chip.hr{background:rgba(255,184,77,0.15);color:var(--warn);border:1px solid rgba(255,184,77,0.3)}
+  .tag-chip.hit{background:rgba(102,217,232,0.15);color:var(--cool);border:1px solid rgba(102,217,232,0.3)}
+  .tag-chip.tb{background:rgba(180,130,255,0.15);color:#b482ff;border:1px solid rgba(180,130,255,0.3)}
+  .tag-chip.fade{background:rgba(255,90,90,0.15);color:var(--danger);border:1px solid rgba(255,90,90,0.3)}
+  .tag-chip.monitor{background:rgba(138,148,144,0.15);color:var(--dim);border:1px solid rgba(138,148,144,0.3)}
+  .tag-chip.target{background:rgba(198,255,61,0.15);color:var(--accent);border:1px solid rgba(198,255,61,0.3)}
+  .tag-chip.ban{background:rgba(255,90,90,0.15);color:var(--danger);border:1px solid rgba(255,90,90,0.3)}
+
+  .tag-row{display:flex;gap:4px;flex-wrap:wrap;margin-top:8px;padding-top:8px;border-top:1px dashed var(--line)}
+
+  .tag-picker{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:4px}
+  .tag-option{background:var(--panel-3);border:1px solid var(--line);color:var(--dim);padding:6px 12px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;letter-spacing:0.04em;font-family:'JetBrains Mono',monospace;transition:all 0.12s}
+  .tag-option:hover{border-color:var(--dim);color:var(--ink)}
+  .tag-option.active.fantasy{background:rgba(198,255,61,0.2);border-color:var(--accent);color:var(--accent)}
+  .tag-option.active.hrr{background:rgba(255,122,61,0.2);border-color:var(--heat);color:var(--heat)}
+  .tag-option.active.hr{background:rgba(255,184,77,0.2);border-color:var(--warn);color:var(--warn)}
+  .tag-option.active.hit{background:rgba(102,217,232,0.2);border-color:var(--cool);color:var(--cool)}
+  .tag-option.active.tb{background:rgba(180,130,255,0.2);border-color:#b482ff;color:#b482ff}
+  .tag-option.active.fade{background:rgba(255,90,90,0.2);border-color:var(--danger);color:var(--danger)}
+  .tag-option.active.monitor{background:rgba(138,148,144,0.25);border-color:var(--dim);color:var(--ink)}
+  .tag-option.active.target{background:rgba(198,255,61,0.2);border-color:var(--accent);color:var(--accent)}
+  .tag-option.active.ban{background:rgba(255,90,90,0.2);border-color:var(--danger);color:var(--danger)}
+
+  .tag-filters{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:18px}
+  .tag-filter-btn{background:var(--panel);border:1px solid var(--line);color:var(--dim);padding:5px 10px;border-radius:100px;font-size:10px;font-weight:700;letter-spacing:0.05em;cursor:pointer;font-family:'JetBrains Mono',monospace}
+  .tag-filter-btn.active{background:var(--heat);color:#0a0d0a;border-color:var(--heat)}
+
+  .research-card{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px 14px;margin-bottom:8px}
+  .research-card.pitcher{border-left:3px solid var(--cool)}
+  .research-card.hitter{border-left:3px solid var(--heat)}
+  .rc-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap;margin-bottom:4px}
+  .rc-name{font-family:'Archivo Black',sans-serif;font-size:13px}
+  .rc-meta{font-size:10.5px;color:var(--dim);letter-spacing:0.03em;line-height:1.5}
+  .rc-notes{font-size:11.5px;color:#d6dcd6;margin-top:6px;padding:6px 10px;background:var(--panel-2);border-radius:4px;line-height:1.5}
+  .rc-actions{display:flex;gap:6px;margin-top:8px}
+
   .tier-filters{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap}
   .tier-filter{background:var(--panel);color:var(--dim);border:1px solid var(--line);padding:5px 10px;border-radius:100px;font-size:10.5px;cursor:pointer;letter-spacing:0.05em}
   .tier-filter.active{background:var(--heat);color:#0a0d0a;border-color:var(--heat)}
@@ -202,6 +247,7 @@
 
 <div class="tabs">
   <button class="tab active" data-tab="slate">SLATE</button>
+  <button class="tab" data-tab="research">RESEARCH</button>
   <button class="tab" data-tab="track">TRACK</button>
   <button class="tab" data-tab="history">HISTORY</button>
   <button class="tab" data-tab="settings">SETTINGS</button>
@@ -225,6 +271,16 @@
     <button class="btn primary" onclick="openPickModal()">+ LOG PICK</button>
   </div>
   <div id="picksList"></div>
+</div>
+
+<!-- RESEARCH -->
+<div class="panel-content" id="research-panel">
+  <div class="hint-box"><b>RESEARCH BOARD:</b> Tap a hitter or pitcher in any slate analysis to tag them. Tags persist across days so you can build out your week's lean list while analyzing games.</div>
+  <div class="tag-filters" id="tagFilterBar"></div>
+  <h2>HITTERS <span class="count" id="researchHittersCount"></span></h2>
+  <div id="researchHittersList"></div>
+  <h2 style="margin-top:24px">PITCHERS <span class="count" id="researchPitchersCount"></span></h2>
+  <div id="researchPitchersList"></div>
 </div>
 
 <!-- HISTORY -->
@@ -292,6 +348,23 @@
   </div>
 </div>
 
+<!-- TAG MODAL -->
+<div class="modal-bg" id="tagModal">
+  <div class="modal">
+    <h3 id="tagModalTitle">Tag Player</h3>
+    <div class="mh-sub" id="tagModalSub"></div>
+    <label>Tags</label>
+    <div class="tag-picker" id="tagPicker"></div>
+    <label>Research notes</label>
+    <textarea id="tagNotes" placeholder="Matchup thoughts, weather, lineup uncertainty, etc..."></textarea>
+    <div class="modal-actions">
+      <button class="btn danger" onclick="deleteTag()" id="tagDeleteBtn" style="display:none">REMOVE ALL</button>
+      <button class="btn" onclick="closeTagModal()">CANCEL</button>
+      <button class="btn primary" onclick="saveTag()">SAVE</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 </div>
@@ -302,12 +375,31 @@ let state = {
   picks: {},
   banned: [],
   notes: '',
-  currentDate: ''
+  currentDate: '',
+  researchTags: {}  // { 'player_id': { name, role: 'hitter'|'pitcher', tags: ['fantasy','hrr'], notes, updated, gamePk, team, opp } }
 };
 let slateCache = {};      // {date: {games, fetchedAt}}
 let analysisCache = {};   // {gamePk: analysis}
 let currentTierFilter = 'all';
+let currentTagFilter = 'all';
+let tagModalContext = null;  // { id, name, role, team, gamePk, opp }
 const LS_KEY = 'mismatch_finder_v2';
+
+const HITTER_TAGS = [
+  { key: 'fantasy',  label: 'Fantasy Safe',  desc: 'Cover H/R/RBI/TB' },
+  { key: 'hrr',      label: 'HRR Safe',      desc: 'Hits+Runs+RBI prop' },
+  { key: 'hr',       label: 'HR Chance',     desc: 'Homer upside' },
+  { key: 'hit',      label: 'Hit Safe',      desc: 'Straight hit prop' },
+  { key: 'tb',       label: 'TB Lean',       desc: 'Total bases upside' },
+  { key: 'fade',     label: 'Fade',          desc: 'Pitcher has edge' },
+  { key: 'monitor',  label: 'Monitor',       desc: 'Need more data' }
+];
+const PITCHER_TAGS = [
+  { key: 'target',   label: 'Target',        desc: 'K-prop over lean' },
+  { key: 'ban',      label: 'Ban',           desc: 'Do not play' },
+  { key: 'monitor',  label: 'Monitor',       desc: 'Need more data' },
+  { key: 'fade',     label: 'Fade K',        desc: 'Under lean' }
+];
 
 function getTodayStr() {
   const d = new Date();
@@ -324,6 +416,7 @@ function loadState() {
     if (saved) state = { ...state, ...JSON.parse(saved) };
   } catch(_) {}
   state.currentDate = state.currentDate || getTodayStr();
+  state.researchTags = state.researchTags || {};
 }
 function saveState() {
   try { localStorage.setItem(LS_KEY, JSON.stringify(state)); }
@@ -354,6 +447,7 @@ document.querySelectorAll('.tab').forEach(tab => {
     if (tab.dataset.tab === 'track') renderPicks();
     if (tab.dataset.tab === 'history') renderHistory();
     if (tab.dataset.tab === 'settings') renderSettings();
+    if (tab.dataset.tab === 'research') renderResearch();
   });
 });
 
@@ -468,6 +562,13 @@ function renderAnalysis(data) {
       ? s.mismatches
       : s.mismatches.filter(m => m.tier === currentTierFilter);
 
+    // Determine opposing team for tag context
+    const isAwayHittingSide = key === 'awayVsHome';
+    const hitTeamAbbr = isAwayHittingSide
+      ? (data.awayTeam?.abbreviation || data.awayTeam?.name || 'Away')
+      : (data.homeTeam?.abbreviation || data.homeTeam?.name || 'Home');
+    const oppPitcherName = s.pitcher?.name || '';
+
     const mmHtml = filtered.length === 0
       ? '<div class="empty" style="padding:20px;font-size:11px">No pure mismatches found. Pitcher arsenal may be well-designed for this lineup.</div>'
       : filtered.map(m => {
@@ -485,11 +586,29 @@ function renderAnalysis(data) {
           const descHtml = m.description
             ? `<div class="edge-desc">${m.description}</div>`
             : '';
+
+          // Tag UI
+          const playerId = m.hitterId || m.hitter; // fallback to name if id missing
+          const tagEntry = state.researchTags[playerId];
+          const tagChipsHtml = tagEntry && tagEntry.tags?.length > 0
+            ? `<div class="tag-row">${tagEntry.tags.map(t => {
+                const td = HITTER_TAGS.find(h => h.key === t);
+                return `<span class="tag-chip ${t}">${td?.label || t}</span>`;
+              }).join('')}${tagEntry.notes ? `<span class="stat-chip" style="font-style:italic" title="${tagEntry.notes.replace(/"/g,'&quot;')}">📝 note</span>` : ''}</div>`
+            : '';
+          const isTagged = tagEntry && tagEntry.tags?.length > 0;
+          const tagBtnTxt = isTagged ? 'EDIT TAGS' : '+ TAG';
+
+          const tagCtx = JSON.stringify({id:playerId,name:m.hitter,role:"hitter",team:hitTeamAbbr,opp:oppPitcherName,gamePk:data.gamePk}).replace(/'/g, '&#39;');
+
           return `
             <div class="match ${m.tier}">
               <div class="match-head">
                 <div class="match-hitter">${m.hitter}<span class="hand">${m.hand || ''}</span></div>
-                <div class="tier-badge ${m.tier}">${m.tier.toUpperCase()}</div>
+                <div style="display:flex;gap:6px;align-items:center">
+                  <button class="tag-btn tag-btn-sm ${isTagged?'tagged':''}" onclick='openTagModal(${tagCtx})'>${tagBtnTxt}</button>
+                  <div class="tier-badge ${m.tier}">${m.tier.toUpperCase()}</div>
+                </div>
               </div>
               <div class="match-pitches">${pitchesTxt || '<span style="opacity:0.5">no pitch-level data</span>'}</div>
               ${descHtml}
@@ -502,6 +621,7 @@ function renderAnalysis(data) {
                   ${xwobaDisplay}
                 </div>` : ''}
               ${adjHtml}
+              ${tagChipsHtml}
             </div>
           `;
         }).join('');
@@ -523,15 +643,37 @@ function renderAnalysis(data) {
       </div>
     ` : '';
 
+    // Pitcher tag UI
+    const pitcherId = s.pitcher.id || s.pitcher.name;
+    const pitcherTag = state.researchTags[pitcherId];
+    const pitcherIsTagged = pitcherTag && pitcherTag.tags?.length > 0;
+    const pitcherTeamAbbr = isAwayHittingSide
+      ? (data.homeTeam?.abbreviation || data.homeTeam?.name || 'Home')
+      : (data.awayTeam?.abbreviation || data.awayTeam?.name || 'Away');
+    const pitcherTagChips = pitcherIsTagged
+      ? `<div class="tag-row" style="margin-top:6px;padding-top:6px">${pitcherTag.tags.map(t => {
+          const td = PITCHER_TAGS.find(p => p.key === t);
+          return `<span class="tag-chip ${t}">${td?.label || t}</span>`;
+        }).join('')}${pitcherTag.notes ? `<span class="stat-chip" style="font-style:italic" title="${pitcherTag.notes.replace(/"/g,'&quot;')}">📝 note</span>` : ''}</div>`
+      : '';
+
+    const pitcherTagCtx = JSON.stringify({id:pitcherId,name:s.pitcher.name,role:"pitcher",team:pitcherTeamAbbr,opp:"vs "+(isAwayHittingSide?data.awayTeam?.abbreviation:data.homeTeam?.abbreviation),gamePk:data.gamePk}).replace(/'/g, '&#39;');
+
     return `
       <div class="analysis-panel">
         <div class="analysis-head">
           <div class="analysis-title">${label}</div>
         </div>
         <div class="pitcher-header">
-          <div class="ph-name">${s.pitcher.name} (${s.pitcher.hand}HP)</div>
-          <div class="ph-meta">Arsenal (by usage):</div>
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px">
+            <div>
+              <div class="ph-name">${s.pitcher.name} (${s.pitcher.hand}HP)</div>
+              <div class="ph-meta">Arsenal (by usage):</div>
+            </div>
+            <button class="tag-btn tag-btn-sm ${pitcherIsTagged?'tagged':''}" onclick='openTagModal(${pitcherTagCtx})'>${pitcherIsTagged?'EDIT TAGS':'+ TAG'}</button>
+          </div>
           <div class="pitch-list">${arsenalHtml || '<span style="color:var(--dim);font-size:11px">No arsenal data available</span>'}</div>
+          ${pitcherTagChips}
         </div>
         ${lineupTierHtml}
         ${mmHtml}
@@ -716,6 +858,184 @@ function renderStatsBar() {
   `;
 }
 
+// =============== RESEARCH TAGS ===============
+function openTagModal(ctx) {
+  // ctx: { id, name, role, team, opp, gamePk }
+  tagModalContext = ctx;
+  const existing = state.researchTags[ctx.id] || { tags: [], notes: '' };
+  const tagSet = ctx.role === 'pitcher' ? PITCHER_TAGS : HITTER_TAGS;
+
+  document.getElementById('tagModalTitle').textContent = ctx.name;
+  document.getElementById('tagModalSub').textContent = `${ctx.role === 'pitcher' ? 'Pitcher' : 'Hitter'} · ${ctx.team || ''}${ctx.opp ? ' · ' + ctx.opp : ''}`;
+
+  const picker = document.getElementById('tagPicker');
+  picker.innerHTML = tagSet.map(t => {
+    const active = existing.tags.includes(t.key);
+    return `<button class="tag-option ${active?'active ' + t.key:''}" data-tag="${t.key}" onclick="toggleTagOption(this)" title="${t.desc}">${t.label}</button>`;
+  }).join('');
+
+  document.getElementById('tagNotes').value = existing.notes || '';
+  document.getElementById('tagDeleteBtn').style.display = (existing.tags.length > 0 || existing.notes) ? 'inline-block' : 'none';
+  document.getElementById('tagModal').classList.add('open');
+}
+
+function toggleTagOption(btn) {
+  const tag = btn.dataset.tag;
+  if (btn.classList.contains('active')) {
+    btn.classList.remove('active', tag);
+  } else {
+    btn.classList.add('active', tag);
+  }
+}
+
+function closeTagModal() {
+  document.getElementById('tagModal').classList.remove('open');
+  tagModalContext = null;
+}
+
+function saveTag() {
+  if (!tagModalContext) return;
+  const ctx = tagModalContext;
+  const picked = [...document.querySelectorAll('.tag-option.active')].map(b => b.dataset.tag);
+  const notes = document.getElementById('tagNotes').value.trim();
+
+  if (picked.length === 0 && !notes) {
+    // No tags and no notes = remove entry
+    delete state.researchTags[ctx.id];
+  } else {
+    state.researchTags[ctx.id] = {
+      name: ctx.name,
+      role: ctx.role,
+      team: ctx.team || '',
+      opp: ctx.opp || '',
+      gamePk: ctx.gamePk || null,
+      tags: picked,
+      notes,
+      updated: Date.now()
+    };
+  }
+  saveState();
+  closeTagModal();
+  // Re-render current analysis to show updated tags
+  const openGame = Object.keys(analysisCache)[0];
+  if (document.getElementById('analysisContainer').innerHTML.trim() !== '') {
+    // Find the currently visible analysis and re-render it
+    for (const pk of Object.keys(analysisCache)) {
+      if (String(pk) === String(ctx.gamePk)) {
+        renderAnalysis(analysisCache[pk]);
+        break;
+      }
+    }
+  }
+  renderResearch();
+  showToast(picked.length > 0 || notes ? 'Tag saved' : 'Tag removed');
+}
+
+function deleteTag() {
+  if (!tagModalContext) return;
+  if (!confirm(`Remove all tags for ${tagModalContext.name}?`)) return;
+  delete state.researchTags[tagModalContext.id];
+  saveState();
+  closeTagModal();
+  // Re-render analysis if it's visible
+  if (tagModalContext.gamePk && analysisCache[tagModalContext.gamePk]) {
+    renderAnalysis(analysisCache[tagModalContext.gamePk]);
+  }
+  renderResearch();
+  showToast('Tag removed');
+}
+
+function renderResearch() {
+  const all = Object.entries(state.researchTags);
+
+  // Build filter bar from all unique tags in use
+  const usedTags = new Set();
+  all.forEach(([,v]) => (v.tags||[]).forEach(t => usedTags.add(t)));
+
+  const filterBar = document.getElementById('tagFilterBar');
+  const filterBtns = [
+    `<button class="tag-filter-btn ${currentTagFilter==='all'?'active':''}" onclick="setTagFilter('all')">ALL</button>`,
+    `<button class="tag-filter-btn ${currentTagFilter==='hitter'?'active':''}" onclick="setTagFilter('hitter')">HITTERS ONLY</button>`,
+    `<button class="tag-filter-btn ${currentTagFilter==='pitcher'?'active':''}" onclick="setTagFilter('pitcher')">PITCHERS ONLY</button>`
+  ];
+  [...HITTER_TAGS, ...PITCHER_TAGS].forEach(t => {
+    if (usedTags.has(t.key)) {
+      const count = all.filter(([,v]) => (v.tags||[]).includes(t.key)).length;
+      filterBtns.push(`<button class="tag-filter-btn ${currentTagFilter===t.key?'active':''}" onclick="setTagFilter('${t.key}')">${t.label.toUpperCase()} · ${count}</button>`);
+    }
+  });
+  filterBar.innerHTML = filterBtns.join('');
+
+  // Apply filter
+  const filtered = all.filter(([,v]) => {
+    if (currentTagFilter === 'all') return true;
+    if (currentTagFilter === 'hitter') return v.role === 'hitter';
+    if (currentTagFilter === 'pitcher') return v.role === 'pitcher';
+    return (v.tags || []).includes(currentTagFilter);
+  });
+
+  const hitters = filtered.filter(([,v]) => v.role === 'hitter')
+    .sort((a,b) => (b[1].updated||0) - (a[1].updated||0));
+  const pitchers = filtered.filter(([,v]) => v.role === 'pitcher')
+    .sort((a,b) => (b[1].updated||0) - (a[1].updated||0));
+
+  document.getElementById('researchHittersCount').textContent = hitters.length ? `· ${hitters.length}` : '';
+  document.getElementById('researchPitchersCount').textContent = pitchers.length ? `· ${pitchers.length}` : '';
+
+  const renderCard = ([id, entry], role) => {
+    const tagSet = role === 'pitcher' ? PITCHER_TAGS : HITTER_TAGS;
+    const chipsHtml = (entry.tags || []).map(t => {
+      const td = tagSet.find(x => x.key === t);
+      return `<span class="tag-chip ${t}">${td?.label || t}</span>`;
+    }).join('');
+    const updated = entry.updated ? new Date(entry.updated).toLocaleDateString('en-US',{month:'short',day:'numeric'}) : '';
+    const jumpBtn = entry.gamePk
+      ? `<button class="btn sm" onclick="jumpToGame(${entry.gamePk})">OPEN GAME</button>`
+      : '';
+    const editCtx = JSON.stringify({id:id,name:entry.name,role:role,team:entry.team||'',opp:entry.opp||'',gamePk:entry.gamePk}).replace(/'/g, '&#39;');
+    return `
+      <div class="research-card ${role}">
+        <div class="rc-head">
+          <div>
+            <div class="rc-name">${entry.name}</div>
+            <div class="rc-meta">${entry.team || ''}${entry.opp ? ' · ' + entry.opp : ''}${updated ? ' · updated ' + updated : ''}</div>
+          </div>
+          <button class="tag-btn tag-btn-sm tagged" onclick='openTagModal(${editCtx})'>EDIT</button>
+        </div>
+        <div class="tag-row" style="margin-top:4px;padding-top:0;border:none">${chipsHtml}</div>
+        ${entry.notes ? `<div class="rc-notes">${entry.notes.replace(/</g,'&lt;')}</div>` : ''}
+        ${jumpBtn ? `<div class="rc-actions">${jumpBtn}</div>` : ''}
+      </div>
+    `;
+  };
+
+  document.getElementById('researchHittersList').innerHTML = hitters.length > 0
+    ? hitters.map(e => renderCard(e, 'hitter')).join('')
+    : `<div class="empty" style="padding:30px 20px;font-size:12px"><div class="empty-icon">○</div><div>No tagged hitters yet. Tap <b>+ TAG</b> on any hitter in a slate analysis to mark them.</div></div>`;
+
+  document.getElementById('researchPitchersList').innerHTML = pitchers.length > 0
+    ? pitchers.map(e => renderCard(e, 'pitcher')).join('')
+    : `<div class="empty" style="padding:30px 20px;font-size:12px"><div class="empty-icon">○</div><div>No tagged pitchers yet. Tap <b>+ TAG</b> on any pitcher header in a slate analysis to mark them.</div></div>`;
+}
+
+function setTagFilter(f) {
+  currentTagFilter = f;
+  renderResearch();
+}
+
+function jumpToGame(gamePk) {
+  document.querySelector('.tab[data-tab="slate"]').click();
+  // If we have the game cached, scroll to it / re-analyze
+  if (analysisCache[gamePk]) {
+    renderAnalysis(analysisCache[gamePk]);
+    setTimeout(() => {
+      document.getElementById('analysisContainer').scrollIntoView({behavior:'smooth', block:'start'});
+    }, 100);
+  } else {
+    analyzeGame(gamePk);
+  }
+}
+
 // =============== HISTORY ===============
 function renderHistory() {
   const list = document.getElementById('historyList');
@@ -794,7 +1114,7 @@ function saveNotes() {
 function confirmReset() {
   if (!confirm('Reset ALL data?')) return;
   if (!confirm('Are you sure? Cannot be undone.')) return;
-  state = { picks:{}, banned:[], notes:'', currentDate:getTodayStr() };
+  state = { picks:{}, banned:[], notes:'', currentDate:getTodayStr(), researchTags:{} };
   saveState();
   location.reload();
 }
@@ -823,13 +1143,14 @@ function importBackup(event) {
           picks: imp.picks || {},
           banned: imp.banned || [],
           notes: imp.notes || '',
-          currentDate: imp.currentDate || getTodayStr()
+          currentDate: imp.currentDate || getTodayStr(),
+          researchTags: imp.researchTags || {}
         };
         saveState();
         showToast('Replaced · reloading...');
         setTimeout(()=>location.reload(), 800);
       } else {
-        let mergedPicks=0, mergedBans=0;
+        let mergedPicks=0, mergedBans=0, mergedTags=0;
         Object.keys(imp.picks||{}).forEach(date => {
           if (!state.picks[date]) state.picks[date] = {};
           Object.keys(imp.picks[date]).forEach(id => {
@@ -837,9 +1158,12 @@ function importBackup(event) {
           });
         });
         (imp.banned||[]).forEach(b => { if (!state.banned.includes(b)) { state.banned.push(b); mergedBans++; } });
+        Object.entries(imp.researchTags||{}).forEach(([id, entry]) => {
+          if (!state.researchTags[id]) { state.researchTags[id] = entry; mergedTags++; }
+        });
         if (imp.notes && imp.notes !== state.notes) state.notes = (state.notes?state.notes+'\n\n--- IMPORTED ---\n':'') + imp.notes;
         saveState();
-        showToast(`Merged ${mergedPicks}p · ${mergedBans}b`);
+        showToast(`Merged ${mergedPicks}p · ${mergedBans}b · ${mergedTags}t`);
         setTimeout(()=>location.reload(), 1200);
       }
     } catch(err) {

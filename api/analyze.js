@@ -198,6 +198,7 @@ export default async function handler(req, res) {
         });
 
         return {
+          hitterId: h.id,
           hitter: h.name,
           hand: h.hand,
           position: h.position,
