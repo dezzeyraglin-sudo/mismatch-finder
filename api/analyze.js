@@ -186,6 +186,17 @@ export default async function handler(req, res) {
         else if (adjustedMaxXwoba >= 0.370) tier = 'strong';
         else if (adjustedMaxXwoba >= 0.330) tier = 'solid';
 
+        // Build plain-language edge description
+        const description = buildEdgeDescription({
+          hitter: h,
+          matchedPitches,
+          maxXwoba,
+          overall,
+          adjustments,
+          parkFactor,
+          tier
+        });
+
         return {
           hitter: h.name,
           hand: h.hand,
@@ -198,6 +209,7 @@ export default async function handler(req, res) {
           contextMultiplier: contextMultiplier.toFixed(3),
           adjustments,
           tier,
+          description,
           seasonStats: {
             xwoba: overall.xwoba?.value || null,
             barrelPct: overall.barrel_batted_rate?.value || null,
@@ -212,12 +224,16 @@ export default async function handler(req, res) {
         .filter(h => h.tier)
         .sort((a, b) => parseFloat(b.adjustedEdgeScore) - parseFloat(a.adjustedEdgeScore));
 
+      // Aggregate pitcher-vs-lineup tier
+      const lineupTier = computeLineupTier(analyzed, arsenal);
+
       return {
         key: s.key,
         data: {
           pitcher: s.pitcher,
           pitcherArsenal: arsenal,
-          mismatches: tiered
+          mismatches: tiered,
+          lineupTier
         }
       };
     }));
@@ -230,4 +246,161 @@ export default async function handler(req, res) {
     console.error('Analyze error:', err);
     return res.status(500).json({ error: err.message, stack: err.stack });
   }
+}
+
+// ===== EDGE DESCRIPTION GENERATOR =====
+// Builds a plain-language explanation of WHY a hitter has an edge in this matchup
+function buildEdgeDescription({ hitter, matchedPitches, maxXwoba, overall, adjustments, parkFactor, tier }) {
+  if (!tier || matchedPitches.length === 0) return null;
+
+  const parts = [];
+
+  // Primary reason: the best pitch-type mismatch
+  const best = matchedPitches.reduce((a, b) =>
+    parseFloat(a.hitterXwoba) > parseFloat(b.hitterXwoba) ? a : b
+  );
+  const bestXwoba = parseFloat(best.hitterXwoba);
+
+  // Craft the hook based on xwOBA severity
+  let verb;
+  if (bestXwoba >= 0.500) verb = 'demolishes';
+  else if (bestXwoba >= 0.420) verb = 'crushes';
+  else if (bestXwoba >= 0.370) verb = 'handles';
+  else verb = 'does well vs';
+
+  parts.push(`${verb} the ${best.pitch.toLowerCase()} (${bestXwoba.toFixed(3)} xwOBA)`);
+
+  // Usage context — if the pitcher throws it a lot, the edge is bigger
+  const usage = parseFloat(best.pitcherUsage || 0);
+  if (usage >= 35) {
+    parts[0] += `, and the pitcher leans on it heavily (${usage.toFixed(0)}% usage)`;
+  } else if (usage >= 20) {
+    parts[0] += ` (${usage.toFixed(0)}% usage)`;
+  }
+
+  // Secondary pitch crushed?
+  const others = matchedPitches
+    .filter(m => m !== best && parseFloat(m.hitterXwoba) >= 0.370)
+    .sort((a, b) => parseFloat(b.hitterXwoba) - parseFloat(a.hitterXwoba));
+  if (others.length > 0) {
+    parts.push(`Also strong vs the ${others[0].pitch.toLowerCase()} (${others[0].hitterXwoba})`);
+  }
+
+  // Power profile
+  const barrel = parseFloat(overall.barrel_batted_rate?.value || 0);
+  const hardHit = parseFloat(overall.hard_hit_percent?.value || 0);
+  const ev = parseFloat(overall.avg_exit_velocity?.value || 0);
+  const powerSignals = [];
+  if (barrel >= 12) powerSignals.push(`${barrel.toFixed(1)}% barrel`);
+  if (hardHit >= 45) powerSignals.push(`${hardHit.toFixed(0)}% hard-hit`);
+  if (ev >= 91) powerSignals.push(`${ev.toFixed(1)} EV`);
+  if (powerSignals.length >= 2) {
+    parts.push(`Elite contact quality (${powerSignals.join(', ')})`);
+  } else if (powerSignals.length === 1) {
+    parts.push(powerSignals[0]);
+  }
+
+  // Context adjustments
+  const hitterAdjustments = adjustments.filter(a => a.favor === 'hitter');
+  if (hitterAdjustments.length > 0) {
+    const parkAdj = hitterAdjustments.find(a => a.type === 'park');
+    const umpAdj = hitterAdjustments.find(a => a.type === 'umpire');
+    const ctxBits = [];
+    if (parkAdj && parkFactor) {
+      ctxBits.push(`${parkFactor.name} boost`);
+    }
+    if (umpAdj) {
+      ctxBits.push('hitter-friendly ump');
+    }
+    if (ctxBits.length > 0) {
+      parts.push(`Boosted by ${ctxBits.join(' + ')}`);
+    }
+  }
+
+  const pitcherAdjustments = adjustments.filter(a => a.favor === 'pitcher');
+  if (pitcherAdjustments.length > 0 && hitterAdjustments.length === 0) {
+    // Only mention headwinds if nothing helped
+    const badParkAdj = pitcherAdjustments.find(a => a.type === 'park');
+    if (badParkAdj && parkFactor) {
+      parts.push(`(${parkFactor.name} suppresses offense — still clears tier)`);
+    }
+  }
+
+  // Join as sentences
+  return parts.join('. ') + '.';
+}
+
+// ===== PITCHER-VS-LINEUP TIER =====
+// Aggregates mismatch data across the full lineup to score how exploitable the pitcher is overall
+function computeLineupTier(analyzedHitters, arsenal) {
+  const total = analyzedHitters.length;
+  if (total === 0) {
+    return {
+      tier: 'unknown',
+      label: 'No lineup data',
+      eliteCount: 0,
+      strongCount: 0,
+      solidCount: 0,
+      tieredCount: 0,
+      lineupSize: 0,
+      avgMaxXwoba: null,
+      summary: 'Lineup unavailable'
+    };
+  }
+
+  const eliteCount = analyzedHitters.filter(h => h.tier === 'elite').length;
+  const strongCount = analyzedHitters.filter(h => h.tier === 'strong').length;
+  const solidCount = analyzedHitters.filter(h => h.tier === 'solid').length;
+  const tieredCount = eliteCount + strongCount + solidCount;
+
+  // Average adjusted max xwOBA across whole lineup (not just tiered)
+  const xwobas = analyzedHitters
+    .map(h => parseFloat(h.adjustedMaxXwoba))
+    .filter(x => !isNaN(x) && x > 0);
+  const avgMaxXwoba = xwobas.length > 0
+    ? (xwobas.reduce((a, b) => a + b, 0) / xwobas.length)
+    : 0;
+
+  // Weighted score: elite counts 3x, strong 2x, solid 1x
+  // Plus bonus for high average xwOBA across whole lineup
+  const weightedScore = (eliteCount * 3) + (strongCount * 2) + (solidCount * 1);
+  const avgBonus = avgMaxXwoba >= 0.370 ? 3 : avgMaxXwoba >= 0.330 ? 2 : avgMaxXwoba >= 0.300 ? 1 : 0;
+  const totalScore = weightedScore + avgBonus;
+
+  // Tier assignment
+  let tier, label, summary;
+  if (eliteCount >= 2 || totalScore >= 10) {
+    tier = 'exploitable';
+    label = 'EXPLOITABLE';
+    summary = `Lineup can stack against this arsenal (${eliteCount} elite, ${strongCount} strong, ${solidCount} solid across ${total} hitters)`;
+  } else if (eliteCount >= 1 || totalScore >= 6) {
+    tier = 'leaky';
+    label = 'LEAKY';
+    summary = `Multiple hitters have edges (${tieredCount}/${total} tiered, avg xwOBA ${avgMaxXwoba.toFixed(3)})`;
+  } else if (tieredCount >= 2 || totalScore >= 3) {
+    tier = 'spot';
+    label = 'SPOT START';
+    summary = `A couple of hitters can do damage, but arsenal mostly holds up`;
+  } else if (arsenal.length === 0) {
+    tier = 'unknown';
+    label = 'NO DATA';
+    summary = 'Pitcher arsenal not available yet (early season / low sample)';
+  } else {
+    tier = 'tough';
+    label = 'TOUGH MATCHUP';
+    summary = `Arsenal suppresses this lineup (${tieredCount}/${total} with any edge, avg xwOBA ${avgMaxXwoba.toFixed(3)})`;
+  }
+
+  return {
+    tier,
+    label,
+    eliteCount,
+    strongCount,
+    solidCount,
+    tieredCount,
+    lineupSize: total,
+    avgMaxXwoba: avgMaxXwoba.toFixed(3),
+    totalScore,
+    summary
+  };
 }
