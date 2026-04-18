@@ -238,6 +238,10 @@
   .prop-pill.best::before{content:'★ BEST';position:absolute;top:-8px;left:50%;transform:translateX(-50%);background:var(--accent);color:#0a0d0a;font-size:8px;font-weight:700;padding:1px 6px;border-radius:100px;letter-spacing:0.08em;white-space:nowrap}
   .pp-key{font-weight:700;color:var(--ink);letter-spacing:0.05em}
   .prop-pill.best .pp-key{color:var(--accent)}
+  .pp-platform{font-size:8px;font-weight:700;letter-spacing:0.12em;padding:1px 5px;border-radius:2px;margin-right:2px}
+  .pp-platform.PP{background:rgba(198,255,61,0.2);color:var(--accent)}
+  .pp-platform.UD{background:rgba(255,122,61,0.2);color:var(--heat)}
+  .pp-platform.BOTH{background:rgba(102,217,232,0.15);color:var(--cool)}
   .pp-reason{color:var(--dim);font-size:10px;font-style:italic}
   @media(max-width:480px){
     .pp-reason{display:none}
@@ -496,16 +500,47 @@ const PITCHER_TAGS = [
   { key: 'fade',     label: 'Fade K',        desc: 'Under lean' }
 ];
 
-// Outcome types for track grading
+// PrizePicks / Underdog prop types for track grading
+// Each has a specific line (the "More/Higher" threshold) and the platform(s) it's on
 const OUTCOME_TYPES = [
-  { key: 'H',       label: 'HIT',       desc: '1+ hit' },
-  { key: 'R',       label: 'RUN',       desc: 'Scored' },
-  { key: 'RBI',     label: 'RBI',       desc: '1+ RBI' },
-  { key: 'HR',      label: 'HR',        desc: 'Homer' },
-  { key: 'TB',      label: 'TB',        desc: '2+ total bases' },
-  { key: 'HRR',     label: 'H+R+RBI',   desc: 'Any contribution' },
-  { key: 'FANTASY', label: 'FANTASY',   desc: 'Any box score +' }
+  // Combined line props (most common on PP/UD)
+  { key: 'H',         label: 'HITS 0.5',        desc: '1+ hit (More)',          platform: 'BOTH',  line: 0.5 },
+  { key: 'HRR',       label: 'H+R+RBI 1.5',     desc: 'H+R+RBI combined 2+',    platform: 'PP',    line: 1.5 },
+  { key: 'TB',        label: 'TB 1.5',          desc: '2+ total bases',         platform: 'BOTH',  line: 1.5 },
+  { key: 'PP_FS_6',   label: 'PP FS 6',         desc: 'PrizePicks fantasy 6+',  platform: 'PP',    line: 6 },
+  { key: 'PP_FS_8',   label: 'PP FS 8',         desc: 'PrizePicks fantasy 8+',  platform: 'PP',    line: 8 },
+  { key: 'UD_FS_5',   label: 'UD FS 5',         desc: 'Underdog fantasy 5+',    platform: 'UD',    line: 5 },
+  { key: 'UD_FS_7',   label: 'UD FS 7',         desc: 'Underdog fantasy 7+',    platform: 'UD',    line: 7 },
+  // Single-stat props (mostly Underdog)
+  { key: 'HR',        label: 'HR 0.5',          desc: 'Hits a homer',           platform: 'BOTH',  line: 0.5 },
+  { key: 'R',         label: 'RUNS 0.5',        desc: 'Scores a run',           platform: 'BOTH',  line: 0.5 },
+  { key: 'RBI',       label: 'RBI 0.5',         desc: 'Drives in a run',        platform: 'BOTH',  line: 0.5 },
+  { key: 'SINGLES',   label: 'SINGLES 0.5',     desc: '1+ single (UD specific)', platform: 'UD',    line: 0.5 },
+  { key: 'SB',        label: 'SB 0.5',          desc: '1+ stolen base',         platform: 'BOTH',  line: 0.5 },
+  { key: 'WALKS',     label: 'BB+HBP 0.5',      desc: '1+ walk or HBP',         platform: 'BOTH',  line: 0.5 }
 ];
+
+// Compute PrizePicks fantasy score from a box line
+// Singles 3, Doubles 5, Triples 8, HR 10, R 2, RBI 2, BB 2, HBP 2, SB 5
+function ppFantasyScore(line) {
+  if (!line) return 0;
+  const singles = line.H - (line.doubles || 0) - (line.triples || 0) - line.HR;
+  return (singles * 3)
+    + ((line.doubles || 0) * 5)
+    + ((line.triples || 0) * 8)
+    + (line.HR * 10)
+    + (line.R * 2)
+    + (line.RBI * 2)
+    + ((line.BB || 0) * 2)
+    + ((line.HBP || 0) * 2)
+    + ((line.SB || 0) * 5);
+}
+
+// Underdog fantasy score — same as PrizePicks based on their MLB pick'em structure
+// (UD uses direct stat props, but when "fantasy score" is offered it matches PP weights)
+function udFantasyScore(line) {
+  return ppFantasyScore(line);
+}
 
 function getTodayStr() {
   const d = new Date();
@@ -697,10 +732,11 @@ function renderAnalysis(data) {
           // Prop recommendations
           const propsHtml = (m.propRecs && m.propRecs.length > 0)
             ? `<div class="prop-recs">
-                <div class="prop-rec-label">PROP RECOMMENDATIONS</div>
+                <div class="prop-rec-label">PROP RECOMMENDATIONS · PP / UD GRADING</div>
                 <div class="prop-rec-list">
                   ${m.propRecs.map(p => `
                     <div class="prop-pill ${p.isBest ? 'best' : ''}">
+                      ${p.platform ? `<span class="pp-platform ${p.platform}">${p.platform}</span>` : ''}
                       <span class="pp-key">${p.label}</span>
                       <span class="pp-reason">${p.reason}</span>
                     </div>
@@ -988,7 +1024,16 @@ function renderTrackCard(pid, t, date) {
 
   const lineHtml = t.line ? `
     <div class="tc-line">
-      ${t.line.AB}AB · ${t.line.H}H · ${t.line.R}R · ${t.line.RBI}RBI · ${t.line.HR}HR · <b>${t.line.TB}TB</b>${t.line.BB?' · '+t.line.BB+'BB':''}${t.line.K?' · '+t.line.K+'K':''}
+      ${t.line.AB}AB · ${t.line.H}H · ${t.line.R}R · ${t.line.RBI}RBI · ${t.line.HR}HR · <b>${t.line.TB}TB</b>${t.line.BB?' · '+t.line.BB+'BB':''}${t.line.K?' · '+t.line.K+'K':''}${t.line.SB?' · '+t.line.SB+'SB':''}
+      ${(() => {
+        const fs = ppFantasyScore(t.line);
+        const clears = [];
+        if (fs >= 5) clears.push('UD5');
+        if (fs >= 6) clears.push('PP6');
+        if (fs >= 7) clears.push('UD7');
+        if (fs >= 8) clears.push('PP8');
+        return ` · <b style="color:var(--heat)">FS ${fs}</b>${clears.length ? ' <span style="color:var(--accent);font-size:10px">✓ ' + clears.join(',') + '</span>' : ''}`;
+      })()}
     </div>
   ` : '';
 
@@ -1061,15 +1106,27 @@ function removeTracked(date, pid) {
 
 function gradeLine(line, outcomeType) {
   if (!line) return null;
+  // DNP check — no plate appearances means void on PP/UD, we treat as didnotplay
+  if ((line.PA || 0) === 0 && (line.AB || 0) === 0) return 'didnotplay';
+
   switch(outcomeType) {
-    case 'H':       return line.H >= 1 ? 'win' : 'loss';
-    case 'R':       return line.R >= 1 ? 'win' : 'loss';
-    case 'RBI':     return line.RBI >= 1 ? 'win' : 'loss';
-    case 'HR':      return line.HR >= 1 ? 'win' : 'loss';
-    case 'TB':      return line.TB >= 2 ? 'win' : 'loss';
-    case 'HRR':     return (line.H + line.R + line.RBI) >= 1 ? 'win' : 'loss';
-    case 'FANTASY': return (line.H + line.R + line.RBI + line.HR + line.BB + line.SB) >= 1 ? 'win' : 'loss';
-    default:        return null;
+    case 'H':        return line.H >= 1 ? 'win' : 'loss';
+    case 'HRR':      return (line.H + line.R + line.RBI) >= 2 ? 'win' : 'loss';
+    case 'TB':       return line.TB >= 2 ? 'win' : 'loss';
+    case 'HR':       return line.HR >= 1 ? 'win' : 'loss';
+    case 'R':        return line.R >= 1 ? 'win' : 'loss';
+    case 'RBI':      return line.RBI >= 1 ? 'win' : 'loss';
+    case 'SINGLES':  {
+      const singles = line.H - (line.doubles || 0) - (line.triples || 0) - line.HR;
+      return singles >= 1 ? 'win' : 'loss';
+    }
+    case 'SB':       return (line.SB || 0) >= 1 ? 'win' : 'loss';
+    case 'WALKS':    return ((line.BB || 0) + (line.HBP || 0)) >= 1 ? 'win' : 'loss';
+    case 'PP_FS_6':  return ppFantasyScore(line) >= 6 ? 'win' : 'loss';
+    case 'PP_FS_8':  return ppFantasyScore(line) >= 8 ? 'win' : 'loss';
+    case 'UD_FS_5':  return udFantasyScore(line) >= 5 ? 'win' : 'loss';
+    case 'UD_FS_7':  return udFantasyScore(line) >= 7 ? 'win' : 'loss';
+    default:         return null;
   }
 }
 

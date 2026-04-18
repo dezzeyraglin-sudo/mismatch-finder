@@ -67,15 +67,34 @@ export default async function handler(req, res) {
       summary: batting.summary || ''
     };
 
-    // Auto-grade against each outcome type
+    // PrizePicks / Underdog fantasy score calculation
+    // Singles 3, Doubles 5, Triples 8, HR 10, R 2, RBI 2, BB 2, HBP 2, SB 5
+    const singles = line.H - line.doubles - line.triples - line.HR;
+    const fantasyScore = (singles * 3)
+      + (line.doubles * 5)
+      + (line.triples * 8)
+      + (line.HR * 10)
+      + (line.R * 2)
+      + (line.RBI * 2)
+      + (line.BB * 2)
+      + (line.HBP * 2)
+      + (line.SB * 5);
+
+    // Pre-grade against standard PP/UD prop lines
     const outcomes = {
-      H: line.H >= 1,
-      R: line.R >= 1,
-      RBI: line.RBI >= 1,
-      HR: line.HR >= 1,
-      TB: line.TB >= 2,          // Total Bases 1.5+ (so 2+)
-      HRR: (line.H + line.R + line.RBI) >= 1,  // Any H+R+RBI contribution
-      FANTASY: (line.H + line.R + line.RBI + line.HR + line.TB + line.BB + line.SB) >= 1  // Any box score positive
+      H:        line.H >= 1,
+      HRR:      (line.H + line.R + line.RBI) >= 2,  // PP: H+R+RBI 1.5 line
+      TB:       line.TB >= 2,                         // TB 1.5 line
+      HR:       line.HR >= 1,
+      R:        line.R >= 1,
+      RBI:      line.RBI >= 1,
+      SINGLES:  singles >= 1,
+      SB:       line.SB >= 1,
+      WALKS:    (line.BB + line.HBP) >= 1,
+      PP_FS_6:  fantasyScore >= 6,
+      PP_FS_8:  fantasyScore >= 8,
+      UD_FS_5:  fantasyScore >= 5,
+      UD_FS_7:  fantasyScore >= 7
     };
 
     res.setHeader('Cache-Control', 's-maxage=60, stale-while-revalidate=300');
@@ -87,6 +106,7 @@ export default async function handler(req, res) {
       team,
       playerName: playerData.person?.fullName || '',
       line,
+      fantasyScore,
       outcomes
     });
   } catch (err) {

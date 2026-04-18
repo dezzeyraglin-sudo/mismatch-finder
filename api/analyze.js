@@ -495,21 +495,36 @@ function buildPropRecommendations({ hitter, matchedPitches, maxXwoba, overall, p
   rScore += runParkBoost > 1.03 ? 8 : 0;
   rScore -= Math.max(0, (kPct - 22)) * 0.9;
 
-  // HRR (H+R+RBI any) — basically any offensive contribution
-  // Very good when at least one pathway is strong
+  // HRR (H+R+RBI 1.5 — standard PP line, needs 2+ combined)
   const hrr = Math.max(hitScore * 0.9, rbiScore * 0.85, rScore * 0.85) + 8;
 
-  // FANTASY (any positive box score contribution) — widest net
-  const fantasy = Math.max(hitScore, rbiScore, rScore) * 0.88 + 12;
+  // Fantasy score projection - estimate points from signals
+  // Rough heuristic: expected PA ~4, weight by contact & power profile
+  const estSingles = maxXwoba * 1.2;       // ~xwOBA converted to contact rate
+  const estXBH = maxXslg * 0.6;            // extra-base hits
+  const estHR = (barrel / 100) * 0.4;      // barrel-based HR rate per PA
+  const estR = maxXwoba * 0.8 * runParkBoost;
+  const estRBI = maxXwoba * 0.9 * runParkBoost;
+  const estBB = Math.max(0, (parseFloat(overall.bb_percent?.value || 8) / 100)) * 4;
+  const projFS = (estSingles * 3) + (estXBH * 6) + (estHR * 10) + (estR * 2) + (estRBI * 2) + (estBB * 2);
+
+  // PP/UD Fantasy Score props - score based on how comfortably we clear the line
+  const fs_pp6 = (projFS - 6) * 12 + 40;    // cleared 6 line
+  const fs_pp8 = (projFS - 8) * 12 + 30;    // cleared 8 line (harder)
+  const fs_ud5 = (projFS - 5) * 12 + 42;    // UD 5 line (easier)
+  const fs_ud7 = (projFS - 7) * 12 + 32;    // UD 7 line
 
   const allProps = [
-    { key: 'H',       label: 'HIT',       score: hitScore,   reason: hitReason(maxXwoba, kPct, hardHit, runParkBoost) },
-    { key: 'HR',      label: 'HR',        score: hrScore,    reason: hrReason(barrel, ev, maxXslg, hrParkBoost, hitter.hand, parkFactor) },
-    { key: 'TB',      label: 'TB',        score: tbScore,    reason: tbReason(maxXslg, barrel, hrParkBoost) },
-    { key: 'RBI',     label: 'RBI',       score: rbiScore,   reason: rbiReason(maxXwoba, barrel, runParkBoost) },
-    { key: 'R',       label: 'RUN',       score: rScore,     reason: rReason(maxXwoba, kPct, runParkBoost) },
-    { key: 'HRR',     label: 'H+R+RBI',   score: hrr,        reason: 'Multiple pathways to the over' },
-    { key: 'FANTASY', label: 'FANTASY',   score: fantasy,    reason: 'Any box score contribution' }
+    { key: 'H',        label: 'HITS 0.5',       platform: 'BOTH', score: hitScore,   reason: hitReason(maxXwoba, kPct, hardHit, runParkBoost) },
+    { key: 'HR',       label: 'HR 0.5',         platform: 'BOTH', score: hrScore,    reason: hrReason(barrel, ev, maxXslg, hrParkBoost, hitter.hand, parkFactor) },
+    { key: 'TB',       label: 'TB 1.5',         platform: 'BOTH', score: tbScore,    reason: tbReason(maxXslg, barrel, hrParkBoost) },
+    { key: 'RBI',      label: 'RBI 0.5',        platform: 'BOTH', score: rbiScore,   reason: rbiReason(maxXwoba, barrel, runParkBoost) },
+    { key: 'R',        label: 'RUNS 0.5',       platform: 'BOTH', score: rScore,     reason: rReason(maxXwoba, kPct, runParkBoost) },
+    { key: 'HRR',      label: 'H+R+RBI 1.5',    platform: 'PP',   score: hrr,        reason: 'Multiple pathways to the over (PrizePicks)' },
+    { key: 'PP_FS_6',  label: 'PP FS 6',        platform: 'PP',   score: fs_pp6,     reason: `Projected ~${projFS.toFixed(1)} pts (need 6+)` },
+    { key: 'PP_FS_8',  label: 'PP FS 8',        platform: 'PP',   score: fs_pp8,     reason: `Projected ~${projFS.toFixed(1)} pts (need 8+)` },
+    { key: 'UD_FS_5',  label: 'UD FS 5',        platform: 'UD',   score: fs_ud5,     reason: `Projected ~${projFS.toFixed(1)} pts (need 5+)` },
+    { key: 'UD_FS_7',  label: 'UD FS 7',        platform: 'UD',   score: fs_ud7,     reason: `Projected ~${projFS.toFixed(1)} pts (need 7+)` }
   ];
 
   // Sort by score, take top 4
