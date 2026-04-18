@@ -285,6 +285,23 @@
   .psb-item .lbl{color:var(--dim);font-size:9px;letter-spacing:0.06em}
   .psb-item b{color:var(--ink)}
 
+  /* =============== DEEP MODE =============== */
+  .deep-toggle{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border:1px solid var(--line);border-radius:6px;background:var(--panel-2);color:var(--dim);font-size:11px;letter-spacing:0.12em;font-weight:700;cursor:pointer;transition:all 0.15s;margin-left:8px}
+  .deep-toggle:hover{border-color:var(--accent);color:var(--ink)}
+  .deep-toggle.active{background:var(--heat);color:#0a0d0a;border-color:var(--heat)}
+  .deep-toggle.active:hover{filter:brightness(1.05)}
+  .deep-toggle .dt-dot{width:6px;height:6px;border-radius:50%;background:var(--dim)}
+  .deep-toggle.active .dt-dot{background:#0a0d0a}
+
+  .source-badge{display:inline-block;font-size:7px;font-weight:700;letter-spacing:0.1em;padding:1px 3px;border-radius:2px;vertical-align:middle;margin-left:3px}
+  .source-badge.deep{background:var(--heat);color:#0a0d0a}
+  .source-badge.shallow{background:var(--line);color:var(--dim)}
+  .source-badge.small{background:var(--warn);color:#0a0d0a}
+
+  .deep-mode-banner{background:linear-gradient(90deg, rgba(255,122,61,0.1), rgba(255,122,61,0.02));border:1px solid rgba(255,122,61,0.25);border-radius:6px;padding:8px 12px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:11px}
+  .deep-mode-banner .dmb-label{color:var(--heat);font-weight:700;letter-spacing:0.12em}
+  .deep-mode-banner .dmb-desc{color:var(--dim);font-size:10px}
+
   .tier-filters{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap}
   .tier-filter{background:var(--panel);color:var(--dim);border:1px solid var(--line);padding:5px 10px;border-radius:100px;font-size:10.5px;cursor:pointer;letter-spacing:0.05em}
   .tier-filter.active{background:var(--heat);color:#0a0d0a;border-color:var(--heat)}
@@ -708,22 +725,36 @@ function renderGames() {
   }).join('');
 }
 
-async function analyzeGame(gamePk) {
+let deepModeActive = false;   // toggle between fast and deep analysis
+
+async function analyzeGame(gamePk, forceDeep) {
   const container = document.getElementById('analysisContainer');
-  container.innerHTML = '<div class="analysis-panel"><div class="loading"><span class="loading-spinner"></span>Analyzing mismatches... (this can take 15-30s for full lineup)</div></div>';
+  const deep = forceDeep !== undefined ? forceDeep : deepModeActive;
+  const cacheKey = `${gamePk}${deep ? '-deep' : ''}`;
+  const loadingMsg = deep
+    ? 'DEEP MODE: pulling per-pitch-per-hand splits for every hitter... (30-60s)'
+    : 'Analyzing mismatches... (this can take 15-30s for full lineup)';
+  container.innerHTML = `<div class="analysis-panel"><div class="loading"><span class="loading-spinner"></span>${loadingMsg}</div></div>`;
   container.scrollIntoView({behavior:'smooth', block:'start'});
 
   try {
-    if (!analysisCache[gamePk]) {
-      const res = await fetch(`/api/analyze?gamePk=${gamePk}`);
+    if (!analysisCache[cacheKey]) {
+      const url = `/api/analyze?gamePk=${gamePk}${deep ? '&deep=1' : ''}`;
+      const res = await fetch(url);
       if (!res.ok) throw new Error(`API ${res.status}`);
-      analysisCache[gamePk] = await res.json();
+      analysisCache[cacheKey] = await res.json();
     }
-    renderAnalysis(analysisCache[gamePk]);
+    renderAnalysis(analysisCache[cacheKey]);
   } catch(err) {
     console.error(err);
     container.innerHTML = `<div class="analysis-panel"><div class="empty"><div class="empty-icon">!</div><div>Analysis failed. ${err.message}</div></div></div>`;
   }
+}
+
+// Toggle deep mode and re-run analysis for the currently open game
+function toggleDeepMode(gamePk) {
+  deepModeActive = !deepModeActive;
+  analyzeGame(gamePk, deepModeActive);
 }
 
 function renderAnalysis(data) {
@@ -751,9 +782,15 @@ function renderAnalysis(data) {
     const mmHtml = filtered.length === 0
       ? '<div class="empty" style="padding:20px;font-size:11px">No pure mismatches found. Pitcher arsenal may be well-designed for this lineup.</div>'
       : filtered.map(m => {
-          const pitchesTxt = (m.matchedPitches || []).map(mp =>
-            `<b>${mp.pitch}</b> (pitcher throws ${mp.pitcherUsage}%, hitter xwOBA <b>${mp.hitterXwoba}</b>)`
-          ).join(' · ');
+          const pitchesTxt = (m.matchedPitches || []).map(mp => {
+            const srcBadge = mp.source === 'deep'
+              ? `<span class="source-badge deep" title="per-pitch vs ${m.platoonMeta?.pitcherHand || '?'}HP, ${mp.hitterPa || '?'} PA">DEEP</span>`
+              : '';
+            const sampleBadge = mp.smallSample
+              ? `<span class="source-badge small" title="small PA sample">SMALL</span>`
+              : '';
+            return `<b>${mp.pitch}</b>${srcBadge}${sampleBadge} (pitcher throws ${mp.pitcherUsage}%, hitter xwOBA <b>${mp.hitterXwoba}</b>)`;
+          }).join(' · ');
           const adjHtml = (m.adjustments || []).length > 0
             ? `<div class="adj-row">${m.adjustments.map(a =>
                 `<span class="adj-chip ${a.favor}">${a.favor==='hitter'?'▲':'▼'} ${a.label}</span>`
@@ -1030,8 +1067,27 @@ function renderAnalysis(data) {
     </div>
   `;
 
+  const deepBanner = data.deepMode ? `
+    <div class="deep-mode-banner">
+      <div>
+        <div class="dmb-label">⚡ DEEP MODE ACTIVE</div>
+        <div class="dmb-desc">Using per-pitch-type xwOBA filtered to this pitcher's handedness</div>
+      </div>
+      <button class="deep-toggle active" onclick="toggleDeepMode(${data.gamePk})">
+        <span class="dt-dot"></span>DEEP ON
+      </button>
+    </div>
+  ` : '';
+
+  const deepToggleInline = data.deepMode ? '' : `
+    <button class="deep-toggle" onclick="toggleDeepMode(${data.gamePk})">
+      <span class="dt-dot"></span>DEEP MODE
+    </button>
+  `;
+
   container.innerHTML = `
-    <h2 style="margin-top:24px">${gameLabel} · Mismatches <span class="count">${data.gameTime}${data.venue?' · '+data.venue:''}</span></h2>
+    <h2 style="margin-top:24px">${gameLabel} · Mismatches <span class="count">${data.gameTime}${data.venue?' · '+data.venue:''}</span>${deepToggleInline}</h2>
+    ${deepBanner}
     <div class="context-banner">
       ${parkBlock}
       ${umpBlock}
@@ -1049,7 +1105,8 @@ function renderAnalysis(data) {
 
 function filterTier(tier, gamePk) {
   currentTierFilter = tier;
-  if (analysisCache[gamePk]) renderAnalysis(analysisCache[gamePk]);
+  const cacheKey = `${gamePk}${deepModeActive ? '-deep' : ''}`;
+  if (analysisCache[cacheKey]) renderAnalysis(analysisCache[cacheKey]);
 }
 
 // =============== TRACK / STREAK ===============

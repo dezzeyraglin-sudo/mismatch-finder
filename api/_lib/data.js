@@ -372,3 +372,139 @@ export async function getPitcherSplits(mlbam, season) {
     return { vsR: null, vsL: null };
   }
 }
+
+// =============================================================
+// DEEP SPLITS: per-pitch-type xwOBA filtered by pitcher handedness
+// =============================================================
+// Pulls raw pitch-by-pitch from Statcast search endpoint and aggregates.
+// Heavier than regular arsenal stats (each call = 300-800 rows of CSV),
+// so cache aggressively and use only when needed ("deep mode").
+
+const deepCache = new Map();
+const DEEP_CACHE_TTL_MS = 30 * 60 * 1000;  // 30 minutes
+
+function pitchNameFromCode(code) {
+  const map = {
+    FF: '4-Seam Fastball', FT: '2-Seam Fastball', SI: 'Sinker', FC: 'Cutter',
+    SL: 'Slider', ST: 'Sweeper', SV: 'Slurve', CU: 'Curveball', KC: 'Knuckle Curve',
+    CH: 'Changeup', FS: 'Split-Finger', FO: 'Forkball', KN: 'Knuckleball',
+    EP: 'Eephus', SC: 'Screwball', CS: 'Slow Curve'
+  };
+  return map[code] || code;
+}
+
+// Simple CSV line parser (handles quoted fields with commas)
+function parseCSVLine(line) {
+  const result = [];
+  let current = '';
+  let inQuotes = false;
+  for (let i = 0; i < line.length; i++) {
+    const c = line[i];
+    if (c === '"') {
+      if (inQuotes && line[i+1] === '"') { current += '"'; i++; }
+      else inQuotes = !inQuotes;
+    } else if (c === ',' && !inQuotes) {
+      result.push(current);
+      current = '';
+    } else {
+      current += c;
+    }
+  }
+  result.push(current);
+  return result;
+}
+
+// Fetch per-pitch-type xwOBA for a hitter filtered to one pitcher hand.
+// Returns array of { type, typeCode, pitches, pa, xwoba, xwobaSampleSize }
+export async function getHitterPitchTypeByHand(mlbam, season, pitcherHand) {
+  const key = `${mlbam}-${season}-${pitcherHand}`;
+  const cached = deepCache.get(key);
+  if (cached && Date.now() - cached.t < DEEP_CACHE_TTL_MS) return cached.data;
+
+  try {
+    const url = `https://baseballsavant.mlb.com/statcast_search/csv?all=true&hfSea=${season}%7C&player_type=batter&pitcher_throws=${pitcherHand}&batters_lookup%5B%5D=${mlbam}&type=details`;
+    const r = await fetch(url, {
+      headers: { 'User-Agent': 'Mozilla/5.0 (Mismatch Finder)' },
+      signal: AbortSignal.timeout(25000)
+    });
+    if (!r.ok) {
+      deepCache.set(key, { t: Date.now(), data: [] });
+      return [];
+    }
+    const text = await r.text();
+    if (text.startsWith('<') || text.length < 200) {
+      deepCache.set(key, { t: Date.now(), data: [] });
+      return [];
+    }
+
+    const cleaned = text.replace(/^\uFEFF/, '');
+    const lines = cleaned.split('\n');
+    if (lines.length < 2) {
+      deepCache.set(key, { t: Date.now(), data: [] });
+      return [];
+    }
+
+    const headers = parseCSVLine(lines[0]);
+    const idx = {
+      pitch_type: headers.indexOf('pitch_type'),
+      events: headers.indexOf('events'),
+      estimated_woba: headers.indexOf('estimated_woba_using_speedangle'),
+      woba_value: headers.indexOf('woba_value')
+    };
+
+    if (idx.pitch_type < 0 || idx.events < 0) {
+      deepCache.set(key, { t: Date.now(), data: [] });
+      return [];
+    }
+
+    const byPitch = {};
+    for (let i = 1; i < lines.length; i++) {
+      if (!lines[i]) continue;
+      const cells = parseCSVLine(lines[i]);
+      if (cells.length < Math.max(idx.pitch_type, idx.events) + 1) continue;
+      const pt = (cells[idx.pitch_type] || '').trim();
+      if (!pt) continue;
+
+      if (!byPitch[pt]) {
+        byPitch[pt] = { pitches: 0, pa: 0, xwobaSum: 0, xwobaN: 0 };
+      }
+      byPitch[pt].pitches++;
+
+      const events = (cells[idx.events] || '').trim();
+      if (events) {
+        byPitch[pt].pa++;
+        const ewRaw = idx.estimated_woba >= 0 ? (cells[idx.estimated_woba] || '').trim() : '';
+        const wvRaw = idx.woba_value >= 0 ? (cells[idx.woba_value] || '').trim() : '';
+        let val = null;
+        if (ewRaw && ewRaw !== 'null' && ewRaw !== 'NaN') {
+          const n = parseFloat(ewRaw);
+          if (!isNaN(n)) val = n;
+        }
+        if (val === null && wvRaw && wvRaw !== 'null' && wvRaw !== 'NaN') {
+          const n = parseFloat(wvRaw);
+          if (!isNaN(n)) val = n;
+        }
+        if (val !== null) {
+          byPitch[pt].xwobaSum += val;
+          byPitch[pt].xwobaN++;
+        }
+      }
+    }
+
+    const result = Object.entries(byPitch).map(([code, d]) => ({
+      type: pitchNameFromCode(code),
+      typeCode: code,
+      pitches: d.pitches,
+      pa: d.pa,
+      xwoba: d.xwobaN > 0 ? (d.xwobaSum / d.xwobaN).toFixed(3) : null,
+      xwobaSampleSize: d.xwobaN
+    })).filter(p => p.pitches >= 5)
+      .sort((a, b) => b.pitches - a.pitches);
+
+    deepCache.set(key, { t: Date.now(), data: result });
+    return result;
+  } catch (err) {
+    deepCache.set(key, { t: Date.now(), data: [] });
+    return [];
+  }
+}

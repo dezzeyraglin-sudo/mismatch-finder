@@ -4,14 +4,15 @@
 
 import { PARK_FACTORS_BY_TEAM } from './_data/parkFactors.js';
 import { UMPIRE_FACTORS, classifyUmp } from './_data/umpireFactors.js';
-import { getProbables, getPitcherArsenal, getBullpenProfile, getLineup, getHitterStats, getHitterSplits, getPitcherSplits } from './_lib/data.js';
+import { getProbables, getPitcherArsenal, getBullpenProfile, getLineup, getHitterStats, getHitterSplits, getPitcherSplits, getHitterPitchTypeByHand } from './_lib/data.js';
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   if (req.method === 'OPTIONS') return res.status(200).end();
 
-  const { gamePk } = req.query;
+  const { gamePk, deep } = req.query;
   if (!gamePk) return res.status(400).json({ error: 'gamePk required' });
+  const deepMode = deep === '1' || deep === 'true';
 
   const season = new Date().getFullYear();
 
@@ -59,6 +60,7 @@ export default async function handler(req, res) {
       gameTime: game.gameTime,
       park: parkFactor,
       umpire: null,
+      deepMode,
       awayVsHome: null,
       homeVsAway: null
     };
@@ -103,45 +105,73 @@ export default async function handler(req, res) {
       const keyBullpenPitches = (bullpen.pitches || []).slice(0, 3);
       const topHitters = lineup.slice(0, 9);
 
-      // Fetch hitter stats + splits in parallel
+      // Fetch hitter stats + splits in parallel (plus deep per-pitch-per-hand if requested)
       const hitterData = await Promise.all(topHitters.map(async h => {
         try {
-          const [stats, splits] = await Promise.all([
+          // In deep mode, fetch per-pitch-type xwOBA filtered by THIS pitcher's handedness
+          // Switch hitters: the "effective hand" logic happens downstream; we pull for pitcher hand
+          const deepPromise = deepMode
+            ? getHitterPitchTypeByHand(h.id, season, s.pitcher.hand).catch(() => [])
+            : Promise.resolve([]);
+
+          const [stats, splits, deepPitchTypes] = await Promise.all([
             getHitterStats(h.id, season),
-            getHitterSplits(h.id, season).catch(() => ({ vsR: null, vsL: null }))
+            getHitterSplits(h.id, season).catch(() => ({ vsR: null, vsL: null })),
+            deepPromise
           ]);
-          return { ...h, stats, splits };
+          return { ...h, stats, splits, deepPitchTypes };
         } catch {
-          return { ...h, stats: { overall: {}, pitchTypes: [] }, splits: { vsR: null, vsL: null } };
+          return { ...h, stats: { overall: {}, pitchTypes: [] }, splits: { vsR: null, vsL: null }, deepPitchTypes: [] };
         }
       }));
 
       const analyzed = hitterData.map(h => {
         const pitchTypes = h.stats?.pitchTypes || [];
         const overall = h.stats?.overall || {};
+        const deepPitchTypes = h.deepPitchTypes || [];
+        const hasDeepData = deepMode && deepPitchTypes.length > 0;
+
+        // Helper: find matching pitch entry preferring deep data if available with enough sample
+        const findHitterPerf = (pitcherPitch) => {
+          const pLower = (pitcherPitch.type || '').toLowerCase();
+          const pCode = (pitcherPitch.typeCode || '').toUpperCase();
+          const matcher = (pt) => {
+            const ptLower = (pt.type || '').toLowerCase();
+            const ptCode = (pt.typeCode || '').toUpperCase();
+            return (ptCode && ptCode === pCode) ||
+                   ptLower === pLower ||
+                   ptLower.includes(pLower) ||
+                   pLower.includes(ptLower) ||
+                   (pLower.includes('4-seam') && ptLower.includes('four-seam')) ||
+                   (pLower.includes('four-seam') && ptLower.includes('4-seam'));
+          };
+          // Deep data preferred when PA sample is meaningful (≥ 3)
+          if (hasDeepData) {
+            const deep = deepPitchTypes.find(matcher);
+            if (deep && deep.xwoba && deep.pa >= 3) {
+              return { ...deep, _source: 'deep' };
+            }
+          }
+          const shallow = pitchTypes.find(matcher);
+          return shallow ? { ...shallow, _source: 'shallow' } : null;
+        };
 
         const matchedPitches = [];
         let maxXwoba = 0;
         let edgeScore = 0;
 
         for (const kp of keyPitches) {
-          const kpLower = (kp.type || '').toLowerCase();
-          const hitterPerf = pitchTypes.find(pt => {
-            const ptLower = (pt.type || '').toLowerCase();
-            return ptLower === kpLower ||
-                   ptLower.includes(kpLower) ||
-                   kpLower.includes(ptLower) ||
-                   (kpLower.includes('4-seam') && ptLower.includes('four-seam')) ||
-                   (kpLower.includes('four-seam') && ptLower.includes('4-seam'));
-          });
-
+          const hitterPerf = findHitterPerf(kp);
           if (hitterPerf && hitterPerf.xwoba) {
             const xw = parseFloat(hitterPerf.xwoba);
             matchedPitches.push({
               pitch: kp.type,
               pitcherUsage: kp.usage,
               hitterXwoba: hitterPerf.xwoba,
-              hitterXslg: hitterPerf.xslg
+              hitterXslg: hitterPerf.xslg,
+              hitterPa: hitterPerf.pa || null,
+              source: hitterPerf._source,    // 'deep' or 'shallow'
+              smallSample: hitterPerf._source === 'deep' && hitterPerf.pa < 10
             });
             if (xw > maxXwoba) maxXwoba = xw;
             const usageWeight = parseFloat(kp.usage || 10) / 100;
@@ -358,6 +388,7 @@ export default async function handler(req, res) {
           description,
           propRecs,
           platoonMeta,
+          hasDeepData,
           // Bullpen cross-reference
           bullpenMatches,
           bullpenMaxXwoba: bullpenMaxXwoba.toFixed(3),
