@@ -248,6 +248,27 @@
     .prop-pill{padding:6px 11px}
   }
 
+  /* =============== BULLPEN =============== */
+  .bullpen-block{background:var(--panel-2);border:1px solid var(--line);border-radius:6px;padding:8px 10px;margin-top:6px}
+  .bp-label{font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:var(--dim);margin-bottom:4px;display:flex;justify-content:space-between;align-items:center}
+  .bp-label .bp-count{font-size:9px;color:var(--cool);letter-spacing:0.08em}
+  .bullpen-block .pitch-list{gap:4px;margin-top:0}
+  .bullpen-block .pitch-chip{background:rgba(102,217,232,0.12);color:var(--cool);font-size:10px}
+  .bullpen-block .pitch-chip .pct{opacity:0.8}
+
+  .dual-tier{display:flex;gap:4px;align-items:center;font-size:9px;letter-spacing:0.08em;margin-top:4px}
+  .dual-tier-piece{display:flex;align-items:center;gap:3px;padding:2px 6px;border-radius:3px;background:var(--panel-3)}
+  .dual-tier-piece .dt-label{color:var(--dim);font-size:8px}
+  .dual-tier-piece .dt-val{font-weight:700}
+  .dual-tier-piece.elite .dt-val{color:var(--heat)}
+  .dual-tier-piece.strong .dt-val{color:var(--accent)}
+  .dual-tier-piece.solid .dt-val{color:var(--cool)}
+  .dual-tier-piece.none .dt-val{color:var(--dim)}
+  .dt-combo-badge{padding:2px 7px;border-radius:3px;font-size:8px;font-weight:700;letter-spacing:0.1em}
+  .dt-combo-badge.full{background:var(--heat);color:#0a0d0a}
+  .dt-combo-badge.sp-only{background:rgba(198,255,61,0.15);color:var(--accent);border:1px solid rgba(198,255,61,0.3)}
+  .dt-combo-badge.bp-only{background:rgba(102,217,232,0.15);color:var(--cool);border:1px solid rgba(102,217,232,0.3)}
+
   .tier-filters{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap}
   .tier-filter{background:var(--panel);color:var(--dim);border:1px solid var(--line);padding:5px 10px;border-radius:100px;font-size:10.5px;cursor:pointer;letter-spacing:0.05em}
   .tier-filter.active{background:var(--heat);color:#0a0d0a;border-color:var(--heat)}
@@ -759,6 +780,31 @@ function renderAnalysis(data) {
 
           const tagCtx = JSON.stringify({id:playerId,name:m.hitter,role:"hitter",team:hitTeamAbbr,opp:oppPitcherName,gamePk:data.gamePk}).replace(/'/g, '&#39;');
 
+          // Dual SP + Bullpen tier indicator
+          const bpTierClass = m.bullpenTier || 'none';
+          const spTierClass = m.tier || 'none';
+          let comboBadge = '';
+          if (m.tier && m.bullpenTier) {
+            comboBadge = `<span class="dt-combo-badge full">FULL GAME</span>`;
+          } else if (m.tier) {
+            comboBadge = `<span class="dt-combo-badge sp-only">SP ONLY</span>`;
+          } else if (m.bullpenTier) {
+            comboBadge = `<span class="dt-combo-badge bp-only">BP ONLY</span>`;
+          }
+          const dualTierHtml = (m.bullpenMaxXwoba && parseFloat(m.bullpenMaxXwoba) > 0) ? `
+            <div class="dual-tier">
+              <span class="dual-tier-piece ${spTierClass}">
+                <span class="dt-label">SP</span>
+                <span class="dt-val">${m.maxXwoba}</span>
+              </span>
+              <span class="dual-tier-piece ${bpTierClass}">
+                <span class="dt-label">BP</span>
+                <span class="dt-val">${m.bullpenMaxXwoba}</span>
+              </span>
+              ${comboBadge}
+            </div>
+          ` : '';
+
           return `
             <div class="match ${m.tier}">
               <div class="match-head">
@@ -769,6 +815,7 @@ function renderAnalysis(data) {
                 </div>
               </div>
               <div class="match-pitches">${pitchesTxt || '<span style="opacity:0.5">no pitch-level data</span>'}</div>
+              ${dualTierHtml}
               ${descHtml}
               ${m.seasonStats.xwoba ? `
                 <div class="stat-row">
@@ -818,6 +865,22 @@ function renderAnalysis(data) {
 
     const pitcherTagCtx = JSON.stringify({id:pitcherId,name:s.pitcher.name,role:"pitcher",team:pitcherTeamAbbr,opp:"vs "+(isAwayHittingSide?data.awayTeam?.abbreviation:data.homeTeam?.abbreviation),gamePk:data.gamePk}).replace(/'/g, '&#39;');
 
+    // Bullpen arsenal block
+    const bullpen = s.bullpen;
+    const bullpenHtml = (bullpen && bullpen.pitches && bullpen.pitches.length > 0) ? `
+      <div class="bullpen-block">
+        <div class="bp-label">
+          <span>BULLPEN COMPOSITE</span>
+          <span class="bp-count">${bullpen.pitcherCount || '?'} relievers</span>
+        </div>
+        <div class="pitch-list">
+          ${bullpen.pitches.slice(0, 5).map(p =>
+            `<span class="pitch-chip">${p.type}<span class="pct">${p.usage?p.usage+'%':''}</span></span>`
+          ).join('')}
+        </div>
+      </div>
+    ` : '';
+
     return `
       <div class="analysis-panel">
         <div class="analysis-head">
@@ -833,6 +896,7 @@ function renderAnalysis(data) {
           </div>
           <div class="pitch-list">${arsenalHtml || '<span style="color:var(--dim);font-size:11px">No arsenal data available</span>'}</div>
           ${pitcherTagChips}
+          ${bullpenHtml}
         </div>
         ${lineupTierHtml}
         ${mmHtml}

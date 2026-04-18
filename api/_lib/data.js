@@ -96,6 +96,98 @@ export async function getPitcherArsenal(mlbam, season) {
     .sort((a, b) => parseFloat(b.usage || 0) - parseFloat(a.usage || 0));
 }
 
+// Build a team's bullpen composite arsenal - aggregated pitch-type usage
+// across all relievers (excluding today's SP), weighted by pitches thrown.
+// Returns arsenal in same shape as getPitcherArsenal().
+export async function getBullpenProfile(teamAbbr, season, excludePitcherId) {
+  // Savant uses team_name_alt codes like NYY, LAD, etc. Some differ:
+  const abbr = (teamAbbr === 'CWS' ? 'CHW' :
+                teamAbbr === 'WSH' ? 'WSH' :
+                teamAbbr === 'ATH' ? 'OAK' :
+                teamAbbr === 'AZ'  ? 'AZ'  : teamAbbr);
+
+  const allRows = await fetchSavantCSV(arsenalURL(season, 'pitcher'));
+  const excludeId = String(excludePitcherId || '').trim();
+
+  // Filter to this team, excluding the starter
+  const teamRows = allRows.filter(r => {
+    const t = String(r.team_name_alt || '').trim();
+    const pid = String(r.player_id || '').trim();
+    // Accept common variants
+    return (t === abbr || t === teamAbbr) && pid !== excludeId;
+  });
+
+  if (teamRows.length === 0) return { pitches: [], pitcherCount: 0 };
+
+  // Identify relievers by checking who has low per-pitcher total pitch volume
+  // (SPs typically have 200+ pitches of one type; RPs have < 100)
+  // Group by player, sum pitches
+  const playerTotals = {};
+  teamRows.forEach(r => {
+    const pid = String(r.player_id);
+    if (!playerTotals[pid]) playerTotals[pid] = 0;
+    playerTotals[pid] += parseInt(r.pitches) || 0;
+  });
+
+  // For reliever identification use a threshold - RPs rarely have > 300 total pitches per pitch-type early season
+  // but this is secondary; the primary filter is "not today's starter"
+  const relieverIds = new Set(Object.keys(playerTotals));
+
+  // Filter to reliever rows only
+  const rpRows = teamRows.filter(r => relieverIds.has(String(r.player_id)));
+
+  // Aggregate by pitch type: weighted average of usage, xwoba, etc.
+  // Weight by total pitches thrown across the bullpen
+  const byPitch = {};
+  let totalPitchesAll = 0;
+  rpRows.forEach(r => {
+    const pitches = parseInt(r.pitches) || 0;
+    if (pitches < 5) return; // ignore tiny samples
+    totalPitchesAll += pitches;
+    const key = r.pitch_name || r.pitch_type || 'Unknown';
+    if (!byPitch[key]) {
+      byPitch[key] = {
+        type: key,
+        typeCode: r.pitch_type,
+        totalPitches: 0,
+        weightedXwoba: 0,
+        weightedSlg: 0,
+        weightedWhiff: 0,
+        weightedHardHit: 0,
+        pitcherCount: 0
+      };
+    }
+    const bp = byPitch[key];
+    bp.totalPitches += pitches;
+    bp.pitcherCount += 1;
+    if (r.est_woba) bp.weightedXwoba += parseFloat(r.est_woba) * pitches;
+    if (r.slg) bp.weightedSlg += parseFloat(r.slg) * pitches;
+    if (r.whiff_percent) bp.weightedWhiff += parseFloat(r.whiff_percent) * pitches;
+    if (r.hard_hit_percent) bp.weightedHardHit += parseFloat(r.hard_hit_percent) * pitches;
+  });
+
+  // Convert aggregates into final arsenal rows
+  const pitches = Object.values(byPitch).map(bp => ({
+    type: bp.type,
+    typeCode: bp.typeCode,
+    // Usage in bullpen = share of this pitch across all bullpen pitches
+    usage: totalPitchesAll > 0 ? ((bp.totalPitches / totalPitchesAll) * 100).toFixed(1) : '0',
+    xwoba: bp.totalPitches > 0 ? (bp.weightedXwoba / bp.totalPitches).toFixed(3) : null,
+    slg:   bp.totalPitches > 0 ? (bp.weightedSlg   / bp.totalPitches).toFixed(3) : null,
+    whiffPct: bp.totalPitches > 0 ? (bp.weightedWhiff / bp.totalPitches).toFixed(1) : null,
+    hardHitPct: bp.totalPitches > 0 ? (bp.weightedHardHit / bp.totalPitches).toFixed(1) : null,
+    pitches: bp.totalPitches,
+    pitcherCount: bp.pitcherCount
+  })).filter(p => p.type && p.pitches >= 20)  // require meaningful sample
+    .sort((a, b) => parseFloat(b.usage) - parseFloat(a.usage));
+
+  return {
+    pitches,
+    pitcherCount: Object.keys(playerTotals).length,
+    totalPitches: totalPitchesAll
+  };
+}
+
 // Get team lineup (posted or active-roster fallback)
 export async function getLineup(teamId, gamePk, side) {
   let hitters = [];

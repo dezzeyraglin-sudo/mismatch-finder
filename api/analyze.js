@@ -4,7 +4,7 @@
 
 import { PARK_FACTORS_BY_TEAM } from './_data/parkFactors.js';
 import { UMPIRE_FACTORS, classifyUmp } from './_data/umpireFactors.js';
-import { getProbables, getPitcherArsenal, getLineup, getHitterStats } from './_lib/data.js';
+import { getProbables, getPitcherArsenal, getBullpenProfile, getLineup, getHitterStats } from './_lib/data.js';
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -84,20 +84,22 @@ export default async function handler(req, res) {
     }
 
     const sides = [
-      { hitTeamId: game.awayTeam.id, pitcher: game.homePitcher, key: 'awayVsHome', side: 'away' },
-      { hitTeamId: game.homeTeam.id, pitcher: game.awayPitcher, key: 'homeVsAway', side: 'home' }
+      { hitTeamId: game.awayTeam.id, pitcher: game.homePitcher, pitTeamAbbr: game.homeTeam.abbreviation, key: 'awayVsHome', side: 'away' },
+      { hitTeamId: game.homeTeam.id, pitcher: game.awayPitcher, pitTeamAbbr: game.awayTeam.abbreviation, key: 'homeVsAway', side: 'home' }
     ];
 
     // Process both sides in parallel using helpers directly (no HTTP)
     const sideResults = await Promise.all(sides.map(async s => {
       if (!s.pitcher || !s.hitTeamId) return null;
 
-      const [arsenal, lineup] = await Promise.all([
+      const [arsenal, lineup, bullpen] = await Promise.all([
         getPitcherArsenal(s.pitcher.id, season).catch(() => []),
-        getLineup(s.hitTeamId, gamePk, s.side).catch(() => [])
+        getLineup(s.hitTeamId, gamePk, s.side).catch(() => []),
+        getBullpenProfile(s.pitTeamAbbr, season, s.pitcher.id).catch(() => ({ pitches: [], pitcherCount: 0 }))
       ]);
 
       const keyPitches = arsenal.slice(0, 3);
+      const keyBullpenPitches = (bullpen.pitches || []).slice(0, 3);
       const topHitters = lineup.slice(0, 9);
 
       // Fetch hitter stats in parallel
@@ -140,6 +142,35 @@ export default async function handler(req, res) {
             if (xw > maxXwoba) maxXwoba = xw;
             const usageWeight = parseFloat(kp.usage || 10) / 100;
             edgeScore += xw * usageWeight;
+          }
+        }
+
+        // Same scoring against bullpen composite arsenal
+        const bullpenMatches = [];
+        let bullpenMaxXwoba = 0;
+        let bullpenEdgeScore = 0;
+        for (const bp of keyBullpenPitches) {
+          const bpLower = (bp.type || '').toLowerCase();
+          const hitterPerf = pitchTypes.find(pt => {
+            const ptLower = (pt.type || '').toLowerCase();
+            return ptLower === bpLower ||
+                   ptLower.includes(bpLower) ||
+                   bpLower.includes(ptLower) ||
+                   (bpLower.includes('4-seam') && ptLower.includes('four-seam')) ||
+                   (bpLower.includes('four-seam') && ptLower.includes('4-seam'));
+          });
+          if (hitterPerf && hitterPerf.xwoba) {
+            const xw = parseFloat(hitterPerf.xwoba);
+            bullpenMatches.push({
+              pitch: bp.type,
+              pitcherUsage: bp.usage,
+              hitterXwoba: hitterPerf.xwoba,
+              hitterXslg: hitterPerf.xslg,
+              bullpenXwobaAllowed: bp.xwoba
+            });
+            if (xw > bullpenMaxXwoba) bullpenMaxXwoba = xw;
+            const usageWeight = parseFloat(bp.usage || 10) / 100;
+            bullpenEdgeScore += xw * usageWeight;
           }
         }
 
@@ -197,6 +228,12 @@ export default async function handler(req, res) {
           tier
         });
 
+        // Bullpen mismatch tier
+        let bullpenTier = null;
+        if (bullpenMaxXwoba >= 0.420) bullpenTier = 'elite';
+        else if (bullpenMaxXwoba >= 0.370) bullpenTier = 'strong';
+        else if (bullpenMaxXwoba >= 0.330) bullpenTier = 'solid';
+
         // Build ranked prop recommendations
         const propRecs = buildPropRecommendations({
           hitter: h,
@@ -205,7 +242,9 @@ export default async function handler(req, res) {
           overall,
           parkFactor,
           adjustments,
-          tier
+          tier,
+          bullpenMaxXwoba,
+          bullpenTier
         });
 
         return {
@@ -223,6 +262,11 @@ export default async function handler(req, res) {
           tier,
           description,
           propRecs,
+          // Bullpen cross-reference
+          bullpenMatches,
+          bullpenMaxXwoba: bullpenMaxXwoba.toFixed(3),
+          bullpenEdgeScore: bullpenEdgeScore.toFixed(3),
+          bullpenTier,
           seasonStats: {
             xwoba: overall.xwoba?.value || null,
             barrelPct: overall.barrel_batted_rate?.value || null,
@@ -245,6 +289,11 @@ export default async function handler(req, res) {
         data: {
           pitcher: s.pitcher,
           pitcherArsenal: arsenal,
+          bullpen: {
+            pitches: keyBullpenPitches,
+            pitcherCount: bullpen.pitcherCount || 0,
+            totalPitches: bullpen.totalPitches || 0
+          },
           mismatches: tiered,
           lineupTier
         }
@@ -420,55 +469,63 @@ function computeLineupTier(analyzedHitters, arsenal) {
 
 // ===== PROP RECOMMENDATIONS =====
 // Ranks prop types by edge quality for this specific matchup
-function buildPropRecommendations({ hitter, matchedPitches, maxXwoba, overall, parkFactor, adjustments, tier }) {
+function buildPropRecommendations({ hitter, matchedPitches, maxXwoba, overall, parkFactor, adjustments, tier, bullpenMaxXwoba, bullpenTier }) {
   if (!tier || matchedPitches.length === 0) return [];
 
   const barrel = parseFloat(overall.barrel_batted_rate?.value || 0);
   const hardHit = parseFloat(overall.hard_hit_percent?.value || 0);
   const ev = parseFloat(overall.avg_exit_velocity?.value || 0);
-  const kPct = parseFloat(overall.k_percent?.value || 22); // default to league avg if missing
+  const kPct = parseFloat(overall.k_percent?.value || 22);
   const seasonXwoba = parseFloat(overall.xwoba?.value || 0);
-
-  // Compute max xSLG from matched pitches (power indicator)
   const maxXslg = matchedPitches.reduce((max, mp) => {
     const x = parseFloat(mp.hitterXslg || 0);
     return x > max ? x : max;
   }, 0);
+
+  // Bullpen boost: full-game props (fantasy score, HRR, TB) benefit most because
+  // they accumulate over 5-6 additional innings of exposure vs relievers
+  const bpX = bullpenMaxXwoba || 0;
+  const bpFullGameBoost = bpX >= 0.370 ? 1.18 :
+                          bpX >= 0.330 ? 1.10 :
+                          bpX >= 0.290 ? 1.03 :
+                          bpX > 0 ? 0.94 : 1.0;
+  // Single-event props (HR, hit) get a smaller boost since one event in the whole game is enough
+  const bpEventBoost = bpX >= 0.370 ? 1.10 :
+                       bpX >= 0.330 ? 1.05 :
+                       bpX >= 0.290 ? 1.01 :
+                       bpX > 0 ? 0.97 : 1.0;
 
   // Park factor helpers
   const hrParkBoost = parkFactor
     ? (hitter.hand === 'L' ? (parkFactor.lhbHr || 100) : (parkFactor.rhbHr || 100)) / 100
     : 1.0;
   const runParkBoost = parkFactor ? (parkFactor.runs || 100) / 100 : 1.0;
-
-  // Is there an umpire adjustment favoring hitter?
   const hitterFriendlyUmp = adjustments.some(a => a.type === 'umpire' && a.favor === 'hitter');
 
   // ---- Score each prop type ----
   // Scoring scale 0-100. Higher = stronger play.
 
-  // HIT prop — hitter gets at least 1 hit
-  // Good when: high xwOBA vs arsenal, low K% against, contact profile
+  // HIT prop — hitter gets at least 1 hit (single-event, small boost)
   let hitScore = 0;
-  hitScore += maxXwoba * 100;                         // base: pitch matchup quality
-  hitScore += (seasonXwoba * 50);                     // overall contact
-  hitScore += (hardHit / 2);                          // contact quality helps
-  hitScore -= Math.max(0, (kPct - 20)) * 1.2;         // strikeout risk penalty
-  hitScore += runParkBoost > 1.03 ? 8 : 0;            // offensive park bonus
+  hitScore += maxXwoba * 100;
+  hitScore += (seasonXwoba * 50);
+  hitScore += (hardHit / 2);
+  hitScore -= Math.max(0, (kPct - 20)) * 1.2;
+  hitScore += runParkBoost > 1.03 ? 8 : 0;
   hitScore += hitterFriendlyUmp ? 4 : 0;
+  hitScore *= bpEventBoost;
 
-  // HR prop — hitter hits a homer
-  // Good when: high barrel%, high EV, hot HR park factor for handedness, strong xSLG vs arsenal
+  // HR prop — single event; small bullpen boost
   let hrScore = 0;
-  if (barrel >= 8) hrScore += barrel * 2;             // barrel% is the strongest HR signal
+  if (barrel >= 8) hrScore += barrel * 2;
   if (ev >= 90) hrScore += (ev - 88) * 3;
-  hrScore += maxXslg * 60;                            // power vs arsenal
-  if (hrParkBoost >= 1.05) hrScore += (hrParkBoost - 1) * 80;  // big park boost
-  if (hrParkBoost <= 0.92) hrScore -= (1 - hrParkBoost) * 60;  // HR suppressor park penalty
+  hrScore += maxXslg * 60;
+  if (hrParkBoost >= 1.05) hrScore += (hrParkBoost - 1) * 80;
+  if (hrParkBoost <= 0.92) hrScore -= (1 - hrParkBoost) * 60;
   hrScore -= Math.max(0, (kPct - 25)) * 0.6;
+  hrScore *= bpEventBoost;
 
-  // TB prop — 2+ total bases (extra-base hit or 2+ singles)
-  // Good when: high xSLG, barrel%, power park, but also decent contact
+  // TB prop — accumulates over game, full bullpen boost
   let tbScore = 0;
   tbScore += maxXslg * 80;
   tbScore += barrel * 1.3;
@@ -476,9 +533,9 @@ function buildPropRecommendations({ hitter, matchedPitches, maxXwoba, overall, p
   tbScore += hardHit / 3;
   if (hrParkBoost >= 1.05) tbScore += (hrParkBoost - 1) * 40;
   tbScore -= Math.max(0, (kPct - 22)) * 0.8;
+  tbScore *= bpFullGameBoost;
 
-  // RBI prop — drives in a run
-  // Good when: overall mismatch quality + park runs + reasonable power
+  // RBI prop — accumulates
   let rbiScore = 0;
   rbiScore += maxXwoba * 90;
   rbiScore += barrel * 0.8;
@@ -486,17 +543,18 @@ function buildPropRecommendations({ hitter, matchedPitches, maxXwoba, overall, p
   rbiScore += runParkBoost > 1.03 ? 10 : 0;
   rbiScore += hitterFriendlyUmp ? 5 : 0;
   rbiScore -= Math.max(0, (kPct - 22)) * 0.6;
+  rbiScore *= bpFullGameBoost;
 
-  // R prop — scores a run
-  // Mostly about getting on base + lineup environment
+  // R prop — accumulates
   let rScore = 0;
   rScore += maxXwoba * 80;
   rScore += (seasonXwoba * 40);
   rScore += runParkBoost > 1.03 ? 8 : 0;
   rScore -= Math.max(0, (kPct - 22)) * 0.9;
+  rScore *= bpFullGameBoost;
 
-  // HRR (H+R+RBI 1.5 — standard PP line, needs 2+ combined)
-  const hrr = Math.max(hitScore * 0.9, rbiScore * 0.85, rScore * 0.85) + 8;
+  // HRR 1.5 — multi-pathway over, heavily benefits from bullpen edge
+  const hrr = (Math.max(hitScore * 0.9, rbiScore * 0.85, rScore * 0.85) + 8) * bpFullGameBoost;
 
   // Fantasy score projection - estimate points from signals
   // Rough heuristic: expected PA ~4, weight by contact & power profile
@@ -506,25 +564,34 @@ function buildPropRecommendations({ hitter, matchedPitches, maxXwoba, overall, p
   const estR = maxXwoba * 0.8 * runParkBoost;
   const estRBI = maxXwoba * 0.9 * runParkBoost;
   const estBB = Math.max(0, (parseFloat(overall.bb_percent?.value || 8) / 100)) * 4;
-  const projFS = (estSingles * 3) + (estXBH * 6) + (estHR * 10) + (estR * 2) + (estRBI * 2) + (estBB * 2);
+  // Raw FS projection from signals (starter exposure only)
+  const rawProjFS = (estSingles * 3) + (estXBH * 6) + (estHR * 10) + (estR * 2) + (estRBI * 2) + (estBB * 2);
+  // Bullpen-adjusted FS projection — bullpen drives ~40% of total PA exposure
+  const projFS = rawProjFS * bpFullGameBoost;
 
   // PP/UD Fantasy Score props - score based on how comfortably we clear the line
-  const fs_pp6 = (projFS - 6) * 12 + 40;    // cleared 6 line
-  const fs_pp8 = (projFS - 8) * 12 + 30;    // cleared 8 line (harder)
-  const fs_ud5 = (projFS - 5) * 12 + 42;    // UD 5 line (easier)
-  const fs_ud7 = (projFS - 7) * 12 + 32;    // UD 7 line
+  const fs_pp6 = (projFS - 6) * 12 + 40;
+  const fs_pp8 = (projFS - 8) * 12 + 30;
+  const fs_ud5 = (projFS - 5) * 12 + 42;
+  const fs_ud7 = (projFS - 7) * 12 + 32;
+
+  // Bullpen tag for reason strings
+  const bpTag = bullpenTier === 'elite' ? ' · bullpen crush' :
+                bullpenTier === 'strong' ? ' · bullpen edge' :
+                bullpenTier === 'solid' ? ' · bullpen solid' :
+                bpX > 0 && bpX < 0.290 ? ' · bullpen tough' : '';
 
   const allProps = [
-    { key: 'H',        label: 'HITS 0.5',       platform: 'BOTH', score: hitScore,   reason: hitReason(maxXwoba, kPct, hardHit, runParkBoost) },
-    { key: 'HR',       label: 'HR 0.5',         platform: 'BOTH', score: hrScore,    reason: hrReason(barrel, ev, maxXslg, hrParkBoost, hitter.hand, parkFactor) },
-    { key: 'TB',       label: 'TB 1.5',         platform: 'BOTH', score: tbScore,    reason: tbReason(maxXslg, barrel, hrParkBoost) },
-    { key: 'RBI',      label: 'RBI 0.5',        platform: 'BOTH', score: rbiScore,   reason: rbiReason(maxXwoba, barrel, runParkBoost) },
-    { key: 'R',        label: 'RUNS 0.5',       platform: 'BOTH', score: rScore,     reason: rReason(maxXwoba, kPct, runParkBoost) },
-    { key: 'HRR',      label: 'H+R+RBI 1.5',    platform: 'PP',   score: hrr,        reason: 'Multiple pathways to the over (PrizePicks)' },
-    { key: 'PP_FS_6',  label: 'PP FS 6',        platform: 'PP',   score: fs_pp6,     reason: `Projected ~${projFS.toFixed(1)} pts (need 6+)` },
-    { key: 'PP_FS_8',  label: 'PP FS 8',        platform: 'PP',   score: fs_pp8,     reason: `Projected ~${projFS.toFixed(1)} pts (need 8+)` },
-    { key: 'UD_FS_5',  label: 'UD FS 5',        platform: 'UD',   score: fs_ud5,     reason: `Projected ~${projFS.toFixed(1)} pts (need 5+)` },
-    { key: 'UD_FS_7',  label: 'UD FS 7',        platform: 'UD',   score: fs_ud7,     reason: `Projected ~${projFS.toFixed(1)} pts (need 7+)` }
+    { key: 'H',        label: 'HITS 0.5',       platform: 'BOTH', score: hitScore,   reason: hitReason(maxXwoba, kPct, hardHit, runParkBoost) + bpTag },
+    { key: 'HR',       label: 'HR 0.5',         platform: 'BOTH', score: hrScore,    reason: hrReason(barrel, ev, maxXslg, hrParkBoost, hitter.hand, parkFactor) + bpTag },
+    { key: 'TB',       label: 'TB 1.5',         platform: 'BOTH', score: tbScore,    reason: tbReason(maxXslg, barrel, hrParkBoost) + bpTag },
+    { key: 'RBI',      label: 'RBI 0.5',        platform: 'BOTH', score: rbiScore,   reason: rbiReason(maxXwoba, barrel, runParkBoost) + bpTag },
+    { key: 'R',        label: 'RUNS 0.5',       platform: 'BOTH', score: rScore,     reason: rReason(maxXwoba, kPct, runParkBoost) + bpTag },
+    { key: 'HRR',      label: 'H+R+RBI 1.5',    platform: 'PP',   score: hrr,        reason: 'Multiple pathways to over' + bpTag },
+    { key: 'PP_FS_6',  label: 'PP FS 6',        platform: 'PP',   score: fs_pp6,     reason: `Projected ~${projFS.toFixed(1)} pts${bpTag}` },
+    { key: 'PP_FS_8',  label: 'PP FS 8',        platform: 'PP',   score: fs_pp8,     reason: `Projected ~${projFS.toFixed(1)} pts${bpTag}` },
+    { key: 'UD_FS_5',  label: 'UD FS 5',        platform: 'UD',   score: fs_ud5,     reason: `Projected ~${projFS.toFixed(1)} pts${bpTag}` },
+    { key: 'UD_FS_7',  label: 'UD FS 7',        platform: 'UD',   score: fs_ud7,     reason: `Projected ~${projFS.toFixed(1)} pts${bpTag}` }
   ];
 
   // Sort by score, take top 4
