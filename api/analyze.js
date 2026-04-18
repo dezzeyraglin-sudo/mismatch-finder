@@ -4,7 +4,7 @@
 
 import { PARK_FACTORS_BY_TEAM } from './_data/parkFactors.js';
 import { UMPIRE_FACTORS, classifyUmp } from './_data/umpireFactors.js';
-import { getProbables, getPitcherArsenal, getBullpenProfile, getLineup, getHitterStats } from './_lib/data.js';
+import { getProbables, getPitcherArsenal, getBullpenProfile, getLineup, getHitterStats, getHitterSplits, getPitcherSplits } from './_lib/data.js';
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -92,23 +92,27 @@ export default async function handler(req, res) {
     const sideResults = await Promise.all(sides.map(async s => {
       if (!s.pitcher || !s.hitTeamId) return null;
 
-      const [arsenal, lineup, bullpen] = await Promise.all([
+      const [arsenal, lineup, bullpen, pitcherSplits] = await Promise.all([
         getPitcherArsenal(s.pitcher.id, season).catch(() => []),
         getLineup(s.hitTeamId, gamePk, s.side).catch(() => []),
-        getBullpenProfile(s.pitTeamAbbr, season, s.pitcher.id).catch(() => ({ pitches: [], pitcherCount: 0 }))
+        getBullpenProfile(s.pitTeamAbbr, season, s.pitcher.id).catch(() => ({ pitches: [], pitcherCount: 0 })),
+        getPitcherSplits(s.pitcher.id, season).catch(() => ({ vsR: null, vsL: null }))
       ]);
 
       const keyPitches = arsenal.slice(0, 3);
       const keyBullpenPitches = (bullpen.pitches || []).slice(0, 3);
       const topHitters = lineup.slice(0, 9);
 
-      // Fetch hitter stats in parallel
+      // Fetch hitter stats + splits in parallel
       const hitterData = await Promise.all(topHitters.map(async h => {
         try {
-          const stats = await getHitterStats(h.id, season);
-          return { ...h, stats };
+          const [stats, splits] = await Promise.all([
+            getHitterStats(h.id, season),
+            getHitterSplits(h.id, season).catch(() => ({ vsR: null, vsL: null }))
+          ]);
+          return { ...h, stats, splits };
         } catch {
-          return { ...h, stats: { overall: {}, pitchTypes: [] } };
+          return { ...h, stats: { overall: {}, pitchTypes: [] }, splits: { vsR: null, vsL: null } };
         }
       }));
 
@@ -209,6 +213,97 @@ export default async function handler(req, res) {
           }
         }
 
+        // ===== PLATOON ADJUSTMENT =====
+        // Compare hitter's vs-this-hand OPS to overall expectation.
+        // Switch hitters: use opposite-hand splits relative to pitcher hand.
+        const pitcherHand = s.pitcher.hand;  // 'R' or 'L'
+        const hitterHand = h.hand;            // 'R', 'L', or 'S' (switch)
+        // Which splits row applies to THIS matchup
+        const effectiveBatSide = hitterHand === 'S'
+          ? (pitcherHand === 'L' ? 'R' : 'L')   // SHB bats opposite of pitcher
+          : hitterHand;
+        const hitterVsThis = pitcherHand === 'R' ? h.splits?.vsR : h.splits?.vsL;
+        const hitterVsOther = pitcherHand === 'R' ? h.splits?.vsL : h.splits?.vsR;
+
+        // Platoon metadata for UI
+        let platoonMeta = {
+          pitcherHand,
+          effectiveBatSide,
+          vsThisOps: hitterVsThis?.ops || null,
+          vsThisPa: hitterVsThis?.pa || 0,
+          vsOtherOps: hitterVsOther?.ops || null,
+          vsOtherPa: hitterVsOther?.pa || 0,
+          smallSample: (hitterVsThis?.pa || 0) < 30 && (hitterVsThis?.pa || 0) > 0,
+          noData: !hitterVsThis || hitterVsThis.pa === 0,
+          reverseSplit: false,
+          sameHand: (effectiveBatSide === pitcherHand),
+          pitcher: null   // filled after pitcher splits computed
+        };
+
+        // Only adjust if we have meaningful sample
+        if (hitterVsThis && hitterVsThis.pa >= 10 && hitterVsThis.ops) {
+          const vsThisOps = parseFloat(hitterVsThis.ops);
+          // Reference baseline: average MLB OPS is ~.720, but use hitter's overall if we can infer
+          // Simpler: compare vs-this-hand to vs-other-hand if both exist, else to .720 league avg
+          let baseline = 0.720;
+          let deltaVsOther = null;
+          if (hitterVsOther && hitterVsOther.pa >= 10 && hitterVsOther.ops) {
+            baseline = (vsThisOps + parseFloat(hitterVsOther.ops)) / 2;
+            deltaVsOther = vsThisOps - parseFloat(hitterVsOther.ops);
+          }
+          // Platoon multiplier: OPS 100 points above baseline = +10% score
+          const opsDelta = vsThisOps - baseline;
+          const rawMult = 1 + (opsDelta * 1.0);  // .100 OPS above baseline -> 1.10x
+          // Clamp to avoid extremes from small samples
+          const sampleClamp = hitterVsThis.pa < 30 ? 0.5 : 1.0;   // small sample damped 50%
+          const platoonMult = 1 + ((rawMult - 1) * sampleClamp);
+          const clampedMult = Math.max(0.82, Math.min(1.22, platoonMult));
+
+          contextMultiplier *= clampedMult;
+
+          // Reverse split detection: traditionally RHB hit LHP better, LHB hit RHP better.
+          // A reverse split is when same-handed matchup actually favors the hitter by .050+ OPS
+          if (deltaVsOther !== null && platoonMeta.sameHand && deltaVsOther >= 0.050) {
+            platoonMeta.reverseSplit = true;
+          }
+          // Reverse splits for opposite-hand too: e.g. LHB hits LHP better than RHP (unusual)
+          if (deltaVsOther !== null && !platoonMeta.sameHand && deltaVsOther >= 0.080) {
+            // opposite-hand matchup but hitter is actually worse vs opposite? unusual reverse
+            // Don't flag — standard splits expect this to favor hitter already
+          }
+          if (deltaVsOther !== null && !platoonMeta.sameHand && deltaVsOther <= -0.080) {
+            // Hitter is WORSE vs opposite hand than same hand — that's a reverse split too
+            platoonMeta.reverseSplit = true;
+          }
+
+          platoonMeta.multiplier = clampedMult.toFixed(3);
+          platoonMeta.delta = deltaVsOther !== null ? deltaVsOther.toFixed(3) : null;
+
+          if (Math.abs(clampedMult - 1.0) >= 0.03) {
+            const favor = clampedMult > 1 ? 'hitter' : 'pitcher';
+            const samplTag = hitterVsThis.pa < 30 ? ' · small sample' : '';
+            const reverseTag = platoonMeta.reverseSplit ? ' · REVERSE SPLIT' : '';
+            adjustments.push({
+              type: 'platoon',
+              label: `vs ${pitcherHand}HP ${vsThisOps.toFixed(3)} OPS (${hitterVsThis.pa}PA)${reverseTag}${samplTag}`,
+              multiplier: clampedMult.toFixed(3),
+              favor
+            });
+          }
+        }
+
+        // Pitcher-side platoon metadata for UI: pitcher's performance vs this hitter's effective hand
+        const pitSplitSide = effectiveBatSide === 'R' ? pitcherSplits?.vsR : pitcherSplits?.vsL;
+        if (pitSplitSide && pitSplitSide.pa >= 10) {
+          platoonMeta.pitcher = {
+            vsBatSide: effectiveBatSide,
+            opsAgainst: pitSplitSide.opsAgainst,
+            kPct: pitSplitSide.kPct,
+            pa: pitSplitSide.pa,
+            smallSample: pitSplitSide.pa < 40
+          };
+        }
+
         const adjustedMaxXwoba = maxXwoba * contextMultiplier;
         const adjustedEdge = edgeScore * contextMultiplier;
 
@@ -262,6 +357,7 @@ export default async function handler(req, res) {
           tier,
           description,
           propRecs,
+          platoonMeta,
           // Bullpen cross-reference
           bullpenMatches,
           bullpenMaxXwoba: bullpenMaxXwoba.toFixed(3),
@@ -289,6 +385,7 @@ export default async function handler(req, res) {
         data: {
           pitcher: s.pitcher,
           pitcherArsenal: arsenal,
+          pitcherSplits,
           bullpen: {
             pitches: keyBullpenPitches,
             pitcherCount: bullpen.pitcherCount || 0,

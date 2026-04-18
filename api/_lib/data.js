@@ -292,3 +292,83 @@ export async function getHitterStats(mlbam, season) {
     pitchTypes
   };
 }
+
+// Get a hitter's platoon splits (vs RHP and vs LHP)
+// Uses MLB Stats API statSplits endpoint with situation codes vr/vl
+// Returns { vsR: {ops, avg, slg, pa, ...}, vsL: {...} }
+export async function getHitterSplits(mlbam, season) {
+  try {
+    const url = `https://statsapi.mlb.com/api/v1/people/${mlbam}/stats?stats=statSplits&group=hitting&season=${season}&sitCodes=vr,vl`;
+    const r = await fetch(url);
+    if (!r.ok) return { vsR: null, vsL: null };
+    const data = await r.json();
+
+    const splits = { vsR: null, vsL: null };
+    for (const block of (data.stats || [])) {
+      for (const split of (block.splits || [])) {
+        const code = split.split?.code;
+        const s = split.stat || {};
+        const row = {
+          avg: s.avg || null,
+          obp: s.obp || null,
+          slg: s.slg || null,
+          ops: s.ops || null,
+          pa: s.plateAppearances || 0,
+          hr: s.homeRuns || 0,
+          k: s.strikeOuts || 0,
+          bb: s.baseOnBalls || 0,
+          h: s.hits || 0,
+          doubles: s.doubles || 0,
+          triples: s.triples || 0
+        };
+        // K rate (since MLB API doesn't return K%)
+        row.kPct = row.pa > 0 ? ((row.k / row.pa) * 100).toFixed(1) : null;
+        row.iso = s.sluggingPct && s.battingAvg
+          ? (parseFloat(s.sluggingPct) - parseFloat(s.battingAvg)).toFixed(3)
+          : null;
+        if (code === 'vr') splits.vsR = row;
+        else if (code === 'vl') splits.vsL = row;
+      }
+    }
+    return splits;
+  } catch (err) {
+    return { vsR: null, vsL: null };
+  }
+}
+
+// Get a pitcher's splits vs LHB and RHB
+export async function getPitcherSplits(mlbam, season) {
+  try {
+    const url = `https://statsapi.mlb.com/api/v1/people/${mlbam}/stats?stats=statSplits&group=pitching&season=${season}&sitCodes=vr,vl`;
+    const r = await fetch(url);
+    if (!r.ok) return { vsR: null, vsL: null };
+    const data = await r.json();
+
+    const splits = { vsR: null, vsL: null };
+    for (const block of (data.stats || [])) {
+      for (const split of (block.splits || [])) {
+        const code = split.split?.code;
+        const s = split.stat || {};
+        const row = {
+          avg: s.avg || null,
+          opsAgainst: s.ops || null,
+          slgAgainst: s.slg || null,
+          obpAgainst: s.obp || null,
+          pa: s.plateAppearances || 0,
+          hr: s.homeRuns || 0,
+          k: s.strikeOuts || 0,
+          bb: s.baseOnBalls || 0,
+          hitsAllowed: s.hits || 0
+        };
+        row.kPct = row.pa > 0 ? ((row.k / row.pa) * 100).toFixed(1) : null;
+        row.bbPct = row.pa > 0 ? ((row.bb / row.pa) * 100).toFixed(1) : null;
+        // 'vr' for pitcher = vs RHB, 'vl' = vs LHB
+        if (code === 'vr') splits.vsR = row;
+        else if (code === 'vl') splits.vsL = row;
+      }
+    }
+    return splits;
+  } catch (err) {
+    return { vsR: null, vsL: null };
+  }
+}

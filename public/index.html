@@ -269,6 +269,22 @@
   .dt-combo-badge.sp-only{background:rgba(198,255,61,0.15);color:var(--accent);border:1px solid rgba(198,255,61,0.3)}
   .dt-combo-badge.bp-only{background:rgba(102,217,232,0.15);color:var(--cool);border:1px solid rgba(102,217,232,0.3)}
 
+  /* =============== PLATOON =============== */
+  .platoon-row{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;align-items:center}
+  .platoon-chip{font-size:10px;padding:3px 7px;border-radius:4px;background:var(--panel-3);border:1px solid var(--line);display:flex;gap:4px;align-items:center}
+  .platoon-chip.favor-hitter{background:rgba(198,255,61,0.1);border-color:rgba(198,255,61,0.3);color:var(--accent)}
+  .platoon-chip.favor-pitcher{background:rgba(102,217,232,0.1);border-color:rgba(102,217,232,0.3);color:var(--cool)}
+  .platoon-chip.nodata{opacity:0.5}
+  .platoon-chip b{font-weight:700}
+  .platoon-chip .ps-label{color:var(--dim);font-size:9px;letter-spacing:0.06em}
+  .small-sample-flag{font-size:8px;letter-spacing:0.1em;color:var(--warn);padding:1px 4px;border:1px solid var(--warn);border-radius:2px;font-weight:700}
+  .reverse-split-badge{font-size:8px;letter-spacing:0.1em;color:#0a0d0a;background:var(--heat);padding:2px 6px;border-radius:2px;font-weight:700;animation:reversePulse 2s ease-in-out infinite}
+  @keyframes reversePulse{0%,100%{opacity:1}50%{opacity:0.7}}
+  .pitcher-splits-block{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px;padding:6px 8px;background:var(--panel-3);border-radius:4px;font-size:10px}
+  .psb-item{display:flex;gap:3px;align-items:center}
+  .psb-item .lbl{color:var(--dim);font-size:9px;letter-spacing:0.06em}
+  .psb-item b{color:var(--ink)}
+
   .tier-filters{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap}
   .tier-filter{background:var(--panel);color:var(--dim);border:1px solid var(--line);padding:5px 10px;border-radius:100px;font-size:10.5px;cursor:pointer;letter-spacing:0.05em}
   .tier-filter.active{background:var(--heat);color:#0a0d0a;border-color:var(--heat)}
@@ -805,6 +821,39 @@ function renderAnalysis(data) {
             </div>
           ` : '';
 
+          // Platoon chip row
+          const pm = m.platoonMeta;
+          let platoonHtml = '';
+          if (pm && !pm.noData) {
+            const favor = pm.multiplier ? (parseFloat(pm.multiplier) > 1.02 ? 'favor-hitter' : parseFloat(pm.multiplier) < 0.98 ? 'favor-pitcher' : '') : '';
+            const vsThisDelta = pm.vsOtherOps && pm.vsThisOps
+              ? (parseFloat(pm.vsThisOps) - parseFloat(pm.vsOtherOps)).toFixed(3)
+              : null;
+            const deltaSign = vsThisDelta && parseFloat(vsThisDelta) >= 0 ? '+' : '';
+            const hitterChip = pm.vsThisOps ? `
+              <span class="platoon-chip ${favor}">
+                <span class="ps-label">vs ${pm.pitcherHand}HP</span>
+                <b>${pm.vsThisOps}</b>
+                ${vsThisDelta ? `<span style="color:var(--dim);font-size:9px">${deltaSign}${vsThisDelta} vs other</span>` : ''}
+                <span style="color:var(--dim);font-size:9px">${pm.vsThisPa}PA</span>
+                ${pm.smallSample ? '<span class="small-sample-flag">SMALL</span>' : ''}
+                ${pm.reverseSplit ? '<span class="reverse-split-badge">⚡ REVERSE</span>' : ''}
+              </span>
+            ` : '';
+            const pitcherChip = pm.pitcher ? `
+              <span class="platoon-chip">
+                <span class="ps-label">P vs ${pm.pitcher.vsBatSide}HB</span>
+                <b>${pm.pitcher.opsAgainst || '—'}</b>
+                <span style="color:var(--dim);font-size:9px">${pm.pitcher.kPct || '?'}% K</span>
+                <span style="color:var(--dim);font-size:9px">${pm.pitcher.pa}PA</span>
+                ${pm.pitcher.smallSample ? '<span class="small-sample-flag">SMALL</span>' : ''}
+              </span>
+            ` : '';
+            platoonHtml = (hitterChip || pitcherChip) ? `<div class="platoon-row">${hitterChip}${pitcherChip}</div>` : '';
+          } else if (pm && pm.noData) {
+            platoonHtml = `<div class="platoon-row"><span class="platoon-chip nodata"><span class="ps-label">vs ${pm.pitcherHand}HP</span><span style="font-size:9px">no data yet</span></span></div>`;
+          }
+
           return `
             <div class="match ${m.tier}">
               <div class="match-head">
@@ -816,6 +865,7 @@ function renderAnalysis(data) {
               </div>
               <div class="match-pitches">${pitchesTxt || '<span style="opacity:0.5">no pitch-level data</span>'}</div>
               ${dualTierHtml}
+              ${platoonHtml}
               ${descHtml}
               ${m.seasonStats.xwoba ? `
                 <div class="stat-row">
@@ -881,6 +931,26 @@ function renderAnalysis(data) {
       </div>
     ` : '';
 
+    // Pitcher splits block (vs RHB and vs LHB)
+    const ps = s.pitcherSplits;
+    let pitcherSplitsHtml = '';
+    if (ps && (ps.vsR || ps.vsL)) {
+      const vsRow = (lbl, split) => split ? `
+        <div class="psb-item">
+          <span class="lbl">${lbl}</span>
+          <b>${split.opsAgainst || '—'}</b>
+          <span style="color:var(--dim)">OPS · ${split.kPct || '?'}%K · ${split.pa}PA</span>
+          ${split.pa < 40 ? '<span class="small-sample-flag">SMALL</span>' : ''}
+        </div>
+      ` : '';
+      pitcherSplitsHtml = `
+        <div class="pitcher-splits-block">
+          ${vsRow('vs RHB', ps.vsR)}
+          ${vsRow('vs LHB', ps.vsL)}
+        </div>
+      `;
+    }
+
     return `
       <div class="analysis-panel">
         <div class="analysis-head">
@@ -895,6 +965,7 @@ function renderAnalysis(data) {
             <button class="tag-btn tag-btn-sm ${pitcherIsTagged?'tagged':''}" onclick='openTagModal(${pitcherTagCtx})'>${pitcherIsTagged?'EDIT TAGS':'+ TAG'}</button>
           </div>
           <div class="pitch-list">${arsenalHtml || '<span style="color:var(--dim);font-size:11px">No arsenal data available</span>'}</div>
+          ${pitcherSplitsHtml}
           ${pitcherTagChips}
           ${bullpenHtml}
         </div>
