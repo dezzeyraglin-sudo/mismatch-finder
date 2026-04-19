@@ -302,6 +302,78 @@
   .deep-mode-banner .dmb-label{color:var(--heat);font-weight:700;letter-spacing:0.12em}
   .deep-mode-banner .dmb-desc{color:var(--dim);font-size:10px}
 
+  /* =============== GAME PROJECTION (SPLIT LAYOUT) =============== */
+  .proj-section{margin:14px 0}
+  .proj-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  @media(max-width:560px){.proj-grid{grid-template-columns:1fr}}
+
+  /* Our projection panel */
+  .projection-panel{background:linear-gradient(135deg, rgba(198,255,61,0.08), rgba(198,255,61,0.02));border:1px solid rgba(198,255,61,0.25);border-radius:10px;padding:14px}
+  .projection-panel .pp-brand{color:var(--accent);font-size:10px;letter-spacing:0.14em;font-weight:700;margin-bottom:2px}
+
+  /* Market panel */
+  .market-panel{background:linear-gradient(135deg, rgba(102,217,232,0.06), rgba(102,217,232,0.01));border:1px solid rgba(102,217,232,0.22);border-radius:10px;padding:14px}
+  .market-panel .pp-brand{color:var(--cool);font-size:10px;letter-spacing:0.14em;font-weight:700;margin-bottom:2px}
+
+  .pp-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:10px;flex-wrap:wrap}
+  .pp-title{font-size:13px;font-weight:700;color:var(--ink);margin:0}
+  .pp-conf{font-size:9px;letter-spacing:0.14em;padding:3px 8px;border-radius:3px;font-weight:700}
+  .pp-conf.STRONG{background:var(--accent);color:#0a0d0a}
+  .pp-conf.CLEAR{background:rgba(198,255,61,0.2);color:var(--accent);border:1px solid var(--accent)}
+  .pp-conf.SLIGHT{background:var(--panel-3);color:var(--ink);border:1px solid var(--line)}
+  .pp-conf.TOSS-UP{background:var(--panel-3);color:var(--dim);border:1px solid var(--line)}
+
+  .pp-score{display:grid;grid-template-columns:1fr auto 1fr;gap:10px;align-items:center;margin-bottom:10px}
+  .pp-team{display:flex;flex-direction:column;gap:3px}
+  .pp-team.winner .pp-team-runs{color:var(--accent)}
+  .pp-team.winner .pp-team-name{color:var(--accent)}
+  .pp-team-name{font-size:12px;font-weight:700;letter-spacing:0.04em}
+  .pp-team-runs{font-size:28px;font-weight:800;line-height:1;font-variant-numeric:tabular-nums;color:var(--ink)}
+  .pp-team-wp{font-size:9px;color:var(--dim);letter-spacing:0.08em}
+  .pp-vs{font-size:9px;color:var(--dim);letter-spacing:0.15em;align-self:center;text-align:center}
+  .pp-team.away{text-align:left}
+  .pp-team.home{text-align:right;align-items:flex-end}
+
+  .pp-total-line{font-size:11px;color:var(--dim);text-align:center;margin-top:4px;padding-top:8px;border-top:1px dashed var(--line)}
+  .pp-total-line b{color:var(--ink);font-size:14px}
+
+  .pp-winner-pill{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;background:var(--panel-3);border-radius:3px;font-size:10px;font-weight:700;letter-spacing:0.1em;margin-top:6px}
+  .pp-winner-pill .pwp-label{color:var(--dim);font-size:8px}
+  .pp-winner-pill .pwp-val{color:var(--accent)}
+
+  /* Market panel specific */
+  .mk-total-block{text-align:center;padding:12px;background:var(--panel-3);border-radius:6px;margin-bottom:8px}
+  .mk-total-val{font-size:32px;font-weight:800;color:var(--ink);line-height:1;font-variant-numeric:tabular-nums}
+  .mk-total-lbl{font-size:10px;color:var(--dim);letter-spacing:0.12em;margin-top:4px}
+  .mk-ml-row{display:flex;justify-content:space-between;gap:10px;font-size:11px;padding:6px 0;border-top:1px dashed var(--line)}
+  .mk-ml-row:first-of-type{border-top:none}
+  .mk-ml-label{color:var(--dim);letter-spacing:0.06em;font-size:10px}
+  .mk-ml-val{color:var(--ink);font-weight:700}
+
+  /* Reasoning sections */
+  .reasoning-block{margin-top:10px;padding-top:10px;border-top:1px solid var(--line)}
+  .reasoning-title{font-size:9px;letter-spacing:0.14em;color:var(--dim);font-weight:700;margin-bottom:6px}
+  .reasoning-list{list-style:none;padding:0;margin:0;font-size:10.5px;line-height:1.45}
+  .reasoning-list li{padding-left:14px;position:relative;margin-bottom:4px;color:var(--ink)}
+  .reasoning-list li::before{content:'▸';position:absolute;left:0;color:var(--dim)}
+  .reasoning-list li.neg::before{color:var(--cool)}
+  .reasoning-list li.pos::before{color:var(--accent)}
+
+  /* Divergence panel (separate standout card) */
+  .divergence-panel{margin-top:10px;padding:10px 12px;background:linear-gradient(135deg, rgba(255,122,61,0.1), rgba(255,122,61,0.02));border:1px solid rgba(255,122,61,0.3);border-radius:8px}
+  .divergence-head{display:flex;align-items:center;gap:6px;margin-bottom:6px;font-size:11px;font-weight:700;letter-spacing:0.1em;color:var(--heat)}
+  .divergence-lean{font-size:18px;font-weight:800;color:var(--ink);margin:4px 0}
+  .divergence-lean.UNDER{color:var(--cool)}
+  .divergence-lean.OVER{color:var(--heat)}
+
+  /* Flags */
+  .pp-flag{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:700;letter-spacing:0.1em;padding:4px 8px;border-radius:3px;margin-top:6px}
+  .pp-flag.low{background:rgba(102,217,232,0.15);color:var(--cool);border:1px solid var(--cool)}
+  .pp-flag.high{background:rgba(255,122,61,0.15);color:var(--heat);border:1px solid var(--heat)}
+  .pp-flag.disagreement{background:rgba(255,200,61,0.15);color:var(--warn);border:1px solid var(--warn)}
+
+  .pp-no-odds{font-size:10px;color:var(--dim);font-style:italic;text-align:center;padding:20px 10px}
+
   .tier-filters{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap}
   .tier-filter{background:var(--panel);color:var(--dim);border:1px solid var(--line);padding:5px 10px;border-radius:100px;font-size:10.5px;cursor:pointer;letter-spacing:0.05em}
   .tier-filter.active{background:var(--heat);color:#0a0d0a;border-color:var(--heat)}
@@ -326,6 +398,17 @@
   .banned-chip{background:var(--panel);border:1px solid rgba(255,90,90,0.3);color:var(--danger);padding:5px 10px;border-radius:100px;font-size:11px;display:flex;align-items:center;gap:6px}
   .banned-chip .x-btn{background:none;border:none;color:var(--danger);cursor:pointer;font-size:12px;padding:0;opacity:0.5}
   .banned-chip .x-btn:hover{opacity:1}
+
+  /* =============== BAN QUICK ACTIONS =============== */
+  .ban-quick-btn{background:transparent;border:1px solid rgba(255,90,90,0.3);color:var(--danger);padding:4px 9px;border-radius:4px;font-size:10px;letter-spacing:0.06em;font-weight:700;cursor:pointer;transition:all 0.15s}
+  .ban-quick-btn:hover{background:rgba(255,90,90,0.12);border-color:var(--danger)}
+  .ban-quick-btn.sm{padding:2px 6px;font-size:10px;line-height:1}
+  .team-ban-banner{background:rgba(255,90,90,0.08);border:1px solid rgba(255,90,90,0.3);color:var(--danger);padding:8px 12px;border-radius:6px;margin-bottom:10px;font-size:11px;letter-spacing:0.04em}
+  .side-team-banned > .pitcher-header,
+  .side-team-banned > .lineup-tier,
+  .side-team-banned .match{opacity:0.45;filter:grayscale(0.4)}
+  .banned-game{opacity:0.5;filter:grayscale(0.5)}
+  .banned-game:hover{opacity:0.75}
 
   .empty{text-align:center;padding:40px 20px;color:var(--dim);font-size:13px}
   .empty-icon{font-size:30px;margin-bottom:10px;opacity:0.4;font-family:'Archivo Black',sans-serif}
@@ -441,13 +524,29 @@
 
 <!-- SETTINGS -->
 <div class="panel-content" id="settings-panel">
-  <h2>BANNED PITCHERS <span class="count" id="bannedCount"></span></h2>
-  <div class="hint-box">Pitchers here are flagged with a red BANNED badge when appearing in any slate. Use for your K-prop ban list.</div>
+  <h2>BAN LISTS <span class="count" id="bannedCount"></span></h2>
+  <div class="hint-box">Entities on these lists get flagged in slate and analysis views. Used to filter out plays you don't want the tool suggesting.</div>
+
+  <h3 style="margin-top:16px;font-size:13px;letter-spacing:0.1em;color:var(--dim)">▸ BANNED PITCHERS</h3>
   <div class="controls">
-    <input type="text" id="banInput" placeholder="Pitcher name..." style="flex:1;max-width:280px" onkeydown="if(event.key==='Enter')addBanned()">
-    <button class="btn primary" onclick="addBanned()">BAN</button>
+    <input type="text" id="banInput" placeholder="Pitcher name..." style="flex:1;max-width:280px" onkeydown="if(event.key==='Enter')addBan('pitchers')">
+    <button class="btn primary" onclick="addBan('pitchers')">BAN</button>
   </div>
   <div class="banned-list" id="bannedList"></div>
+
+  <h3 style="margin-top:16px;font-size:13px;letter-spacing:0.1em;color:var(--dim)">▸ BANNED HITTERS</h3>
+  <div class="controls">
+    <input type="text" id="banHitterInput" placeholder="Hitter name..." style="flex:1;max-width:280px" onkeydown="if(event.key==='Enter')addBan('hitters')">
+    <button class="btn primary" onclick="addBan('hitters')">BAN</button>
+  </div>
+  <div class="banned-list" id="bannedHittersList"></div>
+
+  <h3 style="margin-top:16px;font-size:13px;letter-spacing:0.1em;color:var(--dim)">▸ BANNED TEAMS</h3>
+  <div class="controls">
+    <input type="text" id="banTeamInput" placeholder="Team abbreviation or name (e.g. NYY, Yankees)..." style="flex:1;max-width:320px" onkeydown="if(event.key==='Enter')addBan('teams')">
+    <button class="btn primary" onclick="addBan('teams')">BAN</button>
+  </div>
+  <div class="banned-list" id="bannedTeamsList"></div>
 
   <hr class="divider">
 
@@ -524,11 +623,11 @@
 // =============== STATE ===============
 let state = {
   picks: {},
-  banned: [],
+  banned: { pitchers: [], hitters: [], teams: [] },
   notes: '',
   currentDate: '',
-  researchTags: {},  // { 'player_id': { name, role: 'hitter'|'pitcher', tags: [], notes, updated, gamePk, team, opp } }
-  tracking: {}       // { 'YYYY-MM-DD': { 'player_id': { name, gamePk, team, outcomeType, result, line, manual, graded } } }
+  researchTags: {},
+  tracking: {}
 };
 let slateCache = {};      // {date: {games, fetchedAt}}
 let analysisCache = {};   // {gamePk: analysis}
@@ -613,6 +712,16 @@ function loadState() {
   state.currentDate = state.currentDate || getTodayStr();
   state.researchTags = state.researchTags || {};
   state.tracking = state.tracking || {};
+  // Migrate: old banned was flat array of pitcher names
+  if (Array.isArray(state.banned)) {
+    state.banned = { pitchers: state.banned, hitters: [], teams: [] };
+  } else if (!state.banned || typeof state.banned !== 'object') {
+    state.banned = { pitchers: [], hitters: [], teams: [] };
+  } else {
+    state.banned.pitchers = state.banned.pitchers || [];
+    state.banned.hitters = state.banned.hitters || [];
+    state.banned.teams = state.banned.teams || [];
+  }
 }
 function saveState() {
   try { localStorage.setItem(LS_KEY, JSON.stringify(state)); }
@@ -698,14 +807,20 @@ function renderGames() {
   list.innerHTML = slate.games.map(g => {
     const awName = g.awayPitcher?.name || 'TBD';
     const hmName = g.homePitcher?.name || 'TBD';
-    const awBanned = state.banned.some(b => awName.toLowerCase().includes(b.toLowerCase()));
-    const hmBanned = state.banned.some(b => hmName.toLowerCase().includes(b.toLowerCase()));
+    const awTeam = g.awayTeam.abbreviation || g.awayTeam.name || 'Away';
+    const hmTeam = g.homeTeam.abbreviation || g.homeTeam.name || 'Home';
+    const awBanned = isBanned('pitchers', awName);
+    const hmBanned = isBanned('pitchers', hmName);
+    const awTeamBanned = isBanned('teams', awTeam) || isBanned('teams', g.awayTeam.name);
+    const hmTeamBanned = isBanned('teams', hmTeam) || isBanned('teams', g.homeTeam.name);
+    const gameFullyBanned = (awTeamBanned && hmTeamBanned) || (awBanned && hmBanned);
+    const gameBannedClass = gameFullyBanned ? ' banned-game' : '';
 
     return `
-      <div class="game-card" onclick="analyzeGame(${g.gamePk})">
+      <div class="game-card${gameBannedClass}" onclick="analyzeGame(${g.gamePk})">
         <div class="game-head">
           <div>
-            <div class="game-title">${g.awayTeam.abbreviation || g.awayTeam.name || 'Away'} @ ${g.homeTeam.abbreviation || g.homeTeam.name || 'Home'}</div>
+            <div class="game-title">${awTeam}${awTeamBanned?'<span class="scratch-badge" style="margin-left:4px">BANNED</span>':''} @ ${hmTeam}${hmTeamBanned?'<span class="scratch-badge" style="margin-left:4px">BANNED</span>':''}</div>
             <div class="game-time">${g.gameTime}${g.venue ? ' · '+g.venue : ''}</div>
           </div>
           <div class="game-time">${g.status === 'Scheduled' ? '' : g.status}</div>
@@ -768,16 +883,23 @@ function renderAnalysis(data) {
       `<span class="pitch-chip">${p.type}${p.velo ? ' '+p.velo : ''}<span class="pct">${p.usage?p.usage+'%':''}</span></span>`
     ).join('');
 
-    const filtered = currentTierFilter === 'all'
-      ? s.mismatches
-      : s.mismatches.filter(m => m.tier === currentTierFilter);
-
     // Determine opposing team for tag context
     const isAwayHittingSide = key === 'awayVsHome';
     const hitTeamAbbr = isAwayHittingSide
       ? (data.awayTeam?.abbreviation || data.awayTeam?.name || 'Away')
       : (data.homeTeam?.abbreviation || data.homeTeam?.name || 'Home');
+    const hitTeamFullName = isAwayHittingSide
+      ? (data.awayTeam?.name || '')
+      : (data.homeTeam?.name || '');
     const oppPitcherName = s.pitcher?.name || '';
+    const oppPitcherBanned = isBanned('pitchers', oppPitcherName);
+    const hitTeamBanned = isBanned('teams', hitTeamAbbr) || (hitTeamFullName && isBanned('teams', hitTeamFullName));
+
+    // Filter mismatches: remove banned hitters entirely, keep banned-team hitters but flag
+    const filtered = (currentTierFilter === 'all'
+      ? s.mismatches
+      : s.mismatches.filter(m => m.tier === currentTierFilter))
+      .filter(m => !isBanned('hitters', m.hitter));
 
     const mmHtml = filtered.length === 0
       ? '<div class="empty" style="padding:20px;font-size:11px">No pure mismatches found. Pitcher arsenal may be well-designed for this lineup.</div>'
@@ -896,6 +1018,7 @@ function renderAnalysis(data) {
               <div class="match-head">
                 <div class="match-hitter">${m.hitter}<span class="hand">${m.hand || ''}</span></div>
                 <div style="display:flex;gap:6px;align-items:center">
+                  <button class="ban-quick-btn sm" onclick="event.stopPropagation();quickBan('hitters','${m.hitter.replace(/'/g,'&#39;')}')" title="Ban this hitter">⊘</button>
                   <button class="tag-btn tag-btn-sm ${isTagged?'tagged':''}" onclick='openTagModal(${tagCtx})'>${tagBtnTxt}</button>
                   <div class="tier-badge ${m.tier}">${m.tier.toUpperCase()}</div>
                 </div>
@@ -989,17 +1112,30 @@ function renderAnalysis(data) {
     }
 
     return `
-      <div class="analysis-panel">
+      <div class="analysis-panel ${hitTeamBanned ? 'side-team-banned' : ''}">
         <div class="analysis-head">
           <div class="analysis-title">${label}</div>
+          <button class="ban-quick-btn" onclick="quickBan('teams','${hitTeamAbbr}')" title="${hitTeamBanned?'Unban':'Ban'} ${hitTeamAbbr}">
+            ${hitTeamBanned ? '◉ UNBAN TEAM' : '⊘ BAN TEAM'}
+          </button>
         </div>
+        ${hitTeamBanned ? `
+          <div class="team-ban-banner">
+            ⛔ <b>${hitTeamAbbr}</b> is on your ban list — analysis still shown but dimmed
+          </div>
+        ` : ''}
         <div class="pitcher-header">
           <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px">
             <div>
-              <div class="ph-name">${s.pitcher.name} (${s.pitcher.hand}HP)</div>
+              <div class="ph-name">${s.pitcher.name} (${s.pitcher.hand}HP)${oppPitcherBanned ? '<span class="scratch-badge" style="margin-left:6px">BANNED</span>' : ''}</div>
               <div class="ph-meta">Arsenal (by usage):</div>
             </div>
-            <button class="tag-btn tag-btn-sm ${pitcherIsTagged?'tagged':''}" onclick='openTagModal(${pitcherTagCtx})'>${pitcherIsTagged?'EDIT TAGS':'+ TAG'}</button>
+            <div style="display:flex;gap:6px">
+              <button class="ban-quick-btn sm" onclick="event.stopPropagation();quickBan('pitchers','${s.pitcher.name.replace(/'/g,'&#39;')}')" title="${oppPitcherBanned?'Unban':'Ban'} this pitcher">
+                ${oppPitcherBanned ? '◉' : '⊘'}
+              </button>
+              <button class="tag-btn tag-btn-sm ${pitcherIsTagged?'tagged':''}" onclick='openTagModal(${pitcherTagCtx})'>${pitcherIsTagged?'EDIT TAGS':'+ TAG'}</button>
+            </div>
           </div>
           <div class="pitch-list">${arsenalHtml || '<span style="color:var(--dim);font-size:11px">No arsenal data available</span>'}</div>
           ${pitcherSplitsHtml}
@@ -1085,9 +1221,181 @@ function renderAnalysis(data) {
     </button>
   `;
 
+  // ===== PROJECTION + MARKET (SPLIT PANELS) =====
+  const proj = data.projection;
+  const odds = data.odds;
+  let projectionHtml = '';
+  if (proj) {
+    const awayName = data.awayTeam?.abbreviation || data.awayTeam?.name || 'AWAY';
+    const homeName = data.homeTeam?.abbreviation || data.homeTeam?.name || 'HOME';
+    const awayIsWinner = proj.projWinner === 'away';
+    const homeIsWinner = proj.projWinner === 'home';
+    const confClass = proj.confidenceLabel.split(' ')[0]; // STRONG/CLEAR/SLIGHT/TOSS-UP
+
+    // ==== OUR PROJECTION PANEL ====
+    const projReasons = proj.narrative?.projectionReasons || [];
+    const projReasonsHtml = projReasons.length > 0 ? `
+      <div class="reasoning-block">
+        <div class="reasoning-title">WHY THIS PROJECTION</div>
+        <ul class="reasoning-list">
+          ${projReasons.map(r => `<li>${r}</li>`).join('')}
+        </ul>
+      </div>
+    ` : '';
+
+    const ourPanel = `
+      <div class="projection-panel">
+        <div class="pp-head">
+          <div>
+            <div class="pp-brand">◆ OUR MODEL</div>
+            <div class="pp-title">Projected Runs</div>
+          </div>
+          <div class="pp-conf ${confClass}">${proj.confidenceLabel}</div>
+        </div>
+        <div class="pp-score">
+          <div class="pp-team away ${awayIsWinner?'winner':''}">
+            <div class="pp-team-name">${awayName}</div>
+            <div class="pp-team-runs">${proj.projAwayRuns}</div>
+            <div class="pp-team-wp">${proj.awayWinProb}% WIN</div>
+          </div>
+          <div class="pp-vs">vs</div>
+          <div class="pp-team home ${homeIsWinner?'winner':''}">
+            <div class="pp-team-name">${homeName}</div>
+            <div class="pp-team-runs">${proj.projHomeRuns}</div>
+            <div class="pp-team-wp">${proj.homeWinProb}% WIN</div>
+          </div>
+        </div>
+        <div class="pp-total-line">
+          Proj Total: <b>${proj.projTotal}</b>
+          · Winner: <span class="pwp-val" style="color:var(--accent);font-weight:700">${proj.projWinner === 'home' ? homeName : awayName}</span>
+        </div>
+        ${projReasonsHtml}
+      </div>
+    `;
+
+    // ==== MARKET PANEL ====
+    let marketPanel = '';
+    if (odds && odds.hasOdds) {
+      const marketFavoriteName = odds.favorite || '—';
+      const underdog = marketFavoriteName === homeName ? awayName : homeName;
+      const favML = odds.favoriteML;
+      // Rough dog ML based on favorite (approximate)
+      const dogMLApprox = favML < 0 ? `+${Math.abs(favML) + 20}` : `-${favML + 20}`;
+
+      marketPanel = `
+        <div class="market-panel">
+          <div class="pp-head">
+            <div>
+              <div class="pp-brand">◆ MARKET</div>
+              <div class="pp-title">${odds.provider || 'Sportsbook'}</div>
+            </div>
+          </div>
+          <div class="mk-total-block">
+            <div class="mk-total-val">${odds.total}</div>
+            <div class="mk-total-lbl">O/U TOTAL</div>
+          </div>
+          <div class="mk-ml-row">
+            <span class="mk-ml-label">Favorite</span>
+            <span class="mk-ml-val">${marketFavoriteName} ${favML > 0 ? '+' : ''}${favML}</span>
+          </div>
+          ${odds.spread ? `
+            <div class="mk-ml-row">
+              <span class="mk-ml-label">Spread</span>
+              <span class="mk-ml-val">${marketFavoriteName} ${odds.spread}</span>
+            </div>
+          ` : ''}
+        </div>
+      `;
+    } else {
+      marketPanel = `
+        <div class="market-panel">
+          <div class="pp-head">
+            <div>
+              <div class="pp-brand">◆ MARKET</div>
+              <div class="pp-title">Sportsbook</div>
+            </div>
+          </div>
+          <div class="pp-no-odds">
+            ${odds && !odds.hasOdds ? 'Market odds not yet posted for this game' : 'Market odds unavailable'}
+          </div>
+        </div>
+      `;
+    }
+
+    // ==== DIVERGENCE ANALYSIS (when our projection meaningfully differs from market) ====
+    let divergenceHtml = '';
+    const mc = proj.marketComparison;
+    const marketReasons = proj.narrative?.marketDivergenceReasons || [];
+    const winnerReasons = proj.narrative?.winnerReasons || [];
+
+    if (mc && (mc.leanStrength !== 'none' || winnerReasons.length > 0)) {
+      const hasTotalDiv = mc.leanStrength !== 'none';
+      const hasWinnerDiv = winnerReasons.some(r => r.startsWith('DISAGREEMENT'));
+
+      let divTitle = '';
+      if (hasTotalDiv && hasWinnerDiv) divTitle = '⚡ TOTAL & WINNER DIVERGENCE';
+      else if (hasTotalDiv) divTitle = '⚡ TOTAL DIVERGENCE';
+      else if (hasWinnerDiv) divTitle = '⚡ WINNER DISAGREEMENT';
+
+      const leanDisplay = hasTotalDiv ? `
+        <div class="divergence-lean ${mc.lean}">
+          ${mc.lean} ${mc.leanStrength.toUpperCase()} · ${mc.diff > 0 ? '+' : ''}${mc.diff} runs
+        </div>
+      ` : '';
+
+      const lowFlag = mc.lowScoring
+        ? '<div class="pp-flag low">◆ LOW-SCORING GAME EXPECTED</div>' : '';
+      const highFlag = mc.highScoring
+        ? '<div class="pp-flag high">◆ HIGH-SCORING GAME EXPECTED</div>' : '';
+      const disagreeFlag = hasWinnerDiv
+        ? `<div class="pp-flag disagreement">◆ MODEL DISAGREES WITH MARKET FAVORITE</div>` : '';
+
+      // Combine reasons
+      const allReasons = [...marketReasons, ...winnerReasons.filter(r => !r.startsWith('Model aligns'))];
+
+      divergenceHtml = `
+        <div class="divergence-panel">
+          <div class="divergence-head">${divTitle}</div>
+          ${leanDisplay}
+          ${lowFlag}${highFlag}${disagreeFlag}
+          ${allReasons.length > 0 ? `
+            <div class="reasoning-block" style="border-top-color:rgba(255,122,61,0.2)">
+              <div class="reasoning-title" style="color:var(--heat)">WHY WE DIFFER</div>
+              <ul class="reasoning-list">
+                ${allReasons.map(r => `<li>${r}</li>`).join('')}
+              </ul>
+            </div>
+          ` : ''}
+        </div>
+      `;
+    } else if (mc && mc.leanStrength === 'none' && winnerReasons.length > 0) {
+      // Alignment case
+      divergenceHtml = `
+        <div class="divergence-panel" style="background:rgba(198,255,61,0.04);border-color:rgba(198,255,61,0.2)">
+          <div class="divergence-head" style="color:var(--accent)">✓ ALIGNMENT WITH MARKET</div>
+          <ul class="reasoning-list">
+            ${winnerReasons.map(r => `<li class="pos">${r}</li>`).join('')}
+            <li class="pos">Our total (${mc.projTotal}) matches market (${mc.marketTotal})</li>
+          </ul>
+        </div>
+      `;
+    }
+
+    projectionHtml = `
+      <div class="proj-section">
+        <div class="proj-grid">
+          ${ourPanel}
+          ${marketPanel}
+        </div>
+        ${divergenceHtml}
+      </div>
+    `;
+  }
+
   container.innerHTML = `
     <h2 style="margin-top:24px">${gameLabel} · Mismatches <span class="count">${data.gameTime}${data.venue?' · '+data.venue:''}</span>${deepToggleInline}</h2>
     ${deepBanner}
+    ${projectionHtml}
     <div class="context-banner">
       ${parkBlock}
       ${umpBlock}
@@ -1849,39 +2157,110 @@ function jumpToDate(d) {
   document.querySelector('.tab[data-tab="track"]').click();
 }
 
-// =============== SETTINGS ===============
+// =============== SETTINGS · BAN LISTS ===============
 function renderSettings() {
-  const bl = document.getElementById('bannedList');
-  document.getElementById('bannedCount').textContent = state.banned.length ? `· ${state.banned.length}` : '';
-  if (state.banned.length === 0) {
-    bl.innerHTML = '<div style="color:var(--dim);font-size:11.5px;margin-top:10px">No banned pitchers.</div>';
-  } else {
-    bl.innerHTML = state.banned.map((b,i) => `
-      <span class="banned-chip">${b}<button class="x-btn" onclick="removeBanned(${i})">×</button></span>
-    `).join('');
+  const total = state.banned.pitchers.length + state.banned.hitters.length + state.banned.teams.length;
+  const countEl = document.getElementById('bannedCount');
+  if (countEl) countEl.textContent = total ? `· ${total}` : '';
+
+  // Pitchers
+  const plBl = document.getElementById('bannedList');
+  if (plBl) {
+    if (state.banned.pitchers.length === 0) {
+      plBl.innerHTML = '<div style="color:var(--dim);font-size:11.5px;margin-top:10px">No banned pitchers.</div>';
+    } else {
+      plBl.innerHTML = state.banned.pitchers.map((b,i) => `
+        <span class="banned-chip">${b}<button class="x-btn" onclick="removeBan('pitchers',${i})">×</button></span>
+      `).join('');
+    }
   }
-  document.getElementById('userNotes').value = state.notes || '';
+  // Hitters
+  const htBl = document.getElementById('bannedHittersList');
+  if (htBl) {
+    if (state.banned.hitters.length === 0) {
+      htBl.innerHTML = '<div style="color:var(--dim);font-size:11.5px;margin-top:10px">No banned hitters.</div>';
+    } else {
+      htBl.innerHTML = state.banned.hitters.map((b,i) => `
+        <span class="banned-chip">${b}<button class="x-btn" onclick="removeBan('hitters',${i})">×</button></span>
+      `).join('');
+    }
+  }
+  // Teams
+  const tmBl = document.getElementById('bannedTeamsList');
+  if (tmBl) {
+    if (state.banned.teams.length === 0) {
+      tmBl.innerHTML = '<div style="color:var(--dim);font-size:11.5px;margin-top:10px">No banned teams.</div>';
+    } else {
+      tmBl.innerHTML = state.banned.teams.map((b,i) => `
+        <span class="banned-chip">${b}<button class="x-btn" onclick="removeBan('teams',${i})">×</button></span>
+      `).join('');
+    }
+  }
+
+  const notesEl = document.getElementById('userNotes');
+  if (notesEl) notesEl.value = state.notes || '';
 }
 
-function addBanned() {
-  const input = document.getElementById('banInput');
+// Unified add with category param
+function addBan(category) {
+  const inputIds = { pitchers: 'banInput', hitters: 'banHitterInput', teams: 'banTeamInput' };
+  const input = document.getElementById(inputIds[category]);
+  if (!input) return;
   const val = input.value.trim();
   if (!val) return;
-  if (state.banned.includes(val)) { showToast('Already banned', true); return; }
-  state.banned.push(val);
+  const list = state.banned[category];
+  if (list.some(b => b.toLowerCase() === val.toLowerCase())) {
+    showToast('Already banned', true);
+    return;
+  }
+  list.push(val);
   input.value = '';
   saveState();
   renderSettings();
   renderGames();
-  showToast('Banned');
+  // Re-render current analysis if viewing a game
+  Object.keys(analysisCache).forEach(k => { const c = analysisCache[k]; if (c) renderAnalysis(c); });
+  showToast(`Banned ${val}`);
 }
 
-function removeBanned(i) {
-  state.banned.splice(i, 1);
+function removeBan(category, i) {
+  const name = state.banned[category][i];
+  state.banned[category].splice(i, 1);
   saveState();
   renderSettings();
   renderGames();
+  Object.keys(analysisCache).forEach(k => { const c = analysisCache[k]; if (c) renderAnalysis(c); });
+  showToast(`Unbanned ${name}`);
 }
+
+// Quick-ban helper called from inline buttons on analysis cards
+function quickBan(category, name) {
+  if (!name) return;
+  const list = state.banned[category];
+  if (list.some(b => b.toLowerCase() === name.toLowerCase())) {
+    // Already banned — offer to unban
+    if (confirm(`${name} is already banned. Unban?`)) {
+      const idx = list.findIndex(b => b.toLowerCase() === name.toLowerCase());
+      removeBan(category, idx);
+    }
+    return;
+  }
+  list.push(name);
+  saveState();
+  Object.keys(analysisCache).forEach(k => { const c = analysisCache[k]; if (c) renderAnalysis(c); });
+  renderGames();
+  showToast(`Banned ${name}`);
+}
+
+// Helper: check if an entity is banned
+function isBanned(category, name) {
+  if (!name) return false;
+  return state.banned[category].some(b => name.toLowerCase().includes(b.toLowerCase()));
+}
+
+// Legacy compat — some code may still call addBanned/removeBanned expecting pitcher behavior
+function addBanned() { addBan('pitchers'); }
+function removeBanned(i) { removeBan('pitchers', i); }
 
 function saveNotes() {
   state.notes = document.getElementById('userNotes').value;
@@ -1891,7 +2270,7 @@ function saveNotes() {
 function confirmReset() {
   if (!confirm('Reset ALL data?')) return;
   if (!confirm('Are you sure? Cannot be undone.')) return;
-  state = { picks:{}, banned:[], notes:'', currentDate:getTodayStr(), researchTags:{}, tracking:{} };
+  state = { picks:{}, banned:{pitchers:[],hitters:[],teams:[]}, notes:'', currentDate:getTodayStr(), researchTags:{}, tracking:{} };
   saveState();
   location.reload();
 }
@@ -1916,9 +2295,22 @@ function importBackup(event) {
       const choice = prompt('Import mode:\n\n1 = REPLACE all current data\n2 = MERGE with existing\n\nType 1 or 2:');
       if (choice !== '1' && choice !== '2') { showToast('Cancelled', true); event.target.value=''; return; }
       if (choice === '1') {
+        // Normalize imp.banned: old format was array, new is {pitchers,hitters,teams}
+        let importedBanned = imp.banned;
+        if (Array.isArray(importedBanned)) {
+          importedBanned = { pitchers: importedBanned, hitters: [], teams: [] };
+        } else if (!importedBanned || typeof importedBanned !== 'object') {
+          importedBanned = { pitchers: [], hitters: [], teams: [] };
+        } else {
+          importedBanned = {
+            pitchers: importedBanned.pitchers || [],
+            hitters: importedBanned.hitters || [],
+            teams: importedBanned.teams || []
+          };
+        }
         state = {
           picks: imp.picks || {},
-          banned: imp.banned || [],
+          banned: importedBanned,
           notes: imp.notes || '',
           currentDate: imp.currentDate || getTodayStr(),
           researchTags: imp.researchTags || {},
@@ -1935,7 +2327,19 @@ function importBackup(event) {
             if (!state.picks[date][id]) { state.picks[date][id] = imp.picks[date][id]; mergedPicks++; }
           });
         });
-        (imp.banned||[]).forEach(b => { if (!state.banned.includes(b)) { state.banned.push(b); mergedBans++; } });
+        // Merge banned lists — handle both old flat array and new structured shape
+        const impBan = imp.banned;
+        if (Array.isArray(impBan)) {
+          impBan.forEach(b => { if (!state.banned.pitchers.includes(b)) { state.banned.pitchers.push(b); mergedBans++; } });
+        } else if (impBan && typeof impBan === 'object') {
+          ['pitchers','hitters','teams'].forEach(cat => {
+            (impBan[cat]||[]).forEach(b => {
+              if (!state.banned[cat].some(x => x.toLowerCase() === b.toLowerCase())) {
+                state.banned[cat].push(b); mergedBans++;
+              }
+            });
+          });
+        }
         Object.entries(imp.researchTags||{}).forEach(([id, entry]) => {
           if (!state.researchTags[id]) { state.researchTags[id] = entry; mergedTags++; }
         });

@@ -24,6 +24,8 @@ export async function getProbables(date) {
         const gameTime = new Date(game.gameDate).toLocaleTimeString('en-US', {
           hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'America/New_York'
         }) + ' ET';
+        // ET date (YYYY-MM-DD) for odds lookup
+        const gameDateET = new Date(game.gameDate).toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
 
         const awayTeamId = game.teams.away.team.id;
         const homeTeamId = game.teams.home.team.id;
@@ -49,6 +51,7 @@ export async function getProbables(date) {
           homePitcher: homePP ? { id: homePP.id, name: homePP.fullName, hand: 'R' } : null,
           venue: game.venue?.name || '',
           gameTime,
+          gameDateET,
           status: game.status?.detailedState || ''
         });
       }
@@ -506,5 +509,97 @@ export async function getHitterPitchTypeByHand(mlbam, season, pitcherHand) {
   } catch (err) {
     deepCache.set(key, { t: Date.now(), data: [] });
     return [];
+  }
+}
+
+// =============================================================
+// ESPN SCOREBOARD → DraftKings totals, spreads, moneylines
+// =============================================================
+// Free, no auth. Returns { total, spread, favorite, awayML, homeML, provider }
+// Cached 5 minutes since odds update frequently as game approaches
+
+const oddsCache = new Map();
+const ODDS_CACHE_TTL_MS = 5 * 60 * 1000;
+
+// ESPN uses 3-letter codes mostly matching MLB but differs for ATH/AZ/WSH
+function espnTeamCode(mlbAbbr) {
+  const map = {
+    'ATH': 'OAK',  // Athletics
+    'AZ': 'ARI',
+    'CWS': 'CHW'
+  };
+  return map[mlbAbbr] || mlbAbbr;
+}
+
+export async function getGameOdds(awayAbbr, homeAbbr, gameDateStr) {
+  // gameDateStr like '2026-04-18' - ESPN uses YYYYMMDD
+  const dateParam = gameDateStr.replace(/-/g, '');
+  const cacheKey = `${dateParam}-${awayAbbr}-${homeAbbr}`;
+  const cached = oddsCache.get(cacheKey);
+  if (cached && Date.now() - cached.t < ODDS_CACHE_TTL_MS) return cached.data;
+
+  try {
+    const r = await fetch(`https://site.api.espn.com/apis/site/v2/sports/baseball/mlb/scoreboard?dates=${dateParam}`, {
+      signal: AbortSignal.timeout(10000)
+    });
+    if (!r.ok) {
+      oddsCache.set(cacheKey, { t: Date.now(), data: null });
+      return null;
+    }
+    const data = await r.json();
+    const awayCode = espnTeamCode(awayAbbr);
+    const homeCode = espnTeamCode(homeAbbr);
+
+    // Find the matching event
+    for (const ev of (data.events || [])) {
+      const comp = ev.competitions?.[0];
+      if (!comp) continue;
+      const competitors = comp.competitors || [];
+      const espnAway = competitors.find(c => c.homeAway === 'away');
+      const espnHome = competitors.find(c => c.homeAway === 'home');
+      const aAbbr = espnAway?.team?.abbreviation || '';
+      const hAbbr = espnHome?.team?.abbreviation || '';
+
+      // Match by abbreviation, trying both ESPN's alt codes
+      if ((aAbbr === awayCode || aAbbr === awayAbbr) &&
+          (hAbbr === homeCode || hAbbr === homeAbbr)) {
+        const odds = (comp.odds || [])[0];
+        if (!odds) {
+          const result = { found: true, hasOdds: false, gameStatus: comp.status?.type?.description };
+          oddsCache.set(cacheKey, { t: Date.now(), data: result });
+          return result;
+        }
+        // Parse details like "NYY -149" or "PIT -1.5" to infer favorite
+        const details = odds.details || '';
+        const detailsMatch = details.match(/^([A-Z]{2,3})\s+([-+]?\d+(?:\.\d+)?)/);
+        let favorite = null;
+        let favoriteML = null;
+        if (detailsMatch) {
+          favorite = detailsMatch[1];
+          favoriteML = parseFloat(detailsMatch[2]);
+        }
+        const result = {
+          found: true,
+          hasOdds: true,
+          provider: odds.provider?.name || 'Unknown',
+          total: odds.overUnder || null,
+          spread: odds.spread || null,
+          details,
+          favorite,
+          favoriteML,
+          homeTeam: hAbbr,
+          awayTeam: aAbbr,
+          gameStatus: comp.status?.type?.description
+        };
+        oddsCache.set(cacheKey, { t: Date.now(), data: result });
+        return result;
+      }
+    }
+
+    oddsCache.set(cacheKey, { t: Date.now(), data: { found: false } });
+    return { found: false };
+  } catch (err) {
+    oddsCache.set(cacheKey, { t: Date.now(), data: null });
+    return null;
   }
 }

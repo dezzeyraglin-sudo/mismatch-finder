@@ -4,7 +4,7 @@
 
 import { PARK_FACTORS_BY_TEAM } from './_data/parkFactors.js';
 import { UMPIRE_FACTORS, classifyUmp } from './_data/umpireFactors.js';
-import { getProbables, getPitcherArsenal, getBullpenProfile, getLineup, getHitterStats, getHitterSplits, getPitcherSplits, getHitterPitchTypeByHand } from './_lib/data.js';
+import { getProbables, getPitcherArsenal, getBullpenProfile, getLineup, getHitterStats, getHitterSplits, getPitcherSplits, getHitterPitchTypeByHand, getGameOdds } from './_lib/data.js';
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -430,12 +430,323 @@ export default async function handler(req, res) {
 
     sideResults.forEach(r => { if (r) results[r.key] = r.data; });
 
+    // ===== GAME-LEVEL PROJECTION =====
+    // Use aggregated side data + context to project runs and win probability
+    const gameDate = game.gameDateET || new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
+    const oddsPromise = getGameOdds(
+      game.awayTeam.abbreviation,
+      game.homeTeam.abbreviation,
+      gameDate
+    ).catch(() => null);
+    const odds = await oddsPromise;
+
+    const projection = buildGameProjection({
+      awayVsHome: results.awayVsHome,  // away hitters vs home pitcher
+      homeVsAway: results.homeVsAway,  // home hitters vs away pitcher
+      parkFactor,
+      umpire: results.umpire,
+      odds
+    });
+    results.projection = projection;
+    results.odds = odds;
+
     res.setHeader('Cache-Control', 's-maxage=900, stale-while-revalidate=3600');
     return res.status(200).json(results);
   } catch (err) {
     console.error('Analyze error:', err);
     return res.status(500).json({ error: err.message, stack: err.stack });
   }
+}
+
+// ===== GAME PROJECTION =====
+// Build expected runs per team, win probability, and compare to market O/U
+function buildGameProjection({ awayVsHome, homeVsAway, parkFactor, umpire, odds }) {
+  // MLB 2024-2025 league avg runs per team per game: ~4.45
+  const BASELINE_RUNS = 4.45;
+
+  // Map aggregate side data into multipliers
+  const sideMult = (side) => {
+    if (!side) return { lineupMult: 1.0, pitcherMult: 1.0, bullpenMult: 1.0, factors: {} };
+
+    const lt = side.lineupTier;
+    // Lineup quality: map the average max-xwoba-vs-this-arsenal to a run multiplier
+    // League avg is around .320 — elite lineup tier tops out near .380
+    // Use a soft curve so elite lineups don't over-project
+    const avgMaxXw = parseFloat(lt?.avgMaxXwoba || 0.320);
+    const lineupMult = 1.0 + ((avgMaxXw - 0.320) * 2.4);   // .040 above avg → +9.6%
+
+    // Pitcher quality: use starter's season xwOBA-against (from arsenal weighted avg)
+    let pitcherXwAgainst = null;
+    if (side.pitcherArsenal && side.pitcherArsenal.length > 0) {
+      const totalPitches = side.pitcherArsenal.reduce((s, p) => s + (p.pitches || 0), 0);
+      if (totalPitches > 0) {
+        const weighted = side.pitcherArsenal.reduce((s, p) => {
+          const x = parseFloat(p.xwoba || 0);
+          return s + (x * (p.pitches || 0));
+        }, 0);
+        pitcherXwAgainst = weighted / totalPitches;
+      }
+    }
+    // Lower xwOBA-against = better pitcher = suppresses runs
+    // League avg xwOBA-against is ~.320; ace at ~.270; replacement at ~.360
+    const pitcherMult = pitcherXwAgainst
+      ? 1.0 + ((pitcherXwAgainst - 0.320) * 2.0)   // ace .270 → 0.90x, bad .360 → 1.08x
+      : 1.0;
+
+    // Bullpen quality: similar mapping using weighted xwOBA-against across bullpen arsenal
+    let bullpenXwAgainst = null;
+    if (side.bullpen?.pitches && side.bullpen.pitches.length > 0) {
+      const totalBpPitches = side.bullpen.pitches.reduce((s, p) => s + (p.pitches || 0), 0);
+      if (totalBpPitches > 0) {
+        const weightedBp = side.bullpen.pitches.reduce((s, p) => {
+          const x = parseFloat(p.xwoba || 0);
+          return s + (x * (p.pitches || 0));
+        }, 0);
+        bullpenXwAgainst = weightedBp / totalBpPitches;
+      }
+    }
+    // Bullpen only sees ~40% of PAs (late innings), so effect is weaker
+    const bullpenMult = bullpenXwAgainst
+      ? 1.0 + ((bullpenXwAgainst - 0.320) * 0.8)
+      : 1.0;
+
+    return {
+      lineupMult,
+      pitcherMult,
+      bullpenMult,
+      factors: {
+        avgMaxXw: avgMaxXw.toFixed(3),
+        pitcherXwAgainst: pitcherXwAgainst ? pitcherXwAgainst.toFixed(3) : null,
+        bullpenXwAgainst: bullpenXwAgainst ? bullpenXwAgainst.toFixed(3) : null,
+        lineupTierLabel: lt?.label || 'UNKNOWN'
+      }
+    };
+  };
+
+  // Away runs: away hitters vs (home SP + home BP)
+  const awayComp = sideMult(awayVsHome);
+  // Home runs: home hitters vs (away SP + away BP)
+  const homeComp = sideMult(homeVsAway);
+
+  // Park factor: applies to both teams
+  const parkRunMult = parkFactor ? (parkFactor.runs || 100) / 100 : 1.0;
+  // Umpire factor: applies to both teams
+  const umpRunMult = umpire?.factors?.runs || 1.0;
+
+  // Blend starter (60%) + bullpen (40%) influence on opposing offense
+  const awayPitcherBlend = (awayComp.pitcherMult * 0.60) + (awayComp.bullpenMult * 0.40);
+  const homePitcherBlend = (homeComp.pitcherMult * 0.60) + (homeComp.bullpenMult * 0.40);
+
+  // Final projections
+  const projAwayRuns = BASELINE_RUNS * awayComp.lineupMult * awayPitcherBlend * parkRunMult * umpRunMult;
+  const projHomeRuns = BASELINE_RUNS * homeComp.lineupMult * homePitcherBlend * parkRunMult * umpRunMult;
+  const projTotal = projAwayRuns + projHomeRuns;
+
+  // Win probability via Pythagorean expectation (exp = 1.83 for MLB)
+  const ra = Math.max(0.5, projAwayRuns);
+  const rh = Math.max(0.5, projHomeRuns);
+  const homeWinProb = Math.pow(rh, 1.83) / (Math.pow(rh, 1.83) + Math.pow(ra, 1.83));
+
+  // Projected winner
+  const projWinner = projHomeRuns > projAwayRuns ? 'home' : 'away';
+  const projMargin = Math.abs(projHomeRuns - projAwayRuns);
+
+  // Confidence label
+  let confidenceLabel = 'TOSS-UP';
+  if (projMargin >= 1.5) confidenceLabel = 'STRONG LEAN';
+  else if (projMargin >= 0.8) confidenceLabel = 'CLEAR LEAN';
+  else if (projMargin >= 0.3) confidenceLabel = 'SLIGHT LEAN';
+
+  // Compare to market total if we have odds
+  let marketComparison = null;
+  if (odds && odds.hasOdds && odds.total) {
+    const marketTotal = parseFloat(odds.total);
+    const diff = projTotal - marketTotal;
+    let lean = 'NEUTRAL';
+    let leanStrength = 'none';
+    if (Math.abs(diff) < 0.3) {
+      lean = 'NEUTRAL';
+      leanStrength = 'none';
+    } else if (diff > 0) {
+      lean = 'OVER';
+      leanStrength = diff >= 1.0 ? 'strong' : diff >= 0.5 ? 'moderate' : 'slight';
+    } else {
+      lean = 'UNDER';
+      leanStrength = diff <= -1.0 ? 'strong' : diff <= -0.5 ? 'moderate' : 'slight';
+    }
+
+    // Low-scoring flag: if projected total is well below market AND under 7.5
+    const lowScoring = projTotal < 7.5 && diff < -0.3;
+    const highScoring = projTotal > 9.5 && diff > 0.3;
+
+    marketComparison = {
+      marketTotal,
+      projTotal: projTotal.toFixed(2),
+      diff: diff.toFixed(2),
+      lean,
+      leanStrength,
+      lowScoring,
+      highScoring,
+      // Market implied win prob from moneyline (Vegas home fav)
+      marketFavorite: odds.favorite || null,
+      ourFavorite: projWinner === 'home' ? 'HOME' : 'AWAY'
+    };
+  }
+
+  // ==== REASONING NARRATIVE BUILDERS ====
+  // Build explanation of what drives our projection
+  const projReasoning = [];
+
+  // Lineup quality reasoning
+  const awayTier = awayVsHome?.lineupTier;
+  const homeTier = homeVsAway?.lineupTier;
+  if (awayTier?.label && awayTier.label !== 'NO DATA' && awayTier.label !== 'TOUGH MATCHUP') {
+    if (awayTier.tier === 'exploitable' || awayTier.tier === 'leaky') {
+      projReasoning.push(`Away offense can exploit home SP arsenal (${awayTier.label}: ${awayTier.eliteCount}E/${awayTier.strongCount}S/${awayTier.solidCount}So)`);
+    }
+  }
+  if (awayTier?.tier === 'tough') {
+    projReasoning.push(`Away offense suppressed by home SP (${awayTier.label})`);
+  }
+  if (homeTier?.label && homeTier.label !== 'NO DATA' && homeTier.label !== 'TOUGH MATCHUP') {
+    if (homeTier.tier === 'exploitable' || homeTier.tier === 'leaky') {
+      projReasoning.push(`Home offense can exploit away SP arsenal (${homeTier.label}: ${homeTier.eliteCount}E/${homeTier.strongCount}S/${homeTier.solidCount}So)`);
+    }
+  }
+  if (homeTier?.tier === 'tough') {
+    projReasoning.push(`Home offense suppressed by away SP (${homeTier.label})`);
+  }
+
+  // Pitcher quality reasoning
+  if (awayComp.factors.pitcherXwAgainst) {
+    const pxw = parseFloat(awayComp.factors.pitcherXwAgainst);
+    if (pxw >= 0.360) projReasoning.push(`Home SP poor xwOBA-against .${Math.round(pxw*1000).toString().padStart(3,'0')} — elevates away offense`);
+    else if (pxw <= 0.285) projReasoning.push(`Home SP elite xwOBA-against .${Math.round(pxw*1000).toString().padStart(3,'0')} — suppresses away offense`);
+  }
+  if (homeComp.factors.pitcherXwAgainst) {
+    const pxw = parseFloat(homeComp.factors.pitcherXwAgainst);
+    if (pxw >= 0.360) projReasoning.push(`Away SP poor xwOBA-against .${Math.round(pxw*1000).toString().padStart(3,'0')} — elevates home offense`);
+    else if (pxw <= 0.285) projReasoning.push(`Away SP elite xwOBA-against .${Math.round(pxw*1000).toString().padStart(3,'0')} — suppresses home offense`);
+  }
+
+  // Bullpen reasoning
+  if (awayComp.factors.bullpenXwAgainst) {
+    const bxw = parseFloat(awayComp.factors.bullpenXwAgainst);
+    if (bxw >= 0.355) projReasoning.push(`Home bullpen weak (${bxw.toFixed(3)} xwOBA-against) — late-game run exposure`);
+    else if (bxw <= 0.290) projReasoning.push(`Home bullpen elite (${bxw.toFixed(3)} xwOBA-against) — locks down late`);
+  }
+  if (homeComp.factors.bullpenXwAgainst) {
+    const bxw = parseFloat(homeComp.factors.bullpenXwAgainst);
+    if (bxw >= 0.355) projReasoning.push(`Away bullpen weak (${bxw.toFixed(3)} xwOBA-against) — late-game run exposure`);
+    else if (bxw <= 0.290) projReasoning.push(`Away bullpen elite (${bxw.toFixed(3)} xwOBA-against) — locks down late`);
+  }
+
+  // Park reasoning
+  if (parkRunMult >= 1.05) projReasoning.push(`${parkFactor?.name || 'Park'} is run-friendly (+${Math.round((parkRunMult-1)*100)}% runs)`);
+  else if (parkRunMult <= 0.95) projReasoning.push(`${parkFactor?.name || 'Park'} suppresses runs (${Math.round((parkRunMult-1)*100)}% runs)`);
+
+  // Umpire reasoning
+  if (umpRunMult >= 1.03) projReasoning.push(`Home plate ump has high-run tendency (+${Math.round((umpRunMult-1)*100)}%)`);
+  else if (umpRunMult <= 0.97) projReasoning.push(`Home plate ump has low-run tendency (${Math.round((umpRunMult-1)*100)}%)`);
+
+  // Why our projection differs from market (reasoning for divergence)
+  const marketReasoning = [];
+  if (marketComparison && marketComparison.leanStrength !== 'none') {
+    const diff = parseFloat(marketComparison.diff);
+    if (diff > 0) {
+      // We project OVER market
+      marketReasoning.push(`Our projection is ${Math.abs(diff).toFixed(2)} runs higher than ${marketComparison.marketTotal} line`);
+      // Look for specific drivers
+      if (awayTier?.tier === 'exploitable' || awayTier?.tier === 'leaky') {
+        marketReasoning.push(`Market may be undervaluing the away lineup's edges vs home SP arsenal`);
+      }
+      if (homeTier?.tier === 'exploitable' || homeTier?.tier === 'leaky') {
+        marketReasoning.push(`Market may be undervaluing the home lineup's edges vs away SP arsenal`);
+      }
+      if (awayComp.factors.pitcherXwAgainst && parseFloat(awayComp.factors.pitcherXwAgainst) >= 0.350) {
+        marketReasoning.push(`Home SP has been more hittable than public perception suggests`);
+      }
+      if (homeComp.factors.pitcherXwAgainst && parseFloat(homeComp.factors.pitcherXwAgainst) >= 0.350) {
+        marketReasoning.push(`Away SP has been more hittable than public perception suggests`);
+      }
+      if (parkRunMult >= 1.05) {
+        marketReasoning.push(`Run-friendly park environment stacks with offensive edges`);
+      }
+    } else {
+      // We project UNDER market
+      marketReasoning.push(`Our projection is ${Math.abs(diff).toFixed(2)} runs lower than ${marketComparison.marketTotal} line`);
+      if (awayTier?.tier === 'tough') {
+        marketReasoning.push(`Away lineup struggles vs home SP arsenal more than market accounts for`);
+      }
+      if (homeTier?.tier === 'tough') {
+        marketReasoning.push(`Home lineup struggles vs away SP arsenal more than market accounts for`);
+      }
+      if (awayComp.factors.pitcherXwAgainst && parseFloat(awayComp.factors.pitcherXwAgainst) <= 0.295) {
+        marketReasoning.push(`Home SP has been suppressing contact (low xwOBA-against)`);
+      }
+      if (homeComp.factors.pitcherXwAgainst && parseFloat(homeComp.factors.pitcherXwAgainst) <= 0.295) {
+        marketReasoning.push(`Away SP has been suppressing contact (low xwOBA-against)`);
+      }
+      if (parkRunMult <= 0.95) {
+        marketReasoning.push(`Pitcher-friendly park depresses scoring more than market accounts for`);
+      }
+      if (umpRunMult <= 0.97) {
+        marketReasoning.push(`Umpire's large strike zone expected to depress scoring`);
+      }
+    }
+  }
+
+  // Moneyline divergence reasoning
+  const winnerReasoning = [];
+  if (odds && odds.hasOdds && odds.favorite) {
+    const weFavorHome = projWinner === 'home';
+    const marketFavorsHome = odds.favorite === odds.homeTeam;
+    const agreement = weFavorHome === marketFavorsHome;
+    if (!agreement && projMargin >= 0.3) {
+      // We disagree with the market on the winner
+      const ourPick = projWinner === 'home' ? 'HOME' : 'AWAY';
+      winnerReasoning.push(`DISAGREEMENT: Our model picks ${ourPick} while market favors ${odds.favorite}`);
+      // Key drivers
+      if (projWinner === 'home' && homeTier?.tier !== 'tough') {
+        winnerReasoning.push(`Home offense has arsenal edges vs away SP that market isn't pricing in`);
+      }
+      if (projWinner === 'away' && awayTier?.tier !== 'tough') {
+        winnerReasoning.push(`Away offense has arsenal edges vs home SP that market isn't pricing in`);
+      }
+      const favComp = marketFavorsHome ? homeComp : awayComp;
+      const favTier = marketFavorsHome ? homeTier : awayTier;
+      if (favTier?.tier === 'tough') {
+        winnerReasoning.push(`Market's favorite faces a tough arsenal matchup we're discounting`);
+      }
+    } else if (agreement) {
+      winnerReasoning.push(`Model aligns with market favorite (${odds.favorite})`);
+    }
+  }
+
+  const narrative = {
+    projectionReasons: projReasoning,     // what drives our projection
+    marketDivergenceReasons: marketReasoning,  // why our total differs from book
+    winnerReasons: winnerReasoning         // moneyline agreement/disagreement reasoning
+  };
+
+  return {
+    projAwayRuns: projAwayRuns.toFixed(2),
+    projHomeRuns: projHomeRuns.toFixed(2),
+    projTotal: projTotal.toFixed(2),
+    projMargin: projMargin.toFixed(2),
+    projWinner,
+    confidenceLabel,
+    homeWinProb: (homeWinProb * 100).toFixed(1),
+    awayWinProb: ((1 - homeWinProb) * 100).toFixed(1),
+    factors: {
+      away: awayComp.factors,
+      home: homeComp.factors,
+      parkRunMult: parkRunMult.toFixed(3),
+      umpRunMult: umpRunMult.toFixed(3)
+    },
+    marketComparison,
+    narrative
+  };
 }
 
 // ===== EDGE DESCRIPTION GENERATOR =====
