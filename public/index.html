@@ -410,6 +410,192 @@
   .banned-game{opacity:0.5;filter:grayscale(0.5)}
   .banned-game:hover{opacity:0.75}
 
+  /* =============== BEST BET HISTORY =============== */
+  .history-subnav{display:flex;gap:6px;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--line);align-items:center}
+  .history-subnav-btn{background:transparent;border:1px solid var(--line);color:var(--dim);padding:6px 12px;border-radius:4px;font-size:11px;letter-spacing:0.08em;font-weight:700;cursor:pointer;transition:all 0.15s}
+  .history-subnav-btn.active{background:var(--panel-3);color:var(--ink);border-color:var(--accent)}
+  .history-subnav-btn:hover{color:var(--ink)}
+
+  .bb-stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px}
+  @media(max-width:540px){.bb-stats-grid{grid-template-columns:repeat(2,1fr)}}
+  .bb-stat-card{background:var(--panel-2);border:1px solid var(--line);border-radius:6px;padding:10px;text-align:center}
+  .bb-stat-card.featured{background:linear-gradient(135deg,rgba(198,255,61,0.08),rgba(198,255,61,0.02));border-color:rgba(198,255,61,0.3)}
+  .bb-stat-val{font-size:22px;font-weight:800;color:var(--ink);line-height:1;font-variant-numeric:tabular-nums}
+  .bb-stat-card.featured .bb-stat-val{font-size:26px}
+  .bb-stat-lbl{font-size:8px;letter-spacing:0.12em;color:var(--dim);margin-top:4px;font-weight:700}
+  .bb-stat-pct{font-size:13px;font-weight:800;margin-top:2px;font-variant-numeric:tabular-nums}
+  .bb-stat-pct.small{font-size:11px}
+  .bb-stat-pct.hot{color:var(--accent)}
+  .bb-stat-pct.cold{color:var(--cool)}
+  .bb-stat-pct.neutral{color:var(--warn)}
+
+  .bb-section-title{font-size:11px;letter-spacing:0.15em;color:var(--dim);font-weight:700;margin:16px 0 8px;text-transform:uppercase}
+
+  .bb-breakdown{border:1px solid var(--line);border-radius:6px;overflow:hidden;margin-bottom:14px}
+  .bb-breakdown-row{display:grid;grid-template-columns:1fr auto auto;gap:10px;align-items:center;padding:8px 12px;border-bottom:1px solid var(--line);font-size:11px}
+  .bb-breakdown-row:last-child{border-bottom:none}
+  .bb-bd-label{color:var(--ink);font-weight:700}
+  .bb-bd-record{color:var(--dim);font-size:10px;letter-spacing:0.04em;font-variant-numeric:tabular-nums}
+  .bb-bd-pct{font-weight:800;font-size:13px;min-width:42px;text-align:right;font-variant-numeric:tabular-nums}
+  .bb-bd-pct.hot{color:var(--accent)}
+  .bb-bd-pct.cold{color:var(--cool)}
+  .bb-bd-pct.neutral{color:var(--warn)}
+
+  .bb-day-block{margin-bottom:12px;border:1px solid var(--line);border-radius:6px;overflow:hidden}
+  .bb-day-head{display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:var(--panel-2);border-bottom:1px solid var(--line)}
+  .bb-day-date{font-size:11px;font-weight:700;color:var(--ink);letter-spacing:0.08em}
+  .bb-day-rec{font-size:10px;color:var(--dim);font-variant-numeric:tabular-nums}
+
+  .bb-entry{padding:10px 12px;border-bottom:1px solid var(--line);border-left:3px solid transparent}
+  .bb-entry:last-child{border-bottom:none}
+  .bb-entry.win{border-left-color:var(--accent);background:rgba(198,255,61,0.03)}
+  .bb-entry.loss{border-left-color:var(--danger);background:rgba(255,90,90,0.03)}
+  .bb-entry.didnotplay{border-left-color:var(--warn);opacity:0.7}
+  .bb-entry.pending{border-left-color:var(--dim)}
+  .bb-entry-head{display:flex;justify-content:space-between;gap:8px;align-items:flex-start}
+  .bb-entry-name{font-size:12px;font-weight:700;color:var(--ink);display:flex;align-items:center;gap:6px}
+  .bb-tier-dot{width:8px;height:8px;border-radius:50%;display:inline-block}
+  .bb-tier-dot.elite{background:var(--heat)}
+  .bb-tier-dot.strong{background:var(--accent)}
+  .bb-entry-prop{font-size:10px;color:var(--dim);margin-top:3px;display:flex;flex-wrap:wrap;gap:4px;align-items:center}
+  .bb-prop-label{color:var(--ink);font-weight:700;letter-spacing:0.05em;font-size:10px}
+  .bb-prop-reason{font-style:italic;color:var(--dim)}
+  .bb-entry-result{font-size:10px;letter-spacing:0.12em;font-weight:700;padding:3px 7px;border-radius:3px;flex-shrink:0}
+  .bb-entry-result.win{background:var(--accent);color:#0a0d0a}
+  .bb-entry-result.loss{background:var(--danger);color:#0a0d0a}
+  .bb-entry-result.didnotplay{background:var(--warn);color:#0a0d0a}
+  .bb-entry-result.pending{background:var(--panel-3);color:var(--dim);border:1px solid var(--line)}
+  .bb-line{font-size:10px;color:var(--dim);margin-top:6px;font-variant-numeric:tabular-nums}
+  .bb-entry-actions{display:flex;gap:4px;margin-top:6px}
+  .result-btn.sm{padding:2px 8px;font-size:10px}
+  .btn.sm{padding:4px 10px;font-size:10px;letter-spacing:0.06em}
+
+  .bb-share-banner{background:linear-gradient(135deg,rgba(255,122,61,0.1),rgba(255,122,61,0.02));border:1px solid rgba(255,122,61,0.3);border-radius:8px;padding:12px;margin-bottom:14px}
+  .bb-share-title{font-size:12px;font-weight:700;color:var(--heat);letter-spacing:0.08em;margin-bottom:2px}
+  .bb-share-desc{font-size:10px;color:var(--dim);margin-bottom:8px}
+  .bb-share-actions{display:flex;gap:6px;flex-wrap:wrap}
+
+  /* =============== TOP PICK =============== */
+  .top-picks-banner{
+    background:linear-gradient(135deg, rgba(198,255,61,0.14), rgba(255,122,61,0.08));
+    border:1px solid var(--accent);
+    border-radius:10px;
+    padding:16px 18px;
+    margin:14px 0;
+    position:relative;
+    overflow:hidden;
+  }
+  .top-picks-banner::before{
+    content:'';
+    position:absolute;
+    inset:0;
+    background:radial-gradient(circle at top right, rgba(198,255,61,0.08), transparent 60%);
+    pointer-events:none;
+  }
+  .tpb-title{
+    font-size:10px;
+    letter-spacing:0.18em;
+    color:var(--accent);
+    font-weight:700;
+    margin-bottom:10px;
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+  .tpb-title::before{
+    content:'';
+    width:8px;
+    height:8px;
+    background:var(--accent);
+    border-radius:50%;
+    animation:pulse-gold 1.4s ease-in-out infinite;
+  }
+  @keyframes pulse-gold{
+    0%,100%{opacity:1;transform:scale(1);box-shadow:0 0 0 0 rgba(198,255,61,0.5)}
+    50%{opacity:0.7;transform:scale(0.85);box-shadow:0 0 0 6px rgba(198,255,61,0)}
+  }
+  .tpb-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;position:relative}
+  @media(max-width:640px){.tpb-grid{grid-template-columns:1fr}}
+  .tpb-side{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:6px;
+    padding:12px;
+    position:relative;
+    transition:border-color 0.2s;
+  }
+  .tpb-side:hover{border-color:var(--accent);cursor:pointer}
+  .tpb-team-label{
+    font-size:9px;
+    letter-spacing:0.12em;
+    color:var(--dim);
+    font-weight:700;
+    margin-bottom:6px;
+  }
+  .tpb-hitter-row{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:6px}
+  .tpb-hitter-name{
+    font-family:'Archivo Black',sans-serif;
+    font-size:15px;
+    color:var(--ink);
+    letter-spacing:-0.01em;
+    line-height:1.1;
+  }
+  .tpb-hitter-hand{font-size:10px;color:var(--dim);letter-spacing:0.08em;margin-left:6px}
+  .tpb-tier-chip{
+    font-size:8px;
+    letter-spacing:0.14em;
+    font-weight:700;
+    padding:3px 7px;
+    border-radius:3px;
+    flex-shrink:0;
+  }
+  .tpb-tier-chip.elite{background:var(--heat);color:#0a0d0a}
+  .tpb-tier-chip.strong{background:var(--accent);color:#0a0d0a}
+  .tpb-tier-chip.solid{background:rgba(102,217,232,0.2);color:var(--cool);border:1px solid var(--cool)}
+  .tpb-prop-row{
+    background:rgba(198,255,61,0.06);
+    border:1px solid rgba(198,255,61,0.2);
+    padding:6px 8px;
+    border-radius:4px;
+    font-size:10px;
+    margin-top:6px;
+    display:flex;
+    align-items:center;
+    gap:6px;
+  }
+  .tpb-prop-label{color:var(--accent);font-weight:700;letter-spacing:0.04em}
+  .tpb-prop-plat{font-size:8px;font-weight:700;letter-spacing:0.1em;padding:1px 4px;border-radius:2px;background:var(--panel-3);color:var(--dim)}
+  .tpb-reasons{list-style:none;padding:0;margin:8px 0 0;font-size:10.5px;line-height:1.5}
+  .tpb-reasons li{padding-left:12px;position:relative;color:var(--dim);margin-bottom:2px}
+  .tpb-reasons li::before{content:'▸';position:absolute;left:0;color:var(--accent)}
+  .tpb-reasons li b{color:var(--ink)}
+
+  /* TOP PICK mark on mismatch cards */
+  .match.top-pick{
+    border-left-width:3px;
+    border-left-color:var(--accent);
+    background:linear-gradient(90deg, rgba(198,255,61,0.05), transparent 30%);
+    position:relative;
+  }
+  .top-pick-star{
+    display:inline-flex;
+    align-items:center;
+    gap:4px;
+    background:var(--accent);
+    color:#0a0d0a;
+    font-size:8px;
+    letter-spacing:0.14em;
+    padding:3px 7px;
+    border-radius:3px;
+    font-weight:700;
+    margin-right:6px;
+    animation:star-glow 2s ease-in-out infinite;
+  }
+  @keyframes star-glow{
+    0%,100%{box-shadow:0 0 0 0 rgba(198,255,61,0.4)}
+    50%{box-shadow:0 0 0 3px rgba(198,255,61,0)}
+  }
+
   .empty{text-align:center;padding:40px 20px;color:var(--dim);font-size:13px}
   .empty-icon{font-size:30px;margin-bottom:10px;opacity:0.4;font-family:'Archivo Black',sans-serif}
   .loading{text-align:center;padding:30px;color:var(--dim);font-size:12px}
@@ -627,7 +813,8 @@ let state = {
   notes: '',
   currentDate: '',
   researchTags: {},
-  tracking: {}
+  tracking: {},
+  bestBetHistory: {}   // { 'YYYY-MM-DD_gamePk_hitterId': { ... } }
 };
 let slateCache = {};      // {date: {games, fetchedAt}}
 let analysisCache = {};   // {gamePk: analysis}
@@ -712,6 +899,7 @@ function loadState() {
   state.currentDate = state.currentDate || getTodayStr();
   state.researchTags = state.researchTags || {};
   state.tracking = state.tracking || {};
+  state.bestBetHistory = state.bestBetHistory || {};
   // Migrate: old banned was flat array of pitcher names
   if (Array.isArray(state.banned)) {
     state.banned = { pitchers: state.banned, hitters: [], teams: [] };
@@ -875,6 +1063,9 @@ function toggleDeepMode(gamePk) {
 function renderAnalysis(data) {
   const container = document.getElementById('analysisContainer');
 
+  // Auto-log every "BEST BET" recommendation from this analysis
+  logBestBets(data);
+
   const sideHtml = (key, label) => {
     const s = data[key];
     if (!s || !s.pitcher) return '';
@@ -1014,9 +1205,12 @@ function renderAnalysis(data) {
           }
 
           return `
-            <div class="match ${m.tier}">
+            <div class="match ${m.tier}${m.isTopPick?' top-pick':''}">
               <div class="match-head">
-                <div class="match-hitter">${m.hitter}<span class="hand">${m.hand || ''}</span></div>
+                <div class="match-hitter">
+                  ${m.isTopPick ? '<span class="top-pick-star">★ TOP PICK</span>' : ''}
+                  ${m.hitter}<span class="hand">${m.hand || ''}</span>
+                </div>
                 <div style="display:flex;gap:6px;align-items:center">
                   <button class="ban-quick-btn sm" onclick="event.stopPropagation();quickBan('hitters','${m.hitter.replace(/'/g,'&#39;')}')" title="Ban this hitter">⊘</button>
                   <button class="tag-btn tag-btn-sm ${isTagged?'tagged':''}" onclick='openTagModal(${tagCtx})'>${tagBtnTxt}</button>
@@ -1392,10 +1586,58 @@ function renderAnalysis(data) {
     `;
   }
 
+  // ===== TOP PICKS SUMMARY BANNER =====
+  // Combine each side's top pick into one prominent callout
+  const awayTop = data.awayVsHome?.topPick;
+  const homeTop = data.homeVsAway?.topPick;
+  const awayLabel = data.awayTeam?.abbreviation || data.awayTeam?.name || 'AWAY';
+  const homeLabel = data.homeTeam?.abbreviation || data.homeTeam?.name || 'HOME';
+
+  function renderTopPickCard(tp, teamLabel) {
+    if (!tp) return `
+      <div class="tpb-side" style="opacity:0.5">
+        <div class="tpb-team-label">${teamLabel} · TOP PICK</div>
+        <div style="color:var(--dim);font-size:11px;margin-top:4px">No qualifying mismatch on this side</div>
+      </div>
+    `;
+    const bp = tp.bestProp;
+    const reasonList = (tp.reasons || []).slice(0, 3).map(r => `<li>${r}</li>`).join('');
+    return `
+      <div class="tpb-side" onclick="scrollToHitter('${(tp.hitter||'').replace(/'/g,'&#39;')}')">
+        <div class="tpb-team-label">${teamLabel} · TOP PICK</div>
+        <div class="tpb-hitter-row">
+          <div>
+            <div class="tpb-hitter-name">${tp.hitter}<span class="tpb-hitter-hand">${tp.hand || ''}</span></div>
+          </div>
+          <span class="tpb-tier-chip ${tp.tier}">${tp.tier.toUpperCase()}${tp.bullpenTier?' · FULL':''}</span>
+        </div>
+        ${bp ? `
+          <div class="tpb-prop-row">
+            ${bp.platform?`<span class="tpb-prop-plat">${bp.platform}</span>`:''}
+            <span class="tpb-prop-label">${bp.label}</span>
+            <span style="color:var(--dim);font-size:10px;font-style:italic">${(bp.reason||'').replace(/·.*/,'').trim()}</span>
+          </div>
+        ` : ''}
+        ${reasonList ? `<ul class="tpb-reasons">${reasonList}</ul>` : ''}
+      </div>
+    `;
+  }
+
+  const topPicksBanner = (awayTop || homeTop) ? `
+    <div class="top-picks-banner">
+      <div class="tpb-title">★ TOP PICKS · ONE FROM EACH SIDE</div>
+      <div class="tpb-grid">
+        ${renderTopPickCard(awayTop, awayLabel)}
+        ${renderTopPickCard(homeTop, homeLabel)}
+      </div>
+    </div>
+  ` : '';
+
   container.innerHTML = `
     <h2 style="margin-top:24px">${gameLabel} · Mismatches <span class="count">${data.gameTime}${data.venue?' · '+data.venue:''}</span>${deepToggleInline}</h2>
     ${deepBanner}
     ${projectionHtml}
+    ${topPicksBanner}
     <div class="context-banner">
       ${parkBlock}
       ${umpBlock}
@@ -1409,6 +1651,20 @@ function renderAnalysis(data) {
     ${sideHtml('awayVsHome', `${data.awayTeam?.abbreviation || data.awayTeam?.name || 'Away'} hitters vs ${data.homePitcher?.name || 'Home SP'}`)}
     ${sideHtml('homeVsAway', `${data.homeTeam?.abbreviation || data.homeTeam?.name || 'Home'} hitters vs ${data.awayPitcher?.name || 'Away SP'}`)}
   `;
+}
+
+// Scroll to a hitter card by name (used when clicking top pick card)
+function scrollToHitter(name) {
+  const cards = document.querySelectorAll('.match-hitter');
+  for (const el of cards) {
+    if (el.textContent.includes(name)) {
+      el.closest('.match').scrollIntoView({ behavior: 'smooth', block: 'center' });
+      el.closest('.match').style.transition = 'box-shadow 0.3s';
+      el.closest('.match').style.boxShadow = '0 0 0 2px var(--accent)';
+      setTimeout(() => { el.closest('.match').style.boxShadow = ''; }, 1400);
+      return;
+    }
+  }
 }
 
 function filterTier(tier, gamePk) {
@@ -2121,32 +2377,427 @@ function jumpToGame(gamePk) {
   }
 }
 
-// =============== HISTORY ===============
+// =============== BEST BET HISTORY (auto-logged recommendations) ===============
+
+// Called from renderAnalysis — captures every "BEST BET" per hitter automatically
+function logBestBets(data) {
+  if (!data?.gamePk) return;
+  const awayTeam = data.awayTeam?.abbreviation || 'AWAY';
+  const homeTeam = data.homeTeam?.abbreviation || 'HOME';
+  const date = state.currentDate;
+  if (!state.bestBetHistory[date]) state.bestBetHistory[date] = {};
+
+  // Extract BEST BET from each side
+  const sides = [
+    { key: 'awayVsHome', hitTeam: awayTeam, oppTeam: homeTeam },
+    { key: 'homeVsAway', hitTeam: homeTeam, oppTeam: awayTeam }
+  ];
+
+  for (const side of sides) {
+    const sideData = data[side.key];
+    if (!sideData || !sideData.mismatches) continue;
+
+    for (const m of sideData.mismatches) {
+      // Only log ELITE and STRONG tier for cleaner history
+      if (m.tier !== 'elite' && m.tier !== 'strong') continue;
+      const bestBet = (m.propRecs || []).find(p => p.isBest);
+      if (!bestBet) continue;
+
+      const entryId = `${date}_${data.gamePk}_${m.hitterId || m.hitter.replace(/\s/g,'')}`;
+      if (state.bestBetHistory[date][entryId] && state.bestBetHistory[date][entryId].result) {
+        continue; // already graded, don't overwrite
+      }
+
+      state.bestBetHistory[date][entryId] = {
+        ...state.bestBetHistory[date][entryId],  // preserve any manual edits
+        entryId,
+        date,
+        gamePk: data.gamePk,
+        hitterId: m.hitterId,
+        hitterName: m.hitter,
+        hand: m.hand,
+        team: side.hitTeam,
+        opponent: side.oppTeam,
+        pitcherName: sideData.pitcher?.name,
+        pitcherHand: sideData.pitcher?.hand,
+        tier: m.tier,
+        isTopPick: !!m.isTopPick,
+        propKey: bestBet.key,
+        propLabel: bestBet.label,
+        platform: bestBet.platform,
+        reason: bestBet.reason,
+        adjustedMaxXwoba: m.adjustedMaxXwoba,
+        bullpenTier: m.bullpenTier,
+        loggedAt: state.bestBetHistory[date][entryId]?.loggedAt || Date.now(),
+        result: state.bestBetHistory[date][entryId]?.result || null,
+        line: state.bestBetHistory[date][entryId]?.line || null,
+        graded: state.bestBetHistory[date][entryId]?.graded || false
+      };
+    }
+  }
+  saveState();
+}
+
+// Auto-grade every ungraded best bet for dates up to today
+async function gradeAllBestBets() {
+  const today = getTodayStr();
+  let gradedCount = 0, attemptedCount = 0;
+  const dates = Object.keys(state.bestBetHistory).filter(d => d <= today).sort();
+  showToast(`Grading...`);
+
+  for (const date of dates) {
+    const entries = Object.entries(state.bestBetHistory[date]);
+    for (const [id, entry] of entries) {
+      if (entry.graded || entry.result === 'win' || entry.result === 'loss') continue;
+      if (!entry.gamePk || !entry.hitterId) continue;
+      attemptedCount++;
+
+      try {
+        const res = await fetch(`/api/batter-line?gamePk=${entry.gamePk}&mlbam=${entry.hitterId}`);
+        const data = await res.json();
+
+        if (!data.found) {
+          entry.result = 'didnotplay';
+          entry.graded = true;
+          gradedCount++;
+          continue;
+        }
+        if (!data.isFinal) continue; // game not finished yet
+        if (!data.didPlay) {
+          entry.result = 'didnotplay';
+          entry.line = data.line;
+          entry.graded = true;
+          gradedCount++;
+          continue;
+        }
+        entry.line = data.line;
+        entry.fantasyScore = data.fantasyScore;
+        // Grade using the propKey
+        if (data.outcomes && entry.propKey in data.outcomes) {
+          entry.result = data.outcomes[entry.propKey] ? 'win' : 'loss';
+        } else {
+          entry.result = gradeLine(data.line, entry.propKey);
+        }
+        entry.graded = true;
+        gradedCount++;
+      } catch (err) {
+        console.error('Grade failed for', id, err);
+      }
+    }
+  }
+
+  saveState();
+  showToast(`Graded ${gradedCount} of ${attemptedCount} pending`);
+  renderHistory();
+}
+
+function computeBestBetStats(entries) {
+  const wins = entries.filter(e => e.result === 'win').length;
+  const losses = entries.filter(e => e.result === 'loss').length;
+  const dnp = entries.filter(e => e.result === 'didnotplay').length;
+  const pending = entries.filter(e => !e.result).length;
+  const total = wins + losses;
+  const winRate = total > 0 ? (wins / total) : null;
+  return { wins, losses, dnp, pending, total, winRate };
+}
+
+// =============== HISTORY TAB ===============
+let historyView = 'bestbets';  // 'bestbets' | 'picks'
+
+function switchHistoryView(view) {
+  historyView = view;
+  document.querySelectorAll('.history-subnav-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.histView === view);
+  });
+  renderHistory();
+}
+
 function renderHistory() {
-  const list = document.getElementById('historyList');
-  const dates = Object.keys(state.picks).filter(d => Object.keys(state.picks[d]||{}).length > 0).sort().reverse();
-  if (dates.length === 0) {
-    list.innerHTML = `<div class="empty"><div class="empty-icon">◌</div><div>No history.</div></div>`;
+  const container = document.getElementById('historyList');
+  if (!container) return;
+
+  // Subnav
+  const subnavHtml = `
+    <div class="history-subnav">
+      <button class="history-subnav-btn ${historyView==='bestbets'?'active':''}" data-hist-view="bestbets" onclick="switchHistoryView('bestbets')">◆ BEST BETS</button>
+      <button class="history-subnav-btn ${historyView==='picks'?'active':''}" data-hist-view="picks" onclick="switchHistoryView('picks')">$ MY BETS</button>
+      <button class="btn sm" onclick="gradeAllBestBets()" style="margin-left:auto">⚡ GRADE ALL</button>
+    </div>
+  `;
+
+  if (historyView === 'picks') {
+    // Original my-bets by-date view
+    const dates = Object.keys(state.picks).filter(d => Object.keys(state.picks[d]||{}).length > 0).sort().reverse();
+    if (dates.length === 0) {
+      container.innerHTML = subnavHtml + `<div class="empty"><div class="empty-icon">◌</div><div>No bet history.</div></div>`;
+      return;
+    }
+    container.innerHTML = subnavHtml + dates.map(d => {
+      const picks = Object.values(state.picks[d]||{});
+      const wins = picks.filter(p=>p.result==='win').length;
+      const losses = picks.filter(p=>p.result==='loss').length;
+      let profit = 0;
+      picks.forEach(p => {
+        if (p.result==='win') profit += calcPayout(p.stake, p.odds);
+        else if (p.result==='loss') profit -= (p.stake||0);
+      });
+      return `
+        <div class="game-card" onclick="jumpToDate('${d}')">
+          <div class="game-head">
+            <div class="game-title">${formatDateDisplay(d)}</div>
+            <div class="game-time">${picks.length} picks · ${wins}W-${losses}L · <span style="color:${profit>=0?'var(--accent)':'var(--danger)'};font-weight:700">$${profit.toFixed(2)}</span></div>
+          </div>
+        </div>
+      `;
+    }).join('');
     return;
   }
-  list.innerHTML = dates.map(d => {
-    const picks = Object.values(state.picks[d]||{});
-    const wins = picks.filter(p=>p.result==='win').length;
-    const losses = picks.filter(p=>p.result==='loss').length;
-    let profit = 0;
-    picks.forEach(p => {
-      if (p.result==='win') profit += calcPayout(p.stake, p.odds);
-      else if (p.result==='loss') profit -= (p.stake||0);
-    });
+
+  // BEST BETS view - all auto-logged recommendations
+  const allEntries = [];
+  Object.keys(state.bestBetHistory).forEach(date => {
+    Object.values(state.bestBetHistory[date]).forEach(e => allEntries.push(e));
+  });
+
+  if (allEntries.length === 0) {
+    container.innerHTML = subnavHtml + `<div class="empty"><div class="empty-icon">◌</div><div>No best bets logged yet.<br><br>Best bets are auto-logged when you analyze a game.<br>Just load a slate, tap ANALYZE on any game, and the tool captures the top-ranked prop for every ELITE/STRONG hitter.</div></div>`;
+    return;
+  }
+
+  // Overall stats
+  const overall = computeBestBetStats(allEntries);
+  // Stats by tier
+  const eliteStats = computeBestBetStats(allEntries.filter(e => e.tier === 'elite'));
+  const strongStats = computeBestBetStats(allEntries.filter(e => e.tier === 'strong'));
+  // TOP PICKS stats (one per team per game — highest quality)
+  const topPickStats = computeBestBetStats(allEntries.filter(e => e.isTopPick));
+  // Stats by prop type
+  const byProp = {};
+  allEntries.forEach(e => {
+    if (!byProp[e.propKey]) byProp[e.propKey] = [];
+    byProp[e.propKey].push(e);
+  });
+  // Recent 30 days
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - 30);
+  const cutoffStr = cutoff.toISOString().split('T')[0];
+  const recentStats = computeBestBetStats(allEntries.filter(e => e.date >= cutoffStr));
+
+  const statsBar = `
+    <div class="bb-stats-grid">
+      <div class="bb-stat-card featured">
+        <div class="bb-stat-val">${overall.wins}-${overall.losses}</div>
+        <div class="bb-stat-lbl">ALL-TIME RECORD</div>
+        ${overall.winRate !== null ? `<div class="bb-stat-pct ${overall.winRate >= 0.55 ? 'hot' : overall.winRate <= 0.45 ? 'cold' : 'neutral'}">${(overall.winRate*100).toFixed(1)}%</div>` : ''}
+      </div>
+      <div class="bb-stat-card featured" style="border-color:var(--heat);background:linear-gradient(135deg,rgba(255,122,61,0.1),rgba(255,122,61,0.02))">
+        <div class="bb-stat-val">${topPickStats.wins}-${topPickStats.losses}</div>
+        <div class="bb-stat-lbl" style="color:var(--heat)">★ TOP PICKS</div>
+        ${topPickStats.winRate !== null ? `<div class="bb-stat-pct ${topPickStats.winRate >= 0.55 ? 'hot' : topPickStats.winRate <= 0.45 ? 'cold' : 'neutral'}">${(topPickStats.winRate*100).toFixed(1)}%</div>` : ''}
+      </div>
+      <div class="bb-stat-card">
+        <div class="bb-stat-val">${recentStats.wins}-${recentStats.losses}</div>
+        <div class="bb-stat-lbl">LAST 30 DAYS</div>
+        ${recentStats.winRate !== null ? `<div class="bb-stat-pct small ${recentStats.winRate >= 0.55 ? 'hot' : recentStats.winRate <= 0.45 ? 'cold' : 'neutral'}">${(recentStats.winRate*100).toFixed(1)}%</div>` : ''}
+      </div>
+      <div class="bb-stat-card">
+        <div class="bb-stat-val">${eliteStats.wins}-${eliteStats.losses}</div>
+        <div class="bb-stat-lbl">ELITE TIER</div>
+        ${eliteStats.winRate !== null ? `<div class="bb-stat-pct small ${eliteStats.winRate >= 0.55 ? 'hot' : eliteStats.winRate <= 0.45 ? 'cold' : 'neutral'}">${(eliteStats.winRate*100).toFixed(1)}%</div>` : ''}
+      </div>
+      <div class="bb-stat-card">
+        <div class="bb-stat-val">${strongStats.wins}-${strongStats.losses}</div>
+        <div class="bb-stat-lbl">STRONG TIER</div>
+        ${strongStats.winRate !== null ? `<div class="bb-stat-pct small ${strongStats.winRate >= 0.55 ? 'hot' : strongStats.winRate <= 0.45 ? 'cold' : 'neutral'}">${(strongStats.winRate*100).toFixed(1)}%</div>` : ''}
+      </div>
+    </div>
+  `;
+
+  // By prop type table
+  const propTypeRows = Object.entries(byProp)
+    .map(([k, list]) => ({ k, stats: computeBestBetStats(list), label: list[0].propLabel }))
+    .filter(r => r.stats.total > 0)
+    .sort((a, b) => b.stats.total - a.stats.total);
+
+  const propBreakdown = propTypeRows.length > 0 ? `
+    <h3 class="bb-section-title">BY PROP TYPE</h3>
+    <div class="bb-breakdown">
+      ${propTypeRows.map(r => {
+        const cls = r.stats.winRate !== null && r.stats.winRate >= 0.55 ? 'hot' : r.stats.winRate !== null && r.stats.winRate <= 0.45 ? 'cold' : 'neutral';
+        return `
+          <div class="bb-breakdown-row">
+            <div class="bb-bd-label">${r.label}</div>
+            <div class="bb-bd-record">${r.stats.wins}W-${r.stats.losses}L${r.stats.dnp?'·'+r.stats.dnp+'DNP':''}${r.stats.pending?'·'+r.stats.pending+'P':''}</div>
+            <div class="bb-bd-pct ${cls}">${r.stats.winRate !== null ? (r.stats.winRate*100).toFixed(0)+'%' : '—'}</div>
+          </div>
+        `;
+      }).join('')}
+    </div>
+  ` : '';
+
+  // Date-grouped bet log (last 7 dates)
+  const datesWithBets = Object.keys(state.bestBetHistory)
+    .filter(d => Object.keys(state.bestBetHistory[d]).length > 0)
+    .sort()
+    .reverse()
+    .slice(0, 7);
+
+  const dateLog = datesWithBets.map(date => {
+    const dayEntries = Object.values(state.bestBetHistory[date])
+      .sort((a,b) => (a.tier === 'elite' ? -1 : b.tier === 'elite' ? 1 : 0));
+    const dayStats = computeBestBetStats(dayEntries);
+
     return `
-      <div class="game-card" onclick="jumpToDate('${d}')">
-        <div class="game-head">
-          <div class="game-title">${formatDateDisplay(d)}</div>
-          <div class="game-time">${picks.length} picks · ${wins}W-${losses}L · <span style="color:${profit>=0?'var(--accent)':'var(--danger)'};font-weight:700">$${profit.toFixed(2)}</span></div>
+      <div class="bb-day-block">
+        <div class="bb-day-head">
+          <div class="bb-day-date">${formatDateDisplay(date)}</div>
+          <div class="bb-day-rec">${dayStats.wins}W-${dayStats.losses}L${dayStats.pending?' · '+dayStats.pending+' pending':''}</div>
         </div>
+        ${dayEntries.map(e => renderBestBetRow(e)).join('')}
       </div>
     `;
   }).join('');
+
+  // Social share banner for today's best bets
+  const todayEntries = state.bestBetHistory[getTodayStr()]
+    ? Object.values(state.bestBetHistory[getTodayStr()])
+    : [];
+  const shareBanner = todayEntries.length > 0 ? `
+    <div class="bb-share-banner">
+      <div class="bb-share-title">📱 SHARE TODAY'S PICKS</div>
+      <div class="bb-share-desc">Copy formatted text to post on social media</div>
+      <div class="bb-share-actions">
+        <button class="btn primary sm" onclick="shareToday('short')">Short List</button>
+        <button class="btn sm" onclick="shareToday('detailed')">With Reasoning</button>
+        <button class="btn sm" onclick="shareToday('stats')">With Season Record</button>
+      </div>
+    </div>
+  ` : '';
+
+  container.innerHTML = subnavHtml + statsBar + shareBanner + propBreakdown + `<h3 class="bb-section-title">RECENT BEST BETS</h3>` + dateLog;
+}
+
+function renderBestBetRow(e) {
+  const resultClass = e.result || 'pending';
+  const resultLabel = e.result === 'win' ? 'WIN' :
+                      e.result === 'loss' ? 'LOSS' :
+                      e.result === 'didnotplay' ? 'DNP' : 'PENDING';
+  const lineHtml = e.line ? `
+    <div class="bb-line">
+      ${e.line.AB}AB · ${e.line.H}H · ${e.line.R}R · ${e.line.RBI}RBI · ${e.line.HR}HR · ${e.line.TB}TB${e.fantasyScore?' · FS '+e.fantasyScore:''}
+    </div>
+  ` : '';
+  const tierClass = e.tier === 'elite' ? 'elite' : 'strong';
+  return `
+    <div class="bb-entry ${resultClass}">
+      <div class="bb-entry-head">
+        <div>
+          <div class="bb-entry-name">
+            <span class="bb-tier-dot ${tierClass}"></span>
+            ${e.isTopPick ? '<span style="color:var(--accent);font-weight:700;font-size:10px;letter-spacing:0.08em;margin-right:4px">★</span>' : ''}
+            ${e.hitterName} <span style="color:var(--dim);font-size:10px">${e.team} vs ${e.pitcherName || '?'}</span>
+          </div>
+          <div class="bb-entry-prop">
+            <span class="bb-prop-label">${e.propLabel}</span>
+            ${e.platform ? `<span class="pp-platform ${e.platform}">${e.platform}</span>` : ''}
+            <span class="bb-prop-reason">${e.reason || ''}</span>
+          </div>
+        </div>
+        <div class="bb-entry-result ${resultClass}">${resultLabel}</div>
+      </div>
+      ${lineHtml}
+      <div class="bb-entry-actions">
+        <button class="result-btn win sm ${e.result==='win'?'active':''}" onclick="setBestBetResult('${e.date}','${e.entryId}','win')">W</button>
+        <button class="result-btn loss sm ${e.result==='loss'?'active':''}" onclick="setBestBetResult('${e.date}','${e.entryId}','loss')">L</button>
+        <button class="result-btn void sm ${e.result==='didnotplay'?'active':''}" onclick="setBestBetResult('${e.date}','${e.entryId}','didnotplay')">DNP</button>
+        <button class="btn sm" onclick="gradeBestBet('${e.date}','${e.entryId}')" style="margin-left:auto">AUTO</button>
+      </div>
+    </div>
+  `;
+}
+
+function setBestBetResult(date, id, result) {
+  const e = state.bestBetHistory[date]?.[id];
+  if (!e) return;
+  e.result = e.result === result ? null : result;
+  e.graded = !!e.result;
+  saveState();
+  renderHistory();
+}
+
+async function gradeBestBet(date, id) {
+  const e = state.bestBetHistory[date]?.[id];
+  if (!e || !e.gamePk || !e.hitterId) { showToast('Missing game data', true); return; }
+  try {
+    const res = await fetch(`/api/batter-line?gamePk=${e.gamePk}&mlbam=${e.hitterId}`);
+    const data = await res.json();
+    if (!data.found) { e.result = 'didnotplay'; e.graded = true; saveState(); renderHistory(); return; }
+    if (!data.isFinal) { showToast('Game not final', true); return; }
+    if (!data.didPlay) { e.result = 'didnotplay'; e.line = data.line; e.graded = true; saveState(); renderHistory(); return; }
+    e.line = data.line;
+    e.fantasyScore = data.fantasyScore;
+    if (data.outcomes && e.propKey in data.outcomes) {
+      e.result = data.outcomes[e.propKey] ? 'win' : 'loss';
+    } else {
+      e.result = gradeLine(data.line, e.propKey);
+    }
+    e.graded = true;
+    saveState();
+    renderHistory();
+    showToast(`Graded: ${e.result.toUpperCase()}`);
+  } catch (err) {
+    showToast('Grade failed', true);
+  }
+}
+
+function shareToday(format) {
+  const today = getTodayStr();
+  const entries = Object.values(state.bestBetHistory[today] || {})
+    .sort((a,b) => (a.tier === 'elite' ? -1 : b.tier === 'elite' ? 1 : 0));
+  if (entries.length === 0) { showToast('No picks today', true); return; }
+
+  // Compute season stats for 'stats' format
+  const allEntries = [];
+  Object.keys(state.bestBetHistory).forEach(d => {
+    Object.values(state.bestBetHistory[d]).forEach(e => allEntries.push(e));
+  });
+  const season = computeBestBetStats(allEntries);
+
+  let text = '';
+  const dateStr = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
+
+  if (format === 'short') {
+    text = `⚾ ${dateStr} BEST BETS\n\n`;
+    entries.forEach(e => {
+      text += `${e.tier === 'elite' ? '★' : '◆'} ${e.hitterName} (${e.team}) ${e.propLabel}\n`;
+    });
+    text += `\n${entries.length} picks today`;
+  } else if (format === 'detailed') {
+    text = `⚾ ${dateStr} BEST BETS\n\n`;
+    entries.forEach(e => {
+      text += `${e.tier === 'elite' ? '★ ELITE' : '◆ STRONG'} · ${e.hitterName} vs ${e.pitcherName || '?'}\n`;
+      text += `  ${e.propLabel} (${e.platform})\n`;
+      text += `  ${e.reason}\n\n`;
+    });
+  } else if (format === 'stats') {
+    text = `⚾ ${dateStr} BEST BETS\n`;
+    if (season.winRate !== null) {
+      text += `🔥 Season: ${season.wins}-${season.losses} (${(season.winRate*100).toFixed(1)}%)\n`;
+    }
+    text += `\n`;
+    entries.forEach(e => {
+      text += `${e.tier === 'elite' ? '★' : '◆'} ${e.hitterName} · ${e.propLabel}\n`;
+    });
+    text += `\n#MLB #DFS #PrizePicks #Underdog`;
+  }
+
+  // Copy to clipboard
+  navigator.clipboard?.writeText(text).then(() => {
+    showToast('Copied to clipboard!');
+  }).catch(() => {
+    // Fallback: show in prompt
+    prompt('Copy this text:', text);
+  });
 }
 
 function jumpToDate(d) {
@@ -2270,7 +2921,7 @@ function saveNotes() {
 function confirmReset() {
   if (!confirm('Reset ALL data?')) return;
   if (!confirm('Are you sure? Cannot be undone.')) return;
-  state = { picks:{}, banned:{pitchers:[],hitters:[],teams:[]}, notes:'', currentDate:getTodayStr(), researchTags:{}, tracking:{} };
+  state = { picks:{}, banned:{pitchers:[],hitters:[],teams:[]}, notes:'', currentDate:getTodayStr(), researchTags:{}, tracking:{}, bestBetHistory:{} };
   saveState();
   location.reload();
 }
@@ -2314,7 +2965,8 @@ function importBackup(event) {
           notes: imp.notes || '',
           currentDate: imp.currentDate || getTodayStr(),
           researchTags: imp.researchTags || {},
-          tracking: imp.tracking || {}
+          tracking: imp.tracking || {},
+          bestBetHistory: imp.bestBetHistory || {}
         };
         saveState();
         showToast('Replaced · reloading...');
@@ -2349,9 +3001,16 @@ function importBackup(event) {
             if (!state.tracking[date][pid]) { state.tracking[date][pid] = entry; mergedTrack++; }
           });
         });
+        let mergedBets = 0;
+        Object.keys(imp.bestBetHistory||{}).forEach(date => {
+          if (!state.bestBetHistory[date]) state.bestBetHistory[date] = {};
+          Object.entries(imp.bestBetHistory[date]).forEach(([id, entry]) => {
+            if (!state.bestBetHistory[date][id]) { state.bestBetHistory[date][id] = entry; mergedBets++; }
+          });
+        });
         if (imp.notes && imp.notes !== state.notes) state.notes = (state.notes?state.notes+'\n\n--- IMPORTED ---\n':'') + imp.notes;
         saveState();
-        showToast(`Merged ${mergedPicks}p · ${mergedBans}b · ${mergedTags}t · ${mergedTrack}tr`);
+        showToast(`Merged ${mergedPicks}p · ${mergedBans}b · ${mergedTags}t · ${mergedTrack}tr · ${mergedBets}bb`);
         setTimeout(()=>location.reload(), 1200);
       }
     } catch(err) {

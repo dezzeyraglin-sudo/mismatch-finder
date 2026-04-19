@@ -408,6 +408,53 @@ export default async function handler(req, res) {
         .filter(h => h.tier)
         .sort((a, b) => parseFloat(b.adjustedEdgeScore) - parseFloat(a.adjustedEdgeScore));
 
+      // TOP PICK: most advantageous hitter on this side
+      // Uses a composite score rewarding: adjusted edge × tier weight × bullpen-full-game bonus × platoon bonus
+      const tierWeight = { elite: 1.30, strong: 1.15, solid: 1.0 };
+      const withTopPickScore = tiered.map(h => {
+        let topScore = parseFloat(h.adjustedEdgeScore || 0);
+        topScore *= (tierWeight[h.tier] || 1.0);
+        // FULL GAME bonus (edges vs both SP and BP)
+        if (h.tier && h.bullpenTier) topScore *= 1.18;
+        // Reverse split / strong platoon bonus (if adjustment is meaningfully hitter-favoring)
+        const platoonAdj = (h.adjustments || []).find(a => a.type === 'platoon' && a.favor === 'hitter');
+        if (platoonAdj) {
+          const mult = parseFloat(platoonAdj.multiplier || 1);
+          if (mult > 1.08) topScore *= 1.08;
+        }
+        // Reverse split specifically gets extra weight (market undervalued angle)
+        if (h.platoonMeta?.reverseSplit) topScore *= 1.05;
+        return { ...h, _topPickScore: topScore };
+      }).sort((a, b) => b._topPickScore - a._topPickScore);
+
+      // First entry (if it meets a minimum quality bar) is the TOP PICK
+      let topPick = null;
+      if (withTopPickScore.length > 0) {
+        const candidate = withTopPickScore[0];
+        const candidateQualifies = candidate.tier === 'elite' ||
+                                   (candidate.tier === 'strong' && parseFloat(candidate.adjustedMaxXwoba) >= 0.380) ||
+                                   (candidate.tier === 'solid' && candidate.bullpenTier);
+        if (candidateQualifies) {
+          candidate.isTopPick = true;
+          topPick = {
+            hitterId: candidate.hitterId,
+            hitter: candidate.hitter,
+            hand: candidate.hand,
+            tier: candidate.tier,
+            adjustedMaxXwoba: candidate.adjustedMaxXwoba,
+            bullpenTier: candidate.bullpenTier,
+            bestProp: (candidate.propRecs || []).find(p => p.isBest) || null,
+            reasons: buildTopPickReasons(candidate)
+          };
+        }
+      }
+
+      // Put tiered back into original sort order (by adjustedEdgeScore), preserving isTopPick flag
+      const finalTiered = tiered.map(h => {
+        const flagged = withTopPickScore.find(f => f.hitterId === h.hitterId);
+        return flagged ? { ...h, isTopPick: !!flagged.isTopPick } : h;
+      });
+
       // Aggregate pitcher-vs-lineup tier
       const lineupTier = computeLineupTier(analyzed, arsenal);
 
@@ -422,7 +469,8 @@ export default async function handler(req, res) {
             pitcherCount: bullpen.pitcherCount || 0,
             totalPitches: bullpen.totalPitches || 0
           },
-          mismatches: tiered,
+          mismatches: finalTiered,
+          topPick,
           lineupTier
         }
       };
@@ -1084,4 +1132,50 @@ function rReason(xwoba, kPct, parkBoost) {
   if (kPct <= 18) bits.push('puts ball in play');
   if (parkBoost > 1.03) bits.push('run-friendly park');
   return bits.length ? bits.join(', ') : 'Decent OBP profile';
+}
+
+// ===== TOP PICK REASONING =====
+// Explains WHY this hitter is the top pick on their side
+function buildTopPickReasons(h) {
+  const reasons = [];
+
+  // Tier-based opener
+  if (h.tier === 'elite') reasons.push(`Elite tier matchup (${h.adjustedMaxXwoba} adj xwOBA)`);
+  else if (h.tier === 'strong') reasons.push(`Strong tier matchup (${h.adjustedMaxXwoba} adj xwOBA)`);
+  else if (h.tier === 'solid') reasons.push(`Solid matchup (${h.adjustedMaxXwoba} adj xwOBA)`);
+
+  // Full game coverage is a huge plus
+  if (h.tier && h.bullpenTier) {
+    reasons.push(`FULL GAME edge — both SP and bullpen favorable`);
+  }
+
+  // Best matched pitch
+  const bestPitch = (h.matchedPitches || []).reduce((a, b) =>
+    (!a || parseFloat(b.hitterXwoba) > parseFloat(a.hitterXwoba)) ? b : a, null);
+  if (bestPitch) {
+    const xw = parseFloat(bestPitch.hitterXwoba);
+    const pitchName = bestPitch.pitch;
+    const usage = bestPitch.pitcherUsage;
+    if (xw >= 0.500) reasons.push(`Demolishes ${pitchName} (${bestPitch.hitterXwoba} xwOBA · pitcher throws ${usage}%)`);
+    else if (xw >= 0.420) reasons.push(`Crushes ${pitchName} (${bestPitch.hitterXwoba} xwOBA · pitcher throws ${usage}%)`);
+    else if (xw >= 0.370) reasons.push(`Handles ${pitchName} well (${bestPitch.hitterXwoba} xwOBA · pitcher throws ${usage}%)`);
+  }
+
+  // Platoon angle
+  const platAdj = (h.adjustments || []).find(a => a.type === 'platoon' && a.favor === 'hitter');
+  if (platAdj) {
+    if (h.platoonMeta?.reverseSplit) {
+      reasons.push(`⚡ Reverse split edge — ${platAdj.label}`);
+    } else {
+      reasons.push(`Platoon advantage — ${platAdj.label}`);
+    }
+  }
+
+  // Park/ump favor
+  const parkAdj = (h.adjustments || []).find(a => a.type === 'park' && a.favor === 'hitter');
+  if (parkAdj) reasons.push(parkAdj.label);
+  const umpAdj = (h.adjustments || []).find(a => a.type === 'umpire' && a.favor === 'hitter');
+  if (umpAdj) reasons.push(umpAdj.label);
+
+  return reasons;
 }
