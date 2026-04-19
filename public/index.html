@@ -596,6 +596,112 @@
     50%{box-shadow:0 0 0 3px rgba(198,255,61,0)}
   }
 
+  /* =============== TOP PICK VERIFICATION STATES =============== */
+  .mode-indicator{
+    font-size:8px;
+    letter-spacing:0.14em;
+    font-weight:700;
+    padding:2px 6px;
+    border-radius:3px;
+    margin-left:auto;
+  }
+  .mode-indicator.fast{background:var(--panel-3);color:var(--dim);border:1px solid var(--line)}
+  .mode-indicator.deep{background:rgba(198,255,61,0.18);color:var(--accent);border:1px solid var(--accent)}
+
+  .pick-status-badge{
+    display:flex;
+    align-items:center;
+    gap:6px;
+    font-size:9px;
+    letter-spacing:0.12em;
+    font-weight:700;
+    padding:5px 8px;
+    border-radius:4px;
+    margin:8px 0;
+  }
+  .pick-status-badge.verified{
+    background:rgba(198,255,61,0.12);
+    border:1px solid var(--accent);
+    color:var(--accent);
+  }
+  .pick-status-badge.unverified{
+    background:rgba(255,200,61,0.10);
+    border:1px solid var(--warn);
+    color:var(--warn);
+    justify-content:space-between;
+  }
+  .deep-upgrade-btn{
+    background:var(--warn);
+    color:#0a0d0a;
+    border:none;
+    padding:3px 8px;
+    border-radius:3px;
+    font-size:9px;
+    letter-spacing:0.08em;
+    font-weight:700;
+    cursor:pointer;
+    font-family:inherit;
+    transition:transform 0.15s;
+  }
+  .deep-upgrade-btn:hover{transform:translateX(2px)}
+
+  .verified-side{border-color:rgba(198,255,61,0.4) !important}
+  .unverified-side{border-color:rgba(255,200,61,0.3) !important}
+  .unverified-side .tpb-hitter-name{opacity:0.92}
+
+  /* DUAL view — fast and deep disagree */
+  .dual-side{border-color:var(--heat) !important;background:var(--panel)}
+  .disagreement-tag{
+    display:inline-block;
+    font-size:8px;
+    letter-spacing:0.14em;
+    font-weight:700;
+    background:var(--heat);
+    color:#0a0d0a;
+    padding:2px 6px;
+    border-radius:3px;
+    margin-left:8px;
+    animation:pulse-warn 1.6s ease-in-out infinite;
+  }
+  @keyframes pulse-warn{
+    0%,100%{opacity:1}
+    50%{opacity:0.6}
+  }
+  .dual-picks{display:flex;flex-direction:column;gap:8px;margin-top:6px}
+  .dual-pick{
+    padding:8px;
+    border:1px solid var(--line);
+    border-radius:5px;
+    background:var(--panel-2);
+    cursor:pointer;
+    transition:border-color 0.2s;
+  }
+  .dual-pick:hover{border-color:var(--accent)}
+  .dual-pick-mode{
+    display:inline-block;
+    font-size:8px;
+    letter-spacing:0.18em;
+    font-weight:700;
+    padding:2px 6px;
+    border-radius:3px;
+    margin-bottom:6px;
+    background:var(--panel-3);
+    color:var(--dim);
+    border:1px solid var(--line);
+  }
+  .dual-pick-mode.deep{
+    background:rgba(198,255,61,0.18);
+    color:var(--accent);
+    border-color:var(--accent);
+  }
+  .dual-divider{
+    height:1px;
+    background:linear-gradient(90deg, transparent, var(--heat), transparent);
+    margin:4px 0;
+  }
+
+  .empty-side{opacity:0.5}
+
   .empty{text-align:center;padding:40px 20px;color:var(--dim);font-size:13px}
   .empty-icon{font-size:30px;margin-bottom:10px;opacity:0.4;font-family:'Archivo Black',sans-serif}
   .loading{text-align:center;padding:30px;color:var(--dim);font-size:12px}
@@ -1058,6 +1164,12 @@ async function analyzeGame(gamePk, forceDeep) {
 function toggleDeepMode(gamePk) {
   deepModeActive = !deepModeActive;
   analyzeGame(gamePk, deepModeActive);
+}
+
+// Explicitly switch to deep mode (used by the "Run Deep" CTA on unverified top picks)
+function runDeepMode(gamePk) {
+  deepModeActive = true;
+  analyzeGame(gamePk, true);
 }
 
 function renderAnalysis(data) {
@@ -1586,49 +1698,144 @@ function renderAnalysis(data) {
     `;
   }
 
-  // ===== TOP PICKS SUMMARY BANNER =====
-  // Combine each side's top pick into one prominent callout
-  const awayTop = data.awayVsHome?.topPick;
-  const homeTop = data.homeVsAway?.topPick;
+  // ===== TOP PICKS SUMMARY BANNER (fast/deep reconciliation) =====
   const awayLabel = data.awayTeam?.abbreviation || data.awayTeam?.name || 'AWAY';
   const homeLabel = data.homeTeam?.abbreviation || data.homeTeam?.name || 'HOME';
 
-  function renderTopPickCard(tp, teamLabel) {
-    if (!tp) return `
-      <div class="tpb-side" style="opacity:0.5">
-        <div class="tpb-team-label">${teamLabel} · TOP PICK</div>
-        <div style="color:var(--dim);font-size:11px;margin-top:4px">No qualifying mismatch on this side</div>
-      </div>
-    `;
+  // Look up the OTHER mode's cached analysis (if we have it) to compare picks
+  const gamePk = data.gamePk;
+  const currentIsDeep = data.deepMode === true || deepModeActive;
+  const otherModeKey = currentIsDeep ? `${gamePk}` : `${gamePk}-deep`;
+  const otherModeData = analysisCache[otherModeKey];
+
+  // Get top picks for both modes (current + other if cached)
+  const currentAwayTop = data.awayVsHome?.topPick;
+  const currentHomeTop = data.homeVsAway?.topPick;
+  const otherAwayTop = otherModeData?.awayVsHome?.topPick;
+  const otherHomeTop = otherModeData?.homeVsAway?.topPick;
+
+  // Resolve what to display per side based on modes available
+  function resolveSidePick(teamLabel, currentTp, otherTp) {
+    // Current is deep mode
+    if (currentIsDeep) {
+      if (!currentTp) return { display: 'none', label: teamLabel };
+      // Check if fast-mode cached and picks differ
+      if (otherTp && otherTp.hitterId !== currentTp.hitterId) {
+        return { display: 'dual', label: teamLabel, fast: otherTp, deep: currentTp };
+      }
+      // Either no fast cached, or they agree
+      return { display: 'verified', label: teamLabel, deep: currentTp };
+    }
+    // Current is fast mode
+    if (!currentTp) return { display: 'none', label: teamLabel };
+    // Is deep mode cached?
+    if (otherTp) {
+      if (otherTp.hitterId !== currentTp.hitterId) {
+        return { display: 'dual', label: teamLabel, fast: currentTp, deep: otherTp };
+      }
+      return { display: 'verified', label: teamLabel, deep: otherTp };
+    }
+    // No deep cached yet — show fast as unverified with upgrade hint
+    return { display: 'unverified', label: teamLabel, fast: currentTp };
+  }
+
+  const awaySide = resolveSidePick(awayLabel, currentAwayTop, otherAwayTop);
+  const homeSide = resolveSidePick(homeLabel, currentHomeTop, otherHomeTop);
+
+  function renderPickBody(tp, badge) {
     const bp = tp.bestProp;
     const reasonList = (tp.reasons || []).slice(0, 3).map(r => `<li>${r}</li>`).join('');
     return `
-      <div class="tpb-side" onclick="scrollToHitter('${(tp.hitter||'').replace(/'/g,'&#39;')}')">
-        <div class="tpb-team-label">${teamLabel} · TOP PICK</div>
-        <div class="tpb-hitter-row">
-          <div>
-            <div class="tpb-hitter-name">${tp.hitter}<span class="tpb-hitter-hand">${tp.hand || ''}</span></div>
-          </div>
-          <span class="tpb-tier-chip ${tp.tier}">${tp.tier.toUpperCase()}${tp.bullpenTier?' · FULL':''}</span>
+      <div class="tpb-hitter-row">
+        <div>
+          <div class="tpb-hitter-name">${tp.hitter}<span class="tpb-hitter-hand">${tp.hand || ''}</span></div>
         </div>
-        ${bp ? `
-          <div class="tpb-prop-row">
-            ${bp.platform?`<span class="tpb-prop-plat">${bp.platform}</span>`:''}
-            <span class="tpb-prop-label">${bp.label}</span>
-            <span style="color:var(--dim);font-size:10px;font-style:italic">${(bp.reason||'').replace(/·.*/,'').trim()}</span>
-          </div>
-        ` : ''}
-        ${reasonList ? `<ul class="tpb-reasons">${reasonList}</ul>` : ''}
+        <span class="tpb-tier-chip ${tp.tier}">${tp.tier.toUpperCase()}${tp.bullpenTier?' · FULL':''}</span>
       </div>
+      ${badge || ''}
+      ${bp ? `
+        <div class="tpb-prop-row">
+          ${bp.platform?`<span class="tpb-prop-plat">${bp.platform}</span>`:''}
+          <span class="tpb-prop-label">${bp.label}</span>
+          <span style="color:var(--dim);font-size:10px;font-style:italic">${(bp.reason||'').replace(/·.*/,'').trim()}</span>
+        </div>
+      ` : ''}
+      ${reasonList ? `<ul class="tpb-reasons">${reasonList}</ul>` : ''}
     `;
   }
 
-  const topPicksBanner = (awayTop || homeTop) ? `
+  function renderSideCard(side) {
+    if (side.display === 'none') {
+      return `
+        <div class="tpb-side empty-side">
+          <div class="tpb-team-label">${side.label} · TOP PICK</div>
+          <div style="color:var(--dim);font-size:11px;margin-top:4px">No qualifying mismatch on this side</div>
+        </div>
+      `;
+    }
+
+    if (side.display === 'verified') {
+      const tp = side.deep;
+      const verifiedBadge = `<div class="pick-status-badge verified">✓ DEEP VERIFIED</div>`;
+      return `
+        <div class="tpb-side verified-side" onclick="scrollToHitter('${(tp.hitter||'').replace(/'/g,'&#39;')}')">
+          <div class="tpb-team-label">${side.label} · TOP PICK</div>
+          ${renderPickBody(tp, verifiedBadge)}
+        </div>
+      `;
+    }
+
+    if (side.display === 'unverified') {
+      const tp = side.fast;
+      const unverifiedBadge = `
+        <div class="pick-status-badge unverified">
+          ⏳ UNVERIFIED · <button class="deep-upgrade-btn" onclick="event.stopPropagation();runDeepMode(${gamePk})">Run Deep →</button>
+        </div>
+      `;
+      return `
+        <div class="tpb-side unverified-side" onclick="scrollToHitter('${(tp.hitter||'').replace(/'/g,'&#39;')}')">
+          <div class="tpb-team-label">${side.label} · TOP PICK</div>
+          ${renderPickBody(tp, unverifiedBadge)}
+        </div>
+      `;
+    }
+
+    if (side.display === 'dual') {
+      // Fast and deep disagree — show both
+      return `
+        <div class="tpb-side dual-side">
+          <div class="tpb-team-label">${side.label} · TOP PICK <span class="disagreement-tag">⚡ DISAGREE</span></div>
+          <div class="dual-picks">
+            <div class="dual-pick fast-pick" onclick="scrollToHitter('${(side.fast.hitter||'').replace(/'/g,'&#39;')}')">
+              <div class="dual-pick-mode">FAST</div>
+              ${renderPickBody(side.fast, '')}
+            </div>
+            <div class="dual-divider"></div>
+            <div class="dual-pick deep-pick" onclick="scrollToHitter('${(side.deep.hitter||'').replace(/'/g,'&#39;')}')">
+              <div class="dual-pick-mode deep">DEEP</div>
+              ${renderPickBody(side.deep, '')}
+            </div>
+          </div>
+        </div>
+      `;
+    }
+    return '';
+  }
+
+  const hasAnyPick = awaySide.display !== 'none' || homeSide.display !== 'none';
+  const bannerHeaderExtra = currentIsDeep
+    ? `<span class="mode-indicator deep">DEEP MODE</span>`
+    : `<span class="mode-indicator fast">FAST MODE</span>`;
+
+  const topPicksBanner = hasAnyPick ? `
     <div class="top-picks-banner">
-      <div class="tpb-title">★ TOP PICKS · ONE FROM EACH SIDE</div>
+      <div class="tpb-title">
+        <span>★ TOP PICKS · ONE FROM EACH SIDE</span>
+        ${bannerHeaderExtra}
+      </div>
       <div class="tpb-grid">
-        ${renderTopPickCard(awayTop, awayLabel)}
-        ${renderTopPickCard(homeTop, homeLabel)}
+        ${renderSideCard(awaySide)}
+        ${renderSideCard(homeSide)}
       </div>
     </div>
   ` : '';

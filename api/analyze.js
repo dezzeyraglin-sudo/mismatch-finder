@@ -444,7 +444,11 @@ export default async function handler(req, res) {
             adjustedMaxXwoba: candidate.adjustedMaxXwoba,
             bullpenTier: candidate.bullpenTier,
             bestProp: (candidate.propRecs || []).find(p => p.isBest) || null,
-            reasons: buildTopPickReasons(candidate)
+            reasons: buildTopPickReasons(candidate),
+            source: deepMode ? 'deep' : 'fast',
+            // Verification status: fast-mode picks need deep mode to verify them
+            verified: deepMode,
+            scoreValue: candidate._topPickScore
           };
         }
       }
