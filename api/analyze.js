@@ -11,6 +11,7 @@ import { getHitterSituationalByMlbam } from './_lib/brefSplits.js';
 import { detectPitcherRole } from './_lib/pitcherRole.js';
 import { buildGameLineRecommendations } from './_lib/gameLineBets.js';
 import { estimatePropProbability, estimateTotalProbability, estimateSpreadProbability, estimateMoneylineProbability, americanToImpliedProb, computeEdge } from './_lib/probability.js';
+import { buildPitcherProps, evaluatePitcherProp } from './_lib/pitcherProps.js';
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -697,6 +698,18 @@ export default async function handler(req, res) {
         topPick.probability = topPick.bestProp.probability;
       }
 
+      // ===== PITCHER PROPS =====
+      // Uses the pitcher data already gathered — arsenal + inning splits + role + opposing lineup tier
+      const pitcherProps = buildPitcherProps(s.pitcher, {
+        role: pitcherRole,
+        inningSplits,
+        arsenal,
+        lineupTier,
+        parkFactor,
+        weatherImpact: results.weatherImpact,
+        umpire: results.umpire
+      });
+
       return {
         key: s.key,
         data: {
@@ -706,6 +719,7 @@ export default async function handler(req, res) {
           inningSplits,
           pitcherNarrative,
           pitcherRole,
+          pitcherProps,
           bullpen: {
             pitches: keyBullpenPitches,
             pitcherCount: bullpen.pitcherCount || 0,

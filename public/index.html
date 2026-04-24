@@ -1047,7 +1047,89 @@
     border-radius:0 4px 4px 0;
   }
 
-  /* =============== ROLE WARNINGS (OPENER / BULK / SHIFT / SHORT-STARTER) =============== */
+  /* =============== PITCHER PROPS PANEL =============== */
+  .pp-panel{
+    margin-top:10px;
+    background:linear-gradient(135deg, rgba(255,122,61,0.06), rgba(255,122,61,0.01));
+    border:1px solid rgba(255,122,61,0.25);
+    border-radius:6px;
+    padding:10px 12px;
+  }
+  .pp-head{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    margin-bottom:8px;
+    flex-wrap:wrap;
+    gap:6px;
+  }
+  .pp-title{
+    color:var(--heat);
+    font-size:10px;
+    letter-spacing:0.14em;
+    font-weight:700;
+    font-family:'JetBrains Mono',monospace;
+  }
+  .pp-sup-badge{
+    font-size:9px;
+    letter-spacing:0.1em;
+    font-weight:700;
+    color:var(--danger);
+    background:rgba(255,85,85,0.12);
+    border:1px solid var(--danger);
+    padding:2px 6px;
+    border-radius:3px;
+  }
+  .pp-rows{display:flex;flex-direction:column;gap:4px}
+  .pp-row{
+    display:grid;
+    grid-template-columns:130px 80px 1fr;
+    gap:10px;
+    padding:6px 8px;
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:4px;
+    font-size:10.5px;
+    align-items:center;
+    transition:opacity 0.15s;
+  }
+  .pp-row.pp-suppressed{opacity:0.5}
+  .pp-row.pp-suppressed::before{
+    content:'◌';
+    color:var(--danger);
+    margin-right:4px;
+  }
+  .pp-label{
+    font-size:9.5px;
+    font-weight:700;
+    color:var(--ink);
+    letter-spacing:0.06em;
+  }
+  .pp-proj{
+    font-family:'JetBrains Mono',monospace;
+    font-weight:700;
+    color:var(--heat);
+    font-size:12px;
+    font-variant-numeric:tabular-nums;
+  }
+  .pp-unit{
+    font-size:9px;
+    color:var(--dim);
+    margin-left:2px;
+    font-weight:400;
+  }
+  .pp-desc{
+    font-size:10px;
+    color:var(--dim);
+    font-style:italic;
+    line-height:1.4;
+  }
+  .pp-footnote{
+    margin-top:6px;
+    font-size:9px;
+    color:var(--dim);
+    font-style:italic;
+  }
   .role-warning{
     margin-bottom:10px;
     padding:10px 12px;
@@ -2712,6 +2794,40 @@ function renderAnalysis(data) {
       `;
     }
 
+    // Pitcher props block — DK/FD prop projections
+    let pitcherPropsHtml = '';
+    const pp = s.pitcherProps;
+    if (pp && pp.recommendations) {
+      const rows = pp.recommendations.map(r => {
+        if (r.isBoolean) {
+          return `
+            <div class="pp-row ${r.suppressed ? 'pp-suppressed' : ''}">
+              <span class="pp-label">${r.label}</span>
+              <span class="pp-proj">${(r.projection * 100).toFixed(0)}%</span>
+              <span class="pp-desc">${r.description}</span>
+            </div>
+          `;
+        }
+        return `
+          <div class="pp-row ${r.suppressed ? 'pp-suppressed' : ''}">
+            <span class="pp-label">${r.label}</span>
+            <span class="pp-proj">${r.projection} <span class="pp-unit">${r.unit || ''}</span></span>
+            <span class="pp-desc">${r.description}</span>
+          </div>
+        `;
+      }).join('');
+      pitcherPropsHtml = `
+        <div class="pp-panel">
+          <div class="pp-head">
+            <span class="pp-title">◆ PITCHER PROPS · DK / FD</span>
+            ${pp.suppressed ? '<span class="pp-sup-badge">ROLE SUPPRESSED</span>' : ''}
+          </div>
+          <div class="pp-rows">${rows}</div>
+          <div class="pp-footnote">Projections vs market line — use OVER / UNDER accordingly. Flag ${pp.suppressed ? 'SUPPRESSED items — books may not have updated role shift' : 'patterns that diverge from listed lines'}.</div>
+        </div>
+      `;
+    }
+
     return `
       <div class="analysis-panel ${hitTeamBanned ? 'side-team-banned' : ''}">
         <div class="analysis-head">
@@ -2766,6 +2882,7 @@ function renderAnalysis(data) {
           ${pitcherTagChips}
           ${bullpenHtml}
           ${inningHtml}
+          ${pitcherPropsHtml}
         </div>
         ${lineupTierHtml}
         ${mmHtml}
