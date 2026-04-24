@@ -71,6 +71,21 @@
 
   .context-banner{background:linear-gradient(90deg,rgba(102,217,232,0.08),rgba(198,255,61,0.04));border:1px solid var(--line);border-radius:8px;padding:12px;margin-bottom:14px;display:grid;grid-template-columns:1fr 1fr;gap:10px}
   @media(max-width:480px){.context-banner{grid-template-columns:1fr}}
+  .context-banner.ctx-three-col{grid-template-columns:1fr 1fr 1fr}
+  @media(max-width:900px){.context-banner.ctx-three-col{grid-template-columns:1fr 1fr}}
+  @media(max-width:480px){.context-banner.ctx-three-col{grid-template-columns:1fr}}
+
+  .weather-item{position:relative}
+  .wind-arrow{
+    display:inline-block;
+    font-size:16px;
+    line-height:1;
+    margin-right:4px;
+    vertical-align:middle;
+    font-weight:700;
+  }
+  .wind-arrow.hot{color:var(--heat);text-shadow:0 0 8px rgba(255,122,61,0.4)}
+  .wind-arrow.cold{color:var(--cool);text-shadow:0 0 8px rgba(102,217,232,0.4)}
   .ctx-item{padding:2px 0}
   .ctx-label{font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:var(--dim);margin-bottom:4px}
   .ctx-value{font-size:12.5px;font-weight:700;color:var(--ink);margin-bottom:3px;line-height:1.3}
@@ -2332,6 +2347,69 @@ function renderAnalysis(data) {
     </div>
   `;
 
+  // Weather block
+  const wi = data.weatherImpact;
+  const w = data.weather;
+  let weatherBlock = '';
+  if (wi && w) {
+    if (wi.isDome) {
+      weatherBlock = `
+        <div class="ctx-item weather-item">
+          <div class="ctx-label">◌ WEATHER</div>
+          <div class="ctx-value">Dome / Indoor</div>
+          <div class="ctx-sub">No weather impact</div>
+        </div>
+      `;
+    } else {
+      // Determine wind tint (out-pattern = orange/hot, in-pattern = cyan/cold)
+      const windCat = wi.windRelative?.category || '';
+      const windTint =
+        /OUT_TO/.test(windCat) ? 'hot' :
+        /IN_FROM/.test(windCat) ? 'cold' : '';
+      const windLabel =
+        windCat === 'OUT_TO_CF' ? 'Out to CF' :
+        windCat === 'OUT_TO_LF' ? 'Out to LF (RHH+)' :
+        windCat === 'OUT_TO_RF' ? 'Out to RF (LHH+)' :
+        windCat === 'IN_FROM_CF' ? 'In from CF (kills FB)' :
+        windCat === 'IN_FROM_LF' ? 'In from LF (kills RHH)' :
+        windCat === 'IN_FROM_RF' ? 'In from RF (kills LHH)' :
+        windCat === 'CROSS_LTR' ? 'Crosswind L→R' :
+        windCat === 'CROSS_RTL' ? 'Crosswind R→L' : 'Calm';
+      const runMultDelta = wi.runMult ? ((wi.runMult - 1) * 100) : 0;
+      const runMultTag = Math.abs(runMultDelta) >= 1 ? ` · ${runMultDelta > 0 ? '+' : ''}${runMultDelta.toFixed(1)}% runs` : '';
+      const hrLhhDelta = wi.hrMultLHH ? ((wi.hrMultLHH - 1) * 100) : 0;
+      const hrRhhDelta = wi.hrMultRHH ? ((wi.hrMultRHH - 1) * 100) : 0;
+      const symbolHtml = wi.windRelative?.symbol
+        ? `<span class="wind-arrow ${windTint}">${wi.windRelative.symbol}</span>`
+        : '';
+
+      weatherBlock = `
+        <div class="ctx-item weather-item">
+          <div class="ctx-label">◌ WEATHER · FIRST PITCH</div>
+          <div class="ctx-value">
+            ${Math.round(w.tempF)}°F · ${w.conditions}
+          </div>
+          <div class="ctx-sub">
+            ${symbolHtml} Wind ${Math.round(w.windSpeedMph)}mph${w.windGustsMph && w.windGustsMph > w.windSpeedMph + 3 ? ` (gust ${Math.round(w.windGustsMph)})` : ''} · ${windLabel}${runMultTag}
+          </div>
+          <div class="ctx-pf">
+            <span class="ctx-chip ${Math.abs(hrLhhDelta) >= 3 ? (hrLhhDelta > 0 ? 'hot' : 'cold') : ''}">LHH HR <b>${hrLhhDelta >= 0 ? '+' : ''}${hrLhhDelta.toFixed(1)}%</b></span>
+            <span class="ctx-chip ${Math.abs(hrRhhDelta) >= 3 ? (hrRhhDelta > 0 ? 'hot' : 'cold') : ''}">RHH HR <b>${hrRhhDelta >= 0 ? '+' : ''}${hrRhhDelta.toFixed(1)}%</b></span>
+            ${w.humidity != null ? `<span class="ctx-chip">Humidity <b>${Math.round(w.humidity)}%</b></span>` : ''}
+            ${w.precipIn > 0.05 ? `<span class="ctx-chip cold">Rain <b>${w.precipIn.toFixed(2)}"</b></span>` : ''}
+          </div>
+        </div>
+      `;
+    }
+  } else {
+    weatherBlock = `
+      <div class="ctx-item weather-item">
+        <div class="ctx-label">◌ WEATHER</div>
+        <div class="ctx-sub">Forecast unavailable</div>
+      </div>
+    `;
+  }
+
   const deepBanner = data.deepMode ? `
     <div class="deep-mode-banner">
       <div>
@@ -2671,9 +2749,10 @@ function renderAnalysis(data) {
     ${deepBanner}
     ${projectionHtml}
     ${topPicksBanner}
-    <div class="context-banner">
+    <div class="context-banner ctx-three-col">
       ${parkBlock}
       ${umpBlock}
+      ${weatherBlock}
     </div>
     <div class="tier-filters">
       <button class="tier-filter ${currentTierFilter==='all'?'active':''}" onclick="filterTier('all',${data.gamePk})">ALL</button>

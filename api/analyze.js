@@ -2,10 +2,11 @@
 // Core mismatch engine with park + umpire context.
 // Calls helper functions DIRECTLY (no HTTP) to avoid Vercel cold-start 404 issues.
 
-import { PARK_FACTORS_BY_TEAM } from './_data/parkFactors.js';
+import { PARK_FACTORS_BY_TEAM, PARK_GEO, getParkGeo } from './_data/parkFactors.js';
 import { UMPIRE_FACTORS, classifyUmp } from './_data/umpireFactors.js';
 import { getProbables, getPitcherArsenal, getBullpenProfile, getLineup, getHitterStats, getHitterSplits, getPitcherSplits, getHitterPitchTypeByHand, getGameOdds } from './_lib/data.js';
 import { getBlendedInningSplits } from './_lib/pitcherInnings.js';
+import { getWeatherForecast, computeWeatherImpact } from './_lib/weather.js';
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -41,17 +42,23 @@ export default async function handler(req, res) {
 
     // 2. Park factor
     let parkFactor = null;
+    let parkGeo = null;
     if (game.homeTeam?.abbreviation) {
       const key = game.homeTeam.abbreviation.toUpperCase();
       if (PARK_FACTORS_BY_TEAM[key]) {
         parkFactor = { ...PARK_FACTORS_BY_TEAM[key], team: key };
       }
+      parkGeo = getParkGeo(key);
     }
 
-    // 3. Umpire (parallel with everything else)
+    // 3. Umpire + Weather (parallel with everything else)
     const umpPromise = fetch(`https://statsapi.mlb.com/api/v1.1/game/${gamePk}/feed/live`)
       .then(r => r.ok ? r.json() : null)
       .catch(() => null);
+
+    const weatherPromise = (parkGeo && game.gameDateET && game.gameTime)
+      ? getWeatherForecast(parkGeo.lat, parkGeo.lng, game.gameDateET, game.gameTime).catch(() => null)
+      : Promise.resolve(null);
 
     const results = {
       gamePk,
@@ -59,8 +66,12 @@ export default async function handler(req, res) {
       homeTeam: game.homeTeam,
       venue: game.venue,
       gameTime: game.gameTime,
+      gameDateET: game.gameDateET,
       park: parkFactor,
+      parkGeo,
       umpire: null,
+      weather: null,
+      weatherImpact: null,
       deepMode,
       awayVsHome: null,
       homeVsAway: null
@@ -84,6 +95,13 @@ export default async function handler(req, res) {
       } else {
         results.umpire = { assigned: false, message: 'Not yet posted (~1-3hr before first pitch)' };
       }
+    }
+
+    // Resolve weather
+    const weather = await weatherPromise;
+    if (weather && parkGeo) {
+      results.weather = weather;
+      results.weatherImpact = computeWeatherImpact(weather, parkGeo);
     }
 
     const sides = [
@@ -411,7 +429,14 @@ export default async function handler(req, res) {
             const hardHit = parseFloat(overall.hard_hit_percent?.value || 0);
             const bestMatchedXwoba = matchedPitches.reduce((max, p) => Math.max(max, parseFloat(p.hitterXwoba || 0)), 0);
             const adjXw = adjustedMaxXwoba;
-            const parkHrMult = parkFactor ? getParkHrMult(parkFactor, effectiveBatSide) : 1.0;
+            let parkHrMult = parkFactor ? getParkHrMult(parkFactor, effectiveBatSide) : 1.0;
+
+            // Weather overlay on park HR factor — apply wind + temp adjustment by handedness
+            const wi = results.weatherImpact;
+            if (wi && !wi.isDome) {
+              const weatherHrMult = effectiveBatSide === 'L' ? wi.hrMultLHH : wi.hrMultRHH;
+              parkHrMult *= (weatherHrMult || 1.0);
+            }
 
             // Five-pillar HR criteria, each contributes up to 20 points (100 max)
             let score = 0;
@@ -444,6 +469,32 @@ export default async function handler(req, res) {
             if (parkHrMult >= 1.15) { score += 15; criteria.push(`power park (+${((parkHrMult-1)*100).toFixed(0)}% HR)`); }
             else if (parkHrMult >= 1.05) { score += 8; criteria.push('slight power park'); }
             else if (parkHrMult <= 0.88) { score -= 5; }
+
+            // Wind-specific criterion text (shows up as a badge on HR candidates)
+            if (wi && !wi.isDome && wi.windRelative) {
+              const cat = wi.windRelative.category;
+              const handSideFavors = effectiveBatSide === 'L' ? 'OUT_TO_RF' : 'OUT_TO_LF';
+              const handSideHurts = effectiveBatSide === 'L' ? 'IN_FROM_RF' : 'IN_FROM_LF';
+              if (cat === handSideFavors && (wi.windSpeedMph || 0) >= 8) {
+                score += 8;
+                criteria.push(`wind ${wi.windRelative.symbol} favors ${effectiveBatSide}HH pull`);
+              } else if (cat === handSideHurts && (wi.windSpeedMph || 0) >= 8) {
+                score -= 8;
+                criteria.push(`wind ${wi.windRelative.symbol} kills ${effectiveBatSide}HH pull`);
+              } else if (cat === 'OUT_TO_CF' && (wi.windSpeedMph || 0) >= 10) {
+                score += 5;
+                criteria.push(`wind ${wi.windRelative.symbol} out to CF`);
+              } else if (cat === 'IN_FROM_CF' && (wi.windSpeedMph || 0) >= 10) {
+                score -= 5;
+                criteria.push(`wind ${wi.windRelative.symbol} kills fly balls`);
+              }
+            }
+            if (wi && wi.tempF >= 85) {
+              score += 3;
+              criteria.push(`hot (${Math.round(wi.tempF)}°F) — carry boost`);
+            } else if (wi && wi.tempF != null && wi.tempF <= 50) {
+              score -= 3;
+            }
 
             // Bonus: hard-hit rate ≥ 45% (true power profile)
             if (hardHit >= 45) { score += 5; criteria.push(`${hardHit.toFixed(0)}% hard-hit`); }
@@ -595,6 +646,7 @@ export default async function handler(req, res) {
       homeVsAway: results.homeVsAway,  // home hitters vs away pitcher
       parkFactor,
       umpire: results.umpire,
+      weatherImpact: results.weatherImpact,
       odds
     });
     results.projection = projection;
@@ -610,7 +662,7 @@ export default async function handler(req, res) {
 
 // ===== GAME PROJECTION =====
 // Build expected runs per team, win probability, and compare to market O/U
-function buildGameProjection({ awayVsHome, homeVsAway, parkFactor, umpire, odds }) {
+function buildGameProjection({ awayVsHome, homeVsAway, parkFactor, umpire, weatherImpact, odds }) {
   // MLB 2024-2025 league avg runs per team per game: ~4.45
   const BASELINE_RUNS = 4.45;
 
@@ -707,14 +759,16 @@ function buildGameProjection({ awayVsHome, homeVsAway, parkFactor, umpire, odds 
   const parkRunMult = parkFactor ? (parkFactor.runs || 100) / 100 : 1.0;
   // Umpire factor: applies to both teams
   const umpRunMult = umpire?.factors?.runs || 1.0;
+  // Weather factor: temperature + wind + precip effect on run environment
+  const weatherRunMult = weatherImpact?.runMult || 1.0;
 
   // Blend starter (60%) + bullpen (40%) influence on opposing offense
   const awayPitcherBlend = (awayComp.pitcherMult * 0.60) + (awayComp.bullpenMult * 0.40);
   const homePitcherBlend = (homeComp.pitcherMult * 0.60) + (homeComp.bullpenMult * 0.40);
 
   // Final projections
-  const projAwayRuns = BASELINE_RUNS * awayComp.lineupMult * awayPitcherBlend * parkRunMult * umpRunMult;
-  const projHomeRuns = BASELINE_RUNS * homeComp.lineupMult * homePitcherBlend * parkRunMult * umpRunMult;
+  const projAwayRuns = BASELINE_RUNS * awayComp.lineupMult * awayPitcherBlend * parkRunMult * umpRunMult * weatherRunMult;
+  const projHomeRuns = BASELINE_RUNS * homeComp.lineupMult * homePitcherBlend * parkRunMult * umpRunMult * weatherRunMult;
   const projTotal = projAwayRuns + projHomeRuns;
 
   // Win probability via Pythagorean expectation (exp = 1.83 for MLB)
@@ -841,6 +895,13 @@ function buildGameProjection({ awayVsHome, homeVsAway, parkFactor, umpire, odds 
   // Umpire reasoning
   if (umpRunMult >= 1.03) projReasoning.push(`Home plate ump has high-run tendency (+${Math.round((umpRunMult-1)*100)}%)`);
   else if (umpRunMult <= 0.97) projReasoning.push(`Home plate ump has low-run tendency (${Math.round((umpRunMult-1)*100)}%)`);
+
+  // Weather reasoning (temp + wind + precip)
+  if (weatherImpact && !weatherImpact.isDome) {
+    (weatherImpact.narrative || []).forEach(r => projReasoning.push(r));
+  } else if (weatherImpact?.isDome) {
+    projReasoning.push(weatherImpact.narrative[0] || 'Dome environment — no weather effect');
+  }
 
   // Why our projection differs from market (reasoning for divergence)
   const marketReasoning = [];
