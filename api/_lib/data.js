@@ -207,11 +207,15 @@ export async function getLineup(teamId, gamePk, side) {
           for (const batterId of battingOrder) {
             const p = teamBox.players?.[`ID${batterId}`];
             if (p) {
+              // MLB API returns battingOrder as "100" for leadoff, "200" for 2nd, etc.
+              // (slot × 100 + sub-position). Normalize to 1-9.
+              const rawOrder = p.battingOrder || '';
+              const slot = rawOrder ? Math.floor(parseInt(rawOrder) / 100) : '';
               hitters.push({
                 id: batterId,
                 name: p.person?.fullName || '',
                 position: p.position?.abbreviation || '',
-                battingOrder: p.battingOrder || '',
+                battingOrder: slot || '',
                 hand: 'R' // placeholder - batSide not in boxscore, we batch-fetch below
               });
             }

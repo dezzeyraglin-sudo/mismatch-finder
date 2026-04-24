@@ -10,6 +10,7 @@ import { getWeatherForecast, computeWeatherImpact } from './_lib/weather.js';
 import { getHitterSituationalByMlbam } from './_lib/brefSplits.js';
 import { detectPitcherRole } from './_lib/pitcherRole.js';
 import { buildGameLineRecommendations } from './_lib/gameLineBets.js';
+import { estimatePropProbability, estimateTotalProbability, estimateSpreadProbability, estimateMoneylineProbability, americanToImpliedProb, computeEdge } from './_lib/probability.js';
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -660,6 +661,42 @@ export default async function handler(req, res) {
         }
       }
 
+      // ===== PROBABILITY ESTIMATION =====
+      // Attach a hit-probability to every prop rec, and a best-prop summary on the hitter.
+      const probCtx = {
+        parkFactor,
+        weatherImpact: results.weatherImpact,
+        umpire: results.umpire,
+        pitcherRole
+      };
+      finalTiered.forEach(h => {
+        if (!h.propRecs) return;
+        h.propRecs.forEach(p => {
+          const propKey = p.key;
+          // Map UD/PP fantasy score props to their closest underlying (HRR proxy)
+          const modelKey = ['H','HR','TB','RBI','R','HRR'].includes(propKey) ? propKey
+            : (propKey.startsWith('PP_FS') || propKey.startsWith('UD_FS')) ? 'HRR'
+            : null;
+          if (!modelKey) return;
+          const prob = estimatePropProbability(h, modelKey, probCtx);
+          if (prob) {
+            p.probability = prob.probability;
+            p.probabilityBaseline = prob.baseline;
+            p.probabilityModifiers = prob.modifiers;
+          }
+        });
+        // Also attach best prop's probability at hitter level for top-pick display
+        const bestP = h.propRecs.find(p => p.isBest);
+        if (bestP?.probability != null) {
+          h.bestPropProbability = bestP.probability;
+        }
+      });
+
+      // Update top pick object with probability if present
+      if (topPick && topPick.bestProp?.probability != null) {
+        topPick.probability = topPick.bestProp.probability;
+      }
+
       return {
         key: s.key,
         data: {
@@ -710,6 +747,36 @@ export default async function handler(req, res) {
       odds,
       teams: { awayTeam: results.awayTeam, homeTeam: results.homeTeam }
     });
+
+    // Attach probabilities to each game-line bet
+    if (results.gameLineBets && projection) {
+      const gl = results.gameLineBets;
+      if (gl.total && projection.projTotal != null && odds?.total != null) {
+        const totalProbs = estimateTotalProbability(Number(projection.projTotal), Number(odds.total));
+        if (totalProbs && gl.total.side) {
+          gl.total.probability = gl.total.side === 'OVER' ? totalProbs.overProb : totalProbs.underProb;
+        }
+      }
+      if (gl.moneyline && gl.moneyline.side) {
+        gl.moneyline.probability = estimateMoneylineProbability(Number(projection.homeWinProb), gl.moneyline.side);
+        if (gl.moneyline.price != null) {
+          gl.moneyline.edge = computeEdge(gl.moneyline.probability, gl.moneyline.price);
+        }
+      }
+      if (gl.spread && gl.spread.side && gl.spread.favored) {
+        gl.spread.probability = estimateSpreadProbability(
+          Number(projection.projHomeRuns) - Number(projection.projAwayRuns),
+          gl.spread.marketLine,
+          gl.spread.favored,
+          gl.spread.side
+        );
+      }
+      if (gl.overallBest) {
+        if (gl.overallBest.type === 'total') gl.overallBest.probability = gl.total?.probability;
+        else if (gl.overallBest.type === 'moneyline') gl.overallBest.probability = gl.moneyline?.probability;
+        else if (gl.overallBest.type === 'spread') gl.overallBest.probability = gl.spread?.probability;
+      }
+    }
 
     res.setHeader('Cache-Control', 's-maxage=900, stale-while-revalidate=3600');
     return res.status(200).json(results);

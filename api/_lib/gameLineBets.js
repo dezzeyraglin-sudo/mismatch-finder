@@ -27,8 +27,8 @@ export function buildGameLineRecommendations({ projection, odds, teams }) {
 
   // ==================== TOTAL ====================
   if (odds.total != null && projection.projTotal != null) {
-    const marketTotal = odds.total;
-    const projTotal = projection.projTotal;
+    const marketTotal = Number(odds.total);
+    const projTotal = Number(projection.projTotal);
     const delta = projTotal - marketTotal;
     const absDelta = Math.abs(delta);
 
@@ -54,7 +54,7 @@ export function buildGameLineRecommendations({ projection, odds, teams }) {
 
   // ==================== MONEYLINE ====================
   if (odds.favoriteML != null && odds.favorite && projection.homeWinProb != null) {
-    const modelHomeWP = projection.homeWinProb;
+    const modelHomeWP = Number(projection.homeWinProb);
     const modelAwayWP = 1 - modelHomeWP;
     // Derive underdog ML from favorite ML (assume dime line: +((|fav| - 10) sign-flipped))
     // This is an approximation — actual dog price varies by book
@@ -112,10 +112,10 @@ export function buildGameLineRecommendations({ projection, odds, teams }) {
   // ==================== SPREAD / RUN LINE ====================
   if (odds.spread != null && projection.projAwayRuns != null && projection.projHomeRuns != null) {
     // ESPN spread: negative means home is favored by that amount
-    const spreadNum = Math.abs(odds.spread);
-    const favored = odds.spread < 0 ? 'home' : 'away';
+    const spreadNum = Math.abs(Number(odds.spread));
+    const favored = Number(odds.spread) < 0 ? 'home' : 'away';
     const runLine = 1.5;  // MLB always uses 1.5
-    const runMargin = projection.projHomeRuns - projection.projAwayRuns;
+    const runMargin = Number(projection.projHomeRuns) - Number(projection.projAwayRuns);
 
     let tier = 'PASS';
     let side = null;

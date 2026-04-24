@@ -600,7 +600,7 @@
   .glb-rows{display:flex;flex-direction:column;gap:4px}
   .glb-row{
     display:grid;
-    grid-template-columns:70px 80px 1fr 60px;
+    grid-template-columns:60px 75px 1fr 50px 60px;
     gap:8px;
     padding:6px 10px;
     background:var(--panel-3);
@@ -641,6 +641,60 @@
     text-align:right;
     font-variant-numeric:tabular-nums;
   }
+
+  /* =============== PROBABILITY CHIPS (bonus display on props + game lines) =============== */
+  .pp-prob, .tpb-prob, .glb-prob, .glb-best-prob{
+    display:inline-block;
+    padding:2px 6px;
+    border-radius:3px;
+    font-size:9.5px;
+    font-weight:700;
+    letter-spacing:0.04em;
+    font-family:'JetBrains Mono',monospace;
+    font-variant-numeric:tabular-nums;
+    background:var(--panel-3);
+    color:var(--dim);
+    border:1px solid var(--line);
+  }
+  .pp-prob.prob-high,
+  .tpb-prob.prob-high,
+  .glb-prob.prob-high,
+  .glb-best-prob.prob-high{
+    background:var(--accent);
+    color:#0a0d0a;
+    border-color:var(--accent);
+  }
+  .pp-prob.prob-mid,
+  .tpb-prob.prob-mid,
+  .glb-prob.prob-mid,
+  .glb-best-prob.prob-mid{
+    background:rgba(198,255,61,0.2);
+    color:var(--accent);
+    border-color:var(--accent);
+  }
+  .pp-prob.prob-low,
+  .tpb-prob.prob-low,
+  .glb-prob.prob-low,
+  .glb-best-prob.prob-low{
+    background:rgba(255,200,61,0.15);
+    color:var(--warn);
+    border-color:var(--warn);
+  }
+  .pp-prob.prob-vlow,
+  .tpb-prob.prob-vlow,
+  .glb-prob.prob-vlow,
+  .glb-best-prob.prob-vlow{
+    background:rgba(255,85,85,0.12);
+    color:var(--danger);
+    border-color:rgba(255,85,85,0.3);
+  }
+  .glb-best-prob{
+    font-size:11px;
+    padding:3px 8px;
+    margin-left:6px;
+    vertical-align:middle;
+  }
+  .tpb-prob{margin-left:6px;margin-right:4px}
 
   /* Game bets history entries */
   .glb-history-entry{padding:10px 12px;border-bottom:1px solid var(--line);border-left:3px solid var(--dim)}
@@ -1699,6 +1753,15 @@ function ordinalFrontend(n) {
   return n + (s[(v - 20) % 10] || s[v] || s[0]);
 }
 
+// Classify a probability (0-1) into a visual tier for styling
+function probTier(p) {
+  if (p == null) return '';
+  if (p >= 0.70) return 'prob-high';
+  if (p >= 0.55) return 'prob-mid';
+  if (p >= 0.40) return 'prob-low';
+  return 'prob-vlow';
+}
+
 // =============== TABS ===============
 document.querySelectorAll('.tab').forEach(tab => {
   tab.addEventListener('click', () => {
@@ -2370,6 +2433,7 @@ function renderAnalysis(data) {
                     <div class="prop-pill ${p.isBest ? 'best' : ''}">
                       ${p.platform ? `<span class="pp-platform ${p.platform}">${p.platform}</span>` : ''}
                       <span class="pp-key">${p.label}</span>
+                      ${p.probability != null ? `<span class="pp-prob ${probTier(p.probability)}" title="Estimated probability this prop hits — baseline ${p.probabilityBaseline != null ? (p.probabilityBaseline*100).toFixed(0) : '?'}%">${(p.probability*100).toFixed(0)}%</span>` : ''}
                       <span class="pp-reason">${p.reason}</span>
                     </div>
                   `).join('')}
@@ -3021,11 +3085,15 @@ function renderAnalysis(data) {
         if (!rec) return '';
         const isBest = gl.overallBest.type === rec.type || (gl.overallBest.pick === rec.pick && rec.pick);
         const pass = rec.tier === 'PASS';
+        const probHtml = rec.probability != null
+          ? `<span class="glb-prob ${probTier(rec.probability)}">${(rec.probability*100).toFixed(0)}%</span>`
+          : '<span class="glb-prob"></span>';
         return `
           <div class="glb-row ${pass ? 'glb-pass' : `glb-${rec.tier.toLowerCase()}`} ${isBest ? 'glb-best-row' : ''}">
             <span class="glb-type">${typeName}</span>
             <span class="glb-tier">${rec.tier}</span>
             <span class="glb-pick">${rec.pick || 'No play'}</span>
+            ${probHtml}
             ${rec.price ? `<span class="glb-price">${rec.price > 0 ? '+' : ''}${rec.price}</span>` : '<span class="glb-price"></span>'}
           </div>
         `;
@@ -3044,7 +3112,7 @@ function renderAnalysis(data) {
           </div>
           <div class="glb-best">
             <div class="glb-best-label">★ BEST PLAY · ${gl.overallBest.tier}</div>
-            <div class="glb-best-pick">${typeLabel} · <b>${gl.overallBest.pick}</b>${gl.overallBest.price ? ` <span class="glb-best-price">${gl.overallBest.price > 0 ? '+' : ''}${gl.overallBest.price}</span>` : ''}${gl.overallBest.units ? ` <span class="glb-best-units">${gl.overallBest.units}u</span>` : ''}</div>
+            <div class="glb-best-pick">${typeLabel} · <b>${gl.overallBest.pick}</b>${gl.overallBest.price ? ` <span class="glb-best-price">${gl.overallBest.price > 0 ? '+' : ''}${gl.overallBest.price}</span>` : ''}${gl.overallBest.units ? ` <span class="glb-best-units">${gl.overallBest.units}u</span>` : ''}${gl.overallBest.probability != null ? ` <span class="glb-best-prob ${probTier(gl.overallBest.probability)}" title="Model probability this bet wins">${(gl.overallBest.probability*100).toFixed(0)}%</span>` : ''}</div>
             <ul class="glb-best-reasons">
               ${(gl.overallBest.reasoning || []).map(r => `<li>${r}</li>`).join('')}
             </ul>
@@ -3148,6 +3216,7 @@ function renderAnalysis(data) {
         <div class="tpb-prop-row">
           ${bp.platform?`<span class="tpb-prop-plat">${bp.platform}</span>`:''}
           <span class="tpb-prop-label">${bp.label}</span>
+          ${bp.probability != null ? `<span class="tpb-prob ${probTier(bp.probability)}" title="Estimated hit probability">${(bp.probability*100).toFixed(0)}%</span>` : ''}
           <span style="color:var(--dim);font-size:10px;font-style:italic">${(bp.reason||'').replace(/·.*/,'').trim()}</span>
         </div>
       ` : ''}
