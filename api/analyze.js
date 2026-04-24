@@ -7,6 +7,8 @@ import { UMPIRE_FACTORS, classifyUmp } from './_data/umpireFactors.js';
 import { getProbables, getPitcherArsenal, getBullpenProfile, getLineup, getHitterStats, getHitterSplits, getPitcherSplits, getHitterPitchTypeByHand, getGameOdds } from './_lib/data.js';
 import { getBlendedInningSplits } from './_lib/pitcherInnings.js';
 import { getWeatherForecast, computeWeatherImpact } from './_lib/weather.js';
+import { getHitterSituationalByMlbam } from './_lib/brefSplits.js';
+import { detectPitcherRole } from './_lib/pitcherRole.js';
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -113,13 +115,15 @@ export default async function handler(req, res) {
     const sideResults = await Promise.all(sides.map(async s => {
       if (!s.pitcher || !s.hitTeamId) return null;
 
-      const [arsenal, lineup, bullpen, pitcherSplits, inningSplits] = await Promise.all([
+      const [arsenal, lineup, bullpen, pitcherSplits, inningSplits, pitcherRole] = await Promise.all([
         getPitcherArsenal(s.pitcher.id, season).catch(() => []),
         getLineup(s.hitTeamId, gamePk, s.side).catch(() => []),
         getBullpenProfile(s.pitTeamAbbr, season, s.pitcher.id).catch(() => ({ pitches: [], pitcherCount: 0 })),
         getPitcherSplits(s.pitcher.id, season).catch(() => ({ vsR: null, vsL: null })),
         // Inning splits fetched in deep mode only (heavy data pull) or when game has odds (likely big-money matchup)
-        (deepMode ? getBlendedInningSplits(s.pitcher.id).catch(() => null) : Promise.resolve(null))
+        (deepMode ? getBlendedInningSplits(s.pitcher.id).catch(() => null) : Promise.resolve(null)),
+        // Role detection — always runs, lightweight call
+        detectPitcherRole(s.pitcher.id).catch(() => null)
       ]);
 
       const keyPitches = arsenal.slice(0, 3);
@@ -609,6 +613,44 @@ export default async function handler(req, res) {
         });
       }
 
+      // Situational splits — only in deep mode, only for ELITE+STRONG hitters (rate-limit awareness).
+      // Tries current season first, falls back to prior season if <30 PA.
+      if (deepMode) {
+        const qualifyingHitters = finalTiered.filter(h => h.tier === 'elite' || h.tier === 'strong');
+        if (qualifyingHitters.length > 0) {
+          const currentYear = new Date().getFullYear();
+          const situationalResults = await Promise.allSettled(
+            qualifyingHitters.map(async h => {
+              let splits = await getHitterSituationalByMlbam(h.hitterId, currentYear);
+              if (!splits || (splits.overall?.PA || 0) < 30) {
+                const priorSplits = await getHitterSituationalByMlbam(h.hitterId, currentYear - 1);
+                if (priorSplits && (priorSplits.overall?.PA || 0) >= 30) splits = priorSplits;
+              }
+              return { hitterId: h.hitterId, splits };
+            })
+          );
+          const situationalMap = new Map();
+          for (const r of situationalResults) {
+            if (r.status === 'fulfilled' && r.value?.splits) {
+              situationalMap.set(r.value.hitterId, r.value.splits);
+            }
+          }
+          finalTiered.forEach(h => {
+            const sp = situationalMap.get(h.hitterId);
+            if (sp?.signals) {
+              h.situational = {
+                season: sp.season,
+                overallPA: sp.overall?.PA,
+                overallOPS: sp.overall?.OPS,
+                signals: sp.signals
+              };
+              // Apply situational boosts to prop recommendations
+              applySituationalPropBoosts(h, sp.signals, inningSplits);
+            }
+          });
+        }
+      }
+
       return {
         key: s.key,
         data: {
@@ -617,6 +659,7 @@ export default async function handler(req, res) {
           pitcherSplits,
           inningSplits,
           pitcherNarrative,
+          pitcherRole,
           bullpen: {
             pitches: keyBullpenPitches,
             pitcherCount: bullpen.pitcherCount || 0,
@@ -762,9 +805,19 @@ function buildGameProjection({ awayVsHome, homeVsAway, parkFactor, umpire, weath
   // Weather factor: temperature + wind + precip effect on run environment
   const weatherRunMult = weatherImpact?.runMult || 1.0;
 
-  // Blend starter (60%) + bullpen (40%) influence on opposing offense
-  const awayPitcherBlend = (awayComp.pitcherMult * 0.60) + (awayComp.bullpenMult * 0.40);
-  const homePitcherBlend = (homeComp.pitcherMult * 0.60) + (homeComp.bullpenMult * 0.40);
+  // Blend starter + bullpen influence on opposing offense
+  // Traditional SP: 60/40 SP/BP. Opener/bulk/shifted: 25/75 (bullpen carries more innings).
+  // Short-starter: 45/55 (still starts but gives way earlier).
+  const blendWeight = (side) => {
+    const role = side?.pitcherRole?.role;
+    if (role === 'opener' || role === 'bulk' || role === 'shifted') return { sp: 0.25, bp: 0.75 };
+    if (role === 'short-starter') return { sp: 0.45, bp: 0.55 };
+    return { sp: 0.60, bp: 0.40 };
+  };
+  const aw = blendWeight(awayVsHome);
+  const hw = blendWeight(homeVsAway);
+  const awayPitcherBlend = (awayComp.pitcherMult * aw.sp) + (awayComp.bullpenMult * aw.bp);
+  const homePitcherBlend = (homeComp.pitcherMult * hw.sp) + (homeComp.bullpenMult * hw.bp);
 
   // Final projections
   const projAwayRuns = BASELINE_RUNS * awayComp.lineupMult * awayPitcherBlend * parkRunMult * umpRunMult * weatherRunMult;
@@ -887,6 +940,28 @@ function buildGameProjection({ awayVsHome, homeVsAway, parkFactor, umpire, weath
       projReasoning.push(`Away SP meltdown in ${ordinal(homeSplits.meltdownInning)} inning (xwOBA ${homeSplits.meltdownXw.toFixed(3)}) — high-leverage window for overs`);
     }
   }
+
+  // Role-based warnings (opener, shift, short-starter) — sharpest signal when they appear
+  const awayRole = awayVsHome?.pitcherRole;
+  const homeRole = homeVsAway?.pitcherRole;
+  const roleNarrative = (role, sideLabel) => {
+    if (!role || role.role === 'traditional' || role.role === 'unknown') return null;
+    switch (role.role) {
+      case 'opener':
+        return `${sideLabel} is using an opener (${role.avgIpRecent} IP avg recently) — bullpen carries the majority of innings`;
+      case 'bulk':
+        return `${sideLabel} is a bulk reliever, not a traditional starter — bullpen workload`;
+      case 'shifted':
+        return `${sideLabel} recently shifted to relief role — K-prop/workload lines may be stale`;
+      case 'short-starter':
+        return `${sideLabel} is a short-start pitcher (${role.avgIpRecent} IP recent avg) — bullpen sees more exposure`;
+    }
+    return null;
+  };
+  const awayRoleNote = roleNarrative(awayRole, 'Home SP');
+  if (awayRoleNote) projReasoning.push(awayRoleNote);
+  const homeRoleNote = roleNarrative(homeRole, 'Away SP');
+  if (homeRoleNote) projReasoning.push(homeRoleNote);
 
   // Park reasoning
   if (parkRunMult >= 1.05) projReasoning.push(`${parkFactor?.name || 'Park'} is run-friendly (+${Math.round((parkRunMult-1)*100)}% runs)`);
@@ -1569,4 +1644,72 @@ function ordinal(n) {
   const s = ['th', 'st', 'nd', 'rd'];
   const v = n % 100;
   return n + (s[(v - 20) % 10] || s[v] || s[0]);
+}
+
+// ==================== SITUATIONAL PROP BOOSTS ====================
+// Given a hitter's actionable situational signals, boost/demote the relevant prop
+// recommendations so the "BEST BET" surfacing reflects these edges.
+function applySituationalPropBoosts(hitter, signals, pitcherInningSplits) {
+  if (!hitter.propRecs || !signals) return;
+
+  const boost = (propKey, points, reason) => {
+    const prop = hitter.propRecs.find(p => p.key === propKey);
+    if (!prop) return;
+    const before = prop.score || 0;
+    prop.score = before + points;
+    prop.situationalBoosts = prop.situationalBoosts || [];
+    prop.situationalBoosts.push({ points, reason });
+  };
+
+  // RISP actionable & positive → boost RBI / H+R+RBI props
+  if (signals.risp?.actionable && signals.risp.delta >= 0.080) {
+    boost('RBI', 8, `RISP clutch: +${signals.risp.delta.toFixed(3)} OPS in ${signals.risp.PA} PA`);
+    boost('HRR', 5, `RISP clutch helps H+R+RBI`);
+  }
+  // RISP actionable & negative → demote RBI
+  if (signals.risp?.actionable && signals.risp.delta <= -0.080) {
+    boost('RBI', -8, `Struggles with RISP: ${signals.risp.delta.toFixed(3)} OPS in ${signals.risp.PA} PA`);
+  }
+
+  // Ahead-in-count → boost walk props (walks aren't in main prop list, so skip if not present)
+  // (we don't currently expose a walk-only prop key; walk edge shows as deep-dive hint only)
+
+  // Behind-in-count collapse
+  if (signals.behind?.actionable && signals.behind.delta <= -0.150) {
+    boost('TB', -4, `Collapses when behind: ${signals.behind.delta.toFixed(3)} OPS`);
+    boost('H', -3, `Collapses when behind: ${signals.behind.delta.toFixed(3)} OPS`);
+  }
+
+  // First-pitch aggressive
+  if (signals.firstPitch?.actionable && signals.firstPitch.delta >= 0.150) {
+    boost('HR', 4, `Attacks first pitches: ${signals.firstPitch.OPS?.toFixed(3)} OPS on 0-0`);
+    boost('TB', 3, `Aggressive on 0-0`);
+  }
+
+  // Inning alignment with pitcher meltdown — stacked signal
+  if (pitcherInningSplits?.meltdownInning) {
+    const mi = pitcherInningSplits.meltdownInning;
+    let hitterInningSignal = null;
+    if (mi <= 3) hitterInningSignal = signals.inningsEarly;
+    else if (mi <= 6) hitterInningSignal = signals.inningsMiddle;
+    else hitterInningSignal = signals.inningsLate;
+
+    if (hitterInningSignal?.actionable && hitterInningSignal.delta >= 0.080) {
+      boost('TB', 8, `Hitter excels in pitcher's meltdown window (inn ${mi})`);
+      boost('HR', 6, `Stacked signal in meltdown inning`);
+      boost('HRR', 6, `Stacked signal in meltdown inning`);
+    }
+  }
+
+  // Late-inning fade
+  if (signals.inningsLate?.actionable && signals.inningsLate.delta <= -0.100) {
+    boost('HR', -3, `Fades late: ${signals.inningsLate.delta.toFixed(3)} OPS in innings 7+`);
+  }
+
+  // Re-pick best prop after all boosts
+  if (hitter.propRecs.length > 0) {
+    hitter.propRecs.forEach(p => p.isBest = false);
+    const best = hitter.propRecs.reduce((a, b) => (b.score || 0) > (a.score || 0) ? b : a);
+    if ((best.score || 0) > 0) best.isBest = true;
+  }
 }

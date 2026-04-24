@@ -759,6 +759,141 @@
     border-radius:0 4px 4px 0;
   }
 
+  /* =============== ROLE WARNINGS (OPENER / BULK / SHIFT / SHORT-STARTER) =============== */
+  .role-warning{
+    margin-bottom:10px;
+    padding:10px 12px;
+    border-radius:5px;
+    border-left:4px solid var(--danger);
+    background:linear-gradient(90deg,rgba(255,85,85,0.1),transparent);
+  }
+  .role-warning.role-short{
+    border-left-color:var(--warn);
+    background:linear-gradient(90deg,rgba(255,200,61,0.08),transparent);
+  }
+  .rw-head{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:6px}
+  .rw-badge{
+    font-weight:700;
+    font-size:10px;
+    letter-spacing:0.12em;
+    color:var(--danger);
+    font-family:'JetBrains Mono',monospace;
+  }
+  .role-warning.role-short .rw-badge{color:var(--warn)}
+  .rw-meta{
+    font-size:9.5px;
+    color:var(--dim);
+    font-variant-numeric:tabular-nums;
+    letter-spacing:0.06em;
+  }
+  .rw-warning{
+    font-size:11px;
+    color:var(--ink);
+    font-weight:600;
+    margin-bottom:4px;
+    line-height:1.4;
+  }
+  .rw-reasons{
+    list-style:none;
+    padding:0;
+    margin:0;
+    font-size:10px;
+    line-height:1.5;
+    color:var(--dim);
+  }
+  .rw-reasons li{padding-left:10px;position:relative}
+  .rw-reasons li::before{content:'·';position:absolute;left:2px;font-weight:700;color:var(--dim)}
+  .deep-dive-btn{
+    background:transparent;
+    color:var(--accent);
+    border:1px solid var(--accent);
+    padding:2px 7px;
+    border-radius:3px;
+    font-size:8.5px;
+    letter-spacing:0.1em;
+    font-weight:700;
+    cursor:pointer;
+    margin-left:8px;
+    vertical-align:middle;
+    transition:all 0.15s;
+    font-family:'JetBrains Mono',monospace;
+  }
+  .deep-dive-btn:hover{background:var(--accent);color:#0a0d0a}
+
+  .deep-dive-modal{max-width:620px;max-height:85vh;overflow-y:auto}
+  .dd-section{margin-bottom:16px}
+  .dd-section-head{
+    font-size:10px;
+    letter-spacing:0.14em;
+    color:var(--accent);
+    font-weight:700;
+    margin-bottom:8px;
+    padding-bottom:4px;
+    border-bottom:1px solid var(--line);
+  }
+  .dd-chips{display:flex;flex-direction:column;gap:6px}
+  .dd-chip{
+    padding:10px 12px;
+    border-radius:5px;
+    border-left:3px solid var(--line);
+    background:var(--panel-2);
+  }
+  .dd-chip.dd-better{border-left-color:var(--accent);background:linear-gradient(90deg,rgba(198,255,61,0.06),transparent)}
+  .dd-chip.dd-worse{border-left-color:var(--danger);background:linear-gradient(90deg,rgba(255,85,85,0.06),transparent)}
+  .dd-chip.dd-strong{border-left-width:4px}
+  .dd-chip-head{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:4px;
+    gap:8px;
+    flex-wrap:wrap;
+  }
+  .dd-chip-label{
+    font-size:11px;
+    font-weight:700;
+    color:var(--ink);
+    letter-spacing:0.04em;
+  }
+  .dd-chip-delta{
+    font-family:'JetBrains Mono',monospace;
+    font-size:11px;
+    font-weight:700;
+  }
+  .dd-better .dd-chip-delta{color:var(--accent)}
+  .dd-worse .dd-chip-delta{color:var(--danger)}
+  .dd-chip-stats{
+    font-size:10.5px;
+    color:var(--dim);
+    font-variant-numeric:tabular-nums;
+    margin-bottom:4px;
+  }
+  .dd-chip-hint{
+    font-size:10px;
+    color:var(--ink);
+    font-style:italic;
+    margin-top:4px;
+    padding-top:4px;
+    border-top:1px dashed var(--line);
+  }
+  .dd-empty{
+    padding:20px;
+    text-align:center;
+    color:var(--dim);
+    font-size:12px;
+    background:var(--panel-2);
+    border-radius:5px;
+  }
+  .dd-footnote{
+    margin-top:12px;
+    padding-top:12px;
+    border-top:1px solid var(--line);
+    font-size:9.5px;
+    color:var(--dim);
+    font-style:italic;
+    line-height:1.5;
+  }
+
   /* AB timing on hitter cards */
   .ab-timing-row{
     display:flex;
@@ -1160,6 +1295,17 @@
   </div>
 </div>
 
+<div class="modal-bg" id="deepDiveModal">
+  <div class="modal deep-dive-modal">
+    <h3 id="ddTitle">Situational Splits</h3>
+    <div class="mh-sub" id="ddSub"></div>
+    <div id="ddContent"></div>
+    <div class="modal-actions">
+      <button class="btn primary" onclick="closeDeepDive()">CLOSE</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 </div>
@@ -1185,6 +1331,7 @@ let currentTierFilter = 'all';
 let currentTagFilter = 'all';
 let currentTrackView = 'today';
 let tagModalContext = null;  // { id, name, role, team, gamePk, opp }
+const analyzedCache = new Map();  // gamePk → response data (for modals)
 const LS_KEY = 'mismatch_finder_v2';
 
 const HITTER_TAGS = [
@@ -1922,6 +2069,9 @@ function jumpToHrCandidate(gamePk, name) {
 function renderAnalysis(data) {
   const container = document.getElementById('analysisContainer');
 
+  // Cache analyzed data so modals can look up situational splits, etc.
+  if (data.gamePk) analyzedCache.set(data.gamePk, data);
+
   // Auto-log every "BEST BET" recommendation from this analysis
   logBestBets(data);
 
@@ -2079,6 +2229,13 @@ function renderAnalysis(data) {
             `;
           }
 
+          // Deep Dive button — only shows when hitter has actionable situational data
+          const hasActionableSituational = m.situational?.signals
+            && Object.values(m.situational.signals).some(s => s && s.actionable);
+          const deepDiveCtx = hasActionableSituational
+            ? JSON.stringify({ hitterId: m.hitterId, hitter: m.hitter, team: hitTeamAbbr }).replace(/"/g, '&quot;')
+            : null;
+
           return `
             <div class="match ${m.tier}${m.isTopPick?' top-pick':''}${m.hrChance?' has-hr-chance':''}">
               <div class="match-head">
@@ -2086,6 +2243,7 @@ function renderAnalysis(data) {
                   ${m.isTopPick ? '<span class="top-pick-star">★ TOP PICK</span>' : ''}
                   ${m.hrChance && data.deepMode ? `<span class="hr-badge ${m.hrChance.tier}" title="HR Chance: ${m.hrChance.tier.toUpperCase()} (${m.hrChance.score})">${m.hrChance.emoji} HR ${m.hrChance.tier.toUpperCase()}</span>` : ''}
                   ${m.hitter}<span class="hand">${m.hand || ''}</span>
+                  ${hasActionableSituational ? `<button class="deep-dive-btn" onclick='openDeepDive(${deepDiveCtx})' title="Situational splits">◎ DEEP DIVE</button>` : ''}
                 </div>
                 <div style="display:flex;gap:6px;align-items:center">
                   <button class="ban-quick-btn sm" onclick="event.stopPropagation();quickBan('hitters','${m.hitter.replace(/'/g,'&#39;')}')" title="Ban this hitter">⊘</button>
@@ -2268,6 +2426,29 @@ function renderAnalysis(data) {
           </div>
         ` : ''}
         <div class="pitcher-header">
+          ${(() => {
+            const pr = s.pitcherRole;
+            if (!pr || pr.role === 'traditional' || pr.role === 'unknown') return '';
+            const roleMeta = {
+              'opener':        { badge: '⚠ OPENER RISK',      cls: 'role-opener',    sev: 'high' },
+              'bulk':          { badge: '⚠ BULK RELIEVER',     cls: 'role-bulk',      sev: 'high' },
+              'shifted':       { badge: '⚠ ROLE SHIFT',        cls: 'role-shifted',   sev: 'high' },
+              'short-starter': { badge: '◐ SHORT STARTER',     cls: 'role-short',     sev: 'med' }
+            }[pr.role];
+            if (!roleMeta) return '';
+            return `
+              <div class="role-warning ${roleMeta.cls}">
+                <div class="rw-head">
+                  <span class="rw-badge">${roleMeta.badge}</span>
+                  <span class="rw-meta">${pr.avgIpRecent ? `${pr.avgIpRecent} IP avg · last ${pr.recentApps} apps` : ''}</span>
+                </div>
+                ${pr.warning ? `<div class="rw-warning">${pr.warning}</div>` : ''}
+                <ul class="rw-reasons">
+                  ${(pr.reasons || []).map(r => `<li>${r}</li>`).join('')}
+                </ul>
+              </div>
+            `;
+          })()}
           <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px">
             <div>
               <div class="ph-name">${s.pitcher.name} (${s.pitcher.hand}HP)${oppPitcherBanned ? '<span class="scratch-badge" style="margin-left:6px">BANNED</span>' : ''}</div>
@@ -3344,6 +3525,131 @@ function toggleTagOption(btn) {
 function closeTagModal() {
   document.getElementById('tagModal').classList.remove('open');
   tagModalContext = null;
+}
+
+// ===== DEEP DIVE MODAL (situational splits) =====
+function openDeepDive(ctx) {
+  // ctx: { hitterId, hitter, team }
+  let hitter = null;
+  let gamePk = null;
+  for (const [pk, data] of analyzedCache.entries()) {
+    for (const key of ['awayVsHome', 'homeVsAway']) {
+      const side = data[key];
+      if (!side) continue;
+      const found = (side.mismatches || []).find(m => m.hitterId === ctx.hitterId);
+      if (found) { hitter = found; gamePk = pk; break; }
+    }
+    if (hitter) break;
+  }
+  if (!hitter || !hitter.situational) {
+    showToast('No situational data available');
+    return;
+  }
+
+  const sit = hitter.situational;
+  const sig = sit.signals || {};
+
+  document.getElementById('ddTitle').textContent = ctx.hitter;
+  document.getElementById('ddSub').textContent = `${ctx.team} · ${sit.season} season · ${sit.overallPA} PA, ${sit.overallOPS?.toFixed(3) || '-'} OPS`;
+
+  // Render by category: bases → count → innings → home/road → surface
+  const chipFor = (key, label, s, propHint) => {
+    if (!s || !s.actionable) return '';
+    const dir = s.delta > 0 ? 'better' : 'worse';
+    const deltaAbs = Math.abs(s.delta);
+    const deltaTxt = `${s.delta > 0 ? '+' : ''}${s.delta.toFixed(3)}`;
+    const strength = deltaAbs >= 0.150 ? 'strong' : deltaAbs >= 0.080 ? 'moderate' : 'mild';
+    return `
+      <div class="dd-chip dd-${dir} dd-${strength}">
+        <div class="dd-chip-head">
+          <span class="dd-chip-label">${label}</span>
+          <span class="dd-chip-delta">${deltaTxt} OPS</span>
+        </div>
+        <div class="dd-chip-stats">
+          ${s.PA} PA · ${s.OPS?.toFixed(3)} OPS${s.HR != null ? ` · ${s.HR} HR` : ''}${s.BB != null ? ` · ${s.BB} BB` : ''}${s.SO != null ? ` · ${s.SO} K` : ''}
+        </div>
+        ${propHint ? `<div class="dd-chip-hint">${propHint}</div>` : ''}
+      </div>
+    `;
+  };
+
+  const section = (heading, chips) => {
+    const filled = chips.filter(Boolean);
+    if (filled.length === 0) return '';
+    return `
+      <div class="dd-section">
+        <div class="dd-section-head">${heading}</div>
+        <div class="dd-chips">${filled.join('')}</div>
+      </div>
+    `;
+  };
+
+  const basesSection = section('◆ RUNNERS-ON SITUATIONS', [
+    chipFor('risp', 'RISP (Scoring Position)', sig.risp, sig.risp?.delta >= 0.100 ? 'Boost RBI props · clutch hitter' : sig.risp?.delta <= -0.100 ? 'Fade RBI props · struggles with RISP' : null),
+    chipFor('runnersOn', 'Men On Base', sig.runnersOn, sig.runnersOn?.delta > 0 ? 'Favor H+R+RBI overs when lineup has baserunners' : null),
+    chipFor('basesEmpty', 'Bases Empty', sig.basesEmpty, sig.basesEmpty?.delta > 0 ? 'Leadoff-boost · pure HR/TB prop window' : null)
+  ]);
+
+  const countSection = section('◆ COUNT SITUATIONS', [
+    chipFor('firstPitch', 'First Pitch (0-0)', sig.firstPitch, sig.firstPitch?.delta >= 0.100 ? 'Aggressive first-pitch hitter · K prop fade' : null),
+    chipFor('ahead', 'Ahead in Count', sig.ahead, sig.ahead?.delta >= 0.100 ? 'Dangerous when pitcher falls behind · walk props viable' : null),
+    chipFor('behind', 'Behind in Count', sig.behind, sig.behind?.delta <= -0.100 ? 'Collapses when pitcher gets ahead · opposing K prop boost' : null)
+  ]);
+
+  const inningSection = section('◆ INNING TIMING', [
+    chipFor('inningsEarly', 'Innings 1-3 (Fresh)', sig.inningsEarly, sig.inningsEarly?.delta >= 0.080 ? 'Target early ABs vs starter' : sig.inningsEarly?.delta <= -0.080 ? 'Slow starter · fade first-time-through' : null),
+    chipFor('inningsMiddle', 'Innings 4-6 (2nd Time)', sig.inningsMiddle, sig.inningsMiddle?.delta >= 0.080 ? 'Crushes 2nd time through the order' : null),
+    chipFor('inningsLate', 'Innings 7+ (Fatigue)', sig.inningsLate, sig.inningsLate?.delta >= 0.080 ? 'Late-game hitter · target bullpen props' : sig.inningsLate?.delta <= -0.080 ? 'Fades late · avoid props needing AB3+' : null)
+  ]);
+
+  // Home/road and surface shown together when actionable
+  const contextChips = [];
+  if (sig.homeRoadGap?.actionable && sig.home && sig.road) {
+    const slant = sig.homeRoadGap.direction === 'home-slanted' ? 'HOME HEAVY' : 'ROAD HEAVY';
+    contextChips.push(`
+      <div class="dd-chip dd-${sig.homeRoadGap.delta > 0 ? 'better' : 'worse'} dd-moderate">
+        <div class="dd-chip-head">
+          <span class="dd-chip-label">${slant}</span>
+          <span class="dd-chip-delta">${sig.homeRoadGap.delta > 0 ? '+' : ''}${sig.homeRoadGap.delta.toFixed(3)} OPS</span>
+        </div>
+        <div class="dd-chip-stats">
+          HOME: ${sig.home.PA}PA ${sig.home.OPS?.toFixed(3)} · ROAD: ${sig.road.PA}PA ${sig.road.OPS?.toFixed(3)}
+        </div>
+      </div>
+    `);
+  }
+  if (sig.surfaceGap?.actionable && sig.grass && sig.turf) {
+    contextChips.push(`
+      <div class="dd-chip dd-${sig.surfaceGap.delta > 0 ? 'better' : 'worse'} dd-mild">
+        <div class="dd-chip-head">
+          <span class="dd-chip-label">SURFACE</span>
+          <span class="dd-chip-delta">${sig.surfaceGap.delta > 0 ? '+' : ''}${sig.surfaceGap.delta.toFixed(3)} OPS turf vs grass</span>
+        </div>
+        <div class="dd-chip-stats">
+          GRASS: ${sig.grass.PA}PA ${sig.grass.OPS?.toFixed(3)} · TURF: ${sig.turf.PA}PA ${sig.turf.OPS?.toFixed(3)}
+        </div>
+      </div>
+    `);
+  }
+  const contextSection = contextChips.length ? `
+    <div class="dd-section">
+      <div class="dd-section-head">◆ GAME CONTEXT</div>
+      <div class="dd-chips">${contextChips.join('')}</div>
+    </div>
+  ` : '';
+
+  const allSections = [basesSection, countSection, inningSection, contextSection].filter(Boolean).join('');
+  const content = allSections || '<div class="dd-empty">No actionable situational splits — hitter performs consistently across contexts</div>';
+
+  document.getElementById('ddContent').innerHTML = `
+    ${content}
+    <div class="dd-footnote">Signals only shown when sample is adequate (≥30-80 PA) AND delta meaningfully differs from overall OPS. Use these as prop-selection modifiers, not standalone bets.</div>
+  `;
+  document.getElementById('deepDiveModal').classList.add('open');
+}
+
+function closeDeepDive() {
+  document.getElementById('deepDiveModal').classList.remove('open');
 }
 
 function saveTag() {
