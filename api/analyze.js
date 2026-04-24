@@ -400,7 +400,73 @@ export default async function handler(req, res) {
             hardHitPct: overall.hard_hit_percent?.value || null,
             avgEV: overall.avg_exit_velocity?.value || null,
             kPct: overall.k_percent?.value || null
-          }
+          },
+          // HR Chance scoring (v1 — criteria-based, calibrated from actual HR hits on 4/18, 4/19, 4/20, 4/22)
+          hrChance: (() => {
+            const barrel = parseFloat(overall.barrel_batted_rate?.value || 0);
+            const hardHit = parseFloat(overall.hard_hit_percent?.value || 0);
+            const bestMatchedXwoba = matchedPitches.reduce((max, p) => Math.max(max, parseFloat(p.hitterXwoba || 0)), 0);
+            const adjXw = adjustedMaxXwoba;
+            const parkHrMult = parkFactor ? getParkHrMult(parkFactor, effectiveBatSide) : 1.0;
+
+            // Five-pillar HR criteria, each contributes up to 20 points (100 max)
+            let score = 0;
+            const criteria = [];
+
+            // 1. Elite matchup (adj xwOBA ≥ .450)
+            if (adjXw >= 0.500) { score += 20; criteria.push('elite matchup .500+'); }
+            else if (adjXw >= 0.450) { score += 15; criteria.push('elite matchup .450+'); }
+            else if (adjXw >= 0.420) { score += 8; criteria.push('elite matchup .420+'); }
+
+            // 2. Demolishes pitcher's primary pitch (best-matched xwOBA ≥ .500)
+            if (bestMatchedXwoba >= 0.600) { score += 20; criteria.push(`demolishes primary pitch (${bestMatchedXwoba.toFixed(3)})`); }
+            else if (bestMatchedXwoba >= 0.500) { score += 15; criteria.push(`crushes primary pitch (${bestMatchedXwoba.toFixed(3)})`); }
+            else if (bestMatchedXwoba >= 0.420) { score += 7; criteria.push(`strong pitch matchup`); }
+
+            // 3. Power profile (barrel rate + hard hit)
+            if (barrel >= 15) { score += 20; criteria.push(`${barrel.toFixed(1)}% barrel rate`); }
+            else if (barrel >= 10) { score += 12; criteria.push(`${barrel.toFixed(1)}% barrel rate`); }
+            else if (barrel >= 7) { score += 5; criteria.push(`${barrel.toFixed(1)}% barrel rate`); }
+
+            // 4. Bullpen coverage (FULL GAME edge)
+            if (bullpenTier === 'elite' || bullpenTier === 'strong') {
+              score += 15;
+              criteria.push('FULL GAME edge');
+            } else if (bullpenTier === 'solid') {
+              score += 5;
+            }
+
+            // 5. Park HR factor (handedness-specific)
+            if (parkHrMult >= 1.15) { score += 15; criteria.push(`power park (+${((parkHrMult-1)*100).toFixed(0)}% HR)`); }
+            else if (parkHrMult >= 1.05) { score += 8; criteria.push('slight power park'); }
+            else if (parkHrMult <= 0.88) { score -= 5; }
+
+            // Bonus: hard-hit rate ≥ 45% (true power profile)
+            if (hardHit >= 45) { score += 5; criteria.push(`${hardHit.toFixed(0)}% hard-hit`); }
+
+            // Bonus: platoon advantage for power
+            const platAdj = adjustments.find(a => a.type === 'platoon' && a.favor === 'hitter');
+            if (platAdj && parseFloat(platAdj.multiplier || 1) >= 1.10) {
+              score += 5;
+              criteria.push('platoon advantage');
+            }
+
+            // Classification tiers (calibrated against actual HRs on 4/18-22)
+            // Judge 4/18 would score ~95, Vargas ~85, Mead ~75, Rojas ~60
+            let tier = null;
+            let emoji = null;
+            if (score >= 80) { tier = 'elite'; emoji = '💣'; }
+            else if (score >= 65) { tier = 'strong'; emoji = '🎯'; }
+            else if (score >= 50) { tier = 'solid'; emoji = '⚡'; }
+
+            return tier ? {
+              tier, score, emoji, criteria,
+              barrelPct: barrel,
+              hardHitPct: hardHit,
+              bestMatchedXwoba: bestMatchedXwoba.toFixed(3),
+              parkHrMult: parkHrMult.toFixed(2)
+            } : null;
+          })()
         };
       });
 
@@ -1182,4 +1248,12 @@ function buildTopPickReasons(h) {
   if (umpAdj) reasons.push(umpAdj.label);
 
   return reasons;
+}
+
+// Handedness-specific park HR factor (returns multiplier where 1.0 = neutral)
+function getParkHrMult(parkFactor, batSide) {
+  if (!parkFactor) return 1.0;
+  const pf = batSide === 'L' ? parkFactor.lhbHr : parkFactor.rhbHr;
+  if (pf == null) return (parkFactor.hr || 100) / 100;
+  return pf / 100;
 }

@@ -17,13 +17,32 @@ export default async function handler(req, res) {
     if (!r.ok) throw new Error(`MLB API ${r.status}`);
     const data = await r.json();
 
-    // Also fetch game status from schedule to know if final
-    const statusUrl = `https://statsapi.mlb.com/api/v1.1/game/${gamePk}/feed/live?fields=gameData,status`;
-    const sr = await fetch(statusUrl).catch(() => null);
-    const statusData = sr && sr.ok ? await sr.json() : null;
-    const gameStatus = statusData?.gameData?.status?.abstractGameState || 'Unknown';
-    const detailedStatus = statusData?.gameData?.status?.detailedState || '';
-    const isFinal = gameStatus === 'Final';
+    // Get game status from schedule endpoint (more reliable than the feed/live ?fields= variant)
+    let gameStatus = 'Unknown';
+    let detailedStatus = '';
+    let isFinal = false;
+    try {
+      const schedUrl = `https://statsapi.mlb.com/api/v1/schedule?sportId=1&gamePk=${gamePk}`;
+      const sr = await fetch(schedUrl);
+      if (sr.ok) {
+        const sd = await sr.json();
+        const game = sd.dates?.[0]?.games?.[0] || sd.games?.[0];
+        if (game?.status) {
+          gameStatus = game.status.abstractGameState || 'Unknown';
+          detailedStatus = game.status.detailedState || '';
+          // 'Final' or 'Game Over' both count as final for grading
+          isFinal = gameStatus === 'Final' || detailedStatus === 'Final' || detailedStatus === 'Game Over' || detailedStatus === 'Completed Early';
+        }
+      }
+    } catch(_) {}
+
+    // Fallback: if box score has a non-empty teams.home.batters list AND game is not in-progress,
+    // we can still grade even if status fetch failed
+    if (!isFinal && data.teams?.home?.batters?.length > 0 && data.teams?.away?.batters?.length > 0) {
+      // Check for innings played — if 9+ innings recorded, game is almost certainly done
+      const homeInnings = data.teams.home.teamStats?.pitching?.inningsPitched;
+      if (homeInnings && parseFloat(homeInnings) >= 8.5) isFinal = true;
+    }
 
     // Look up player in both teams
     const pidKey = `ID${mlbam}`;

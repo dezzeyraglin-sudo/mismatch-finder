@@ -596,6 +596,111 @@
     50%{box-shadow:0 0 0 3px rgba(198,255,61,0)}
   }
 
+  /* =============== HR CHANCE BADGE =============== */
+  .hr-badge{
+    display:inline-flex;
+    align-items:center;
+    gap:3px;
+    font-size:8px;
+    font-weight:700;
+    letter-spacing:0.12em;
+    padding:3px 7px;
+    border-radius:3px;
+    margin-right:6px;
+    white-space:nowrap;
+  }
+  .hr-badge.elite{
+    background:linear-gradient(135deg, var(--heat), #ff4d1f);
+    color:#0a0d0a;
+    animation:hr-pulse 1.4s ease-in-out infinite;
+    box-shadow:0 0 8px rgba(255,122,61,0.5);
+  }
+  .hr-badge.strong{
+    background:rgba(255,122,61,0.2);
+    color:var(--heat);
+    border:1px solid var(--heat);
+  }
+  .hr-badge.solid{
+    background:rgba(255,200,61,0.15);
+    color:var(--warn);
+    border:1px solid rgba(255,200,61,0.4);
+  }
+  @keyframes hr-pulse{
+    0%,100%{box-shadow:0 0 8px rgba(255,122,61,0.5)}
+    50%{box-shadow:0 0 16px rgba(255,122,61,0.9)}
+  }
+  .match.has-hr-chance{
+    border-right:2px solid var(--heat);
+  }
+
+  /* =============== HR PICKS CONSOLIDATED VIEW =============== */
+  .btn.active{background:var(--heat);color:#0a0d0a}
+  .top-pick-star.sm{padding:1px 4px;font-size:7px;margin-left:4px}
+  .hr-picks-header{margin:14px 0}
+  .hr-picks-header h2{margin-bottom:8px}
+  .hr-picks-stats{display:flex;gap:10px;font-size:10px;letter-spacing:0.1em;font-weight:700;align-items:center;flex-wrap:wrap}
+  .hr-stat{padding:4px 8px;border-radius:3px}
+  .hr-stat.elite{background:rgba(255,122,61,0.2);color:var(--heat);border:1px solid var(--heat)}
+  .hr-stat.strong{background:rgba(255,200,61,0.15);color:var(--warn);border:1px solid rgba(255,200,61,0.4)}
+  .hr-stat.solid{background:rgba(198,255,61,0.08);color:var(--accent);border:1px solid rgba(198,255,61,0.3)}
+  .hr-picks-list{display:flex;flex-direction:column;gap:10px;margin-top:12px}
+  .hr-candidate{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-left:4px solid var(--line);
+    border-radius:6px;
+    padding:12px;
+    cursor:pointer;
+    transition:all 0.15s;
+  }
+  .hr-candidate:hover{transform:translateX(-2px);box-shadow:-3px 0 0 var(--accent)}
+  .hr-candidate.elite{border-left-color:var(--heat);background:linear-gradient(90deg, rgba(255,122,61,0.08), transparent)}
+  .hr-candidate.strong{border-left-color:var(--warn)}
+  .hr-candidate.solid{border-left-color:rgba(198,255,61,0.4)}
+  .hr-cand-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+  .hr-cand-main{display:flex;gap:10px;align-items:center;flex:1;min-width:0}
+  .hr-cand-score{font-size:22px;flex-shrink:0}
+  .hr-cand-name{font-size:14px;font-weight:700;color:var(--ink);display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+  .hr-cand-hand{font-size:10px;color:var(--dim);font-weight:400}
+  .hr-cand-meta{font-size:10px;color:var(--dim);margin-top:2px}
+  .hr-cand-right{text-align:right;flex-shrink:0}
+  .hr-cand-score-num{font-size:22px;font-weight:800;color:var(--heat);line-height:1;font-variant-numeric:tabular-nums}
+  .hr-cand-tier-lbl{font-size:8px;letter-spacing:0.14em;color:var(--dim);font-weight:700;margin-top:2px}
+  .hr-cand-criteria{margin-top:10px;display:flex;flex-wrap:wrap;gap:5px}
+  .hr-cr{
+    font-size:9px;
+    padding:2px 6px;
+    background:var(--panel-3);
+    color:var(--dim);
+    border-radius:2px;
+    letter-spacing:0.04em;
+  }
+  .hr-cr.deep{background:rgba(198,255,61,0.12);color:var(--accent);border:1px solid rgba(198,255,61,0.3)}
+  .hr-cr.fast{background:rgba(255,200,61,0.1);color:var(--warn);border:1px solid rgba(255,200,61,0.3)}
+
+  .hr-audit-panel{
+    background:linear-gradient(135deg, rgba(102,217,232,0.06), rgba(102,217,232,0.01));
+    border:1px solid rgba(102,217,232,0.3);
+    border-radius:8px;
+    padding:14px;
+    margin:14px 0;
+  }
+  .hr-audit-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+  .hr-audit-title{font-size:11px;font-weight:700;color:var(--cool);letter-spacing:0.12em}
+  .hr-audit-sub{font-size:10px;color:var(--dim);margin-top:2px}
+  .hr-audit-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+  @media(max-width:540px){.hr-audit-stats{grid-template-columns:repeat(2,1fr)}}
+  .hr-audit-stat{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:5px;
+    padding:8px;
+    text-align:center;
+  }
+  .hras-val{font-size:14px;font-weight:800;color:var(--ink);line-height:1;font-variant-numeric:tabular-nums}
+  .hras-lbl{font-size:8px;letter-spacing:0.12em;color:var(--dim);margin-top:4px;font-weight:700}
+  .hras-pct{font-size:11px;color:var(--cool);font-weight:700;margin-top:3px;font-variant-numeric:tabular-nums}
+
   /* =============== TOP PICK VERIFICATION STATES =============== */
   .mode-indicator{
     font-size:8px;
@@ -754,7 +859,9 @@
   <div class="controls">
     <input type="date" class="date-input" id="slateDate">
     <button class="btn primary" id="loadSlateBtn" onclick="loadLiveSlate()">⟳ LOAD LIVE SLATE</button>
+    <button class="btn" id="hrPicksBtn" onclick="toggleHrPicksView()" title="Show all HR-chance hitters across today's slate">💣 HR PICKS</button>
   </div>
+  <div id="hrPicksView" style="display:none"></div>
   <div id="gamesList"></div>
   <div id="analysisContainer"></div>
 </div>
@@ -856,6 +963,46 @@
     <input type="file" id="importFile" accept=".json" style="display:none" onchange="importBackup(event)">
     <button class="btn danger" onclick="confirmReset()">RESET</button>
   </div>
+
+  <!-- Hidden Secret Filter — only revealed when user knows the keystroke sequence or has it already unlocked -->
+  <div id="secretFilterSection" style="display:none;margin-top:24px;padding-top:16px;border-top:1px dashed rgba(255,122,61,0.3)">
+    <h2 style="color:var(--heat)">⚡ PERSONAL OVERRIDE <span id="sfStatus" class="count"></span></h2>
+    <div class="hint-box" style="border-color:rgba(255,122,61,0.3);background:rgba(255,122,61,0.05)">
+      <b>Private scoring override.</b> Applied client-side only. Your browser, your settings — never sent to the backend, never visible to anyone else.
+    </div>
+    <label style="display:flex;align-items:center;gap:8px;margin:8px 0">
+      <input type="checkbox" id="sfEnabled" onchange="saveSecretFilter()">
+      <span>Enable override</span>
+    </label>
+
+    <label>Min Barrel Rate (boost above this, 0 = off)</label>
+    <input type="number" id="sfMinBarrel" min="0" max="25" step="0.5" value="0" oninput="saveSecretFilter()">
+
+    <label>Min Hard-Hit % (boost above this, 0 = off)</label>
+    <input type="number" id="sfMinHardHit" min="0" max="60" step="1" value="0" oninput="saveSecretFilter()">
+
+    <label>Favored Batter Hands (L, R, or both — comma-separated)</label>
+    <input type="text" id="sfFavHands" placeholder="L,R" oninput="saveSecretFilter()">
+
+    <label>Favored Pitch Types (boost vs, comma-separated: 4-Seam, Sinker, Slider, etc.)</label>
+    <input type="text" id="sfFavPitches" placeholder="4-Seam, Sinker" oninput="saveSecretFilter()">
+
+    <label>Demote Pitch Types (penalize vs, comma-separated)</label>
+    <input type="text" id="sfDemPitches" placeholder="Splitter, Sweeper" oninput="saveSecretFilter()">
+
+    <label>Boost Multiplier (1.0 = no boost, 1.3 = 30% boost)</label>
+    <input type="number" id="sfBoost" min="1.0" max="1.5" step="0.05" value="1.0" oninput="saveSecretFilter()">
+
+    <label>Demote Multiplier (1.0 = no penalty, 0.7 = 30% penalty)</label>
+    <input type="number" id="sfDemote" min="0.5" max="1.0" step="0.05" value="1.0" oninput="saveSecretFilter()">
+
+    <label>Private Notes (your reminders about this override)</label>
+    <textarea id="sfNotes" placeholder="Why you set these — private to you" oninput="saveSecretFilter()"></textarea>
+
+    <div style="margin-top:8px;font-size:10px;color:var(--dim)">
+      Status: <span id="sfActiveIndicator">—</span>
+    </div>
+  </div>
 </div>
 
 <!-- PICK MODAL -->
@@ -920,7 +1067,11 @@ let state = {
   currentDate: '',
   researchTags: {},
   tracking: {},
-  bestBetHistory: {}   // { 'YYYY-MM-DD_gamePk_hitterId': { ... } }
+  bestBetHistory: {},   // { 'YYYY-MM-DD_gamePk_hitterId': { ... } }
+  hrAudit: {            // self-auditing HR chance hit rate tracking
+    entries: [],        // { date, hitterId, hitterName, gamePk, hrScore, hrTier, criteria, actualHR, graded }
+    byTier: { elite: { hits:0, misses:0 }, strong: { hits:0, misses:0 }, solid: { hits:0, misses:0 } }
+  }
 };
 let slateCache = {};      // {date: {games, fetchedAt}}
 let analysisCache = {};   // {gamePk: analysis}
@@ -1006,6 +1157,23 @@ function loadState() {
   state.researchTags = state.researchTags || {};
   state.tracking = state.tracking || {};
   state.bestBetHistory = state.bestBetHistory || {};
+  state.hrAudit = state.hrAudit || { entries: [], byTier: { elite:{hits:0,misses:0}, strong:{hits:0,misses:0}, solid:{hits:0,misses:0} } };
+  state.hrAudit.entries = state.hrAudit.entries || [];
+  state.hrAudit.byTier = state.hrAudit.byTier || { elite:{hits:0,misses:0}, strong:{hits:0,misses:0}, solid:{hits:0,misses:0} };
+  // Secret filter — personal override, adjusts scoring. Only owner knows the config.
+  state.secretFilter = state.secretFilter || {
+    enabled: false,
+    unlockCode: null,         // set once to guard the UI
+    minBarrelPct: 0,          // boost hitters above this barrel rate
+    minHardHitPct: 0,         // boost hitters above this hard-hit rate
+    favoredHands: [],         // 'L' or 'R' — boost these batter hands
+    favoredPitchTypes: [],    // ['FF','SI','SL'] — boost matchups vs these primary pitches
+    boostMultiplier: 1.0,     // 1.0 to 1.3
+    demotePitchTypes: [],     // demote matchups vs these
+    demoteMultiplier: 1.0,    // 0.7 to 1.0
+    minParkHrFactor: 0,       // only boost when park HR factor at or above this
+    notes: ''                 // your private notes about why you set this
+  };
   // Migrate: old banned was flat array of pitcher names
   if (Array.isArray(state.banned)) {
     state.banned = { pitchers: state.banned, hitters: [], teams: [] };
@@ -1134,7 +1302,7 @@ function renderGames() {
   }).join('');
 }
 
-let deepModeActive = false;   // toggle between fast and deep analysis
+let deepModeActive = true;    // deep mode is default — premium picks only
 
 async function analyzeGame(gamePk, forceDeep) {
   const container = document.getElementById('analysisContainer');
@@ -1170,6 +1338,473 @@ function toggleDeepMode(gamePk) {
 function runDeepMode(gamePk) {
   deepModeActive = true;
   analyzeGame(gamePk, true);
+}
+
+// ============ SECRET FILTER (personal override — hidden scoring bias) ============
+// Applied client-side in the browser only, so the backend API stays vanilla.
+// This means anyone who duplicates the API can't see this logic — it lives only in your configured state.
+
+// Unlock: triple-click on the SETTINGS tab title inside the settings panel
+// (not visible from UI — only you know this)
+(function secretUnlockListener() {
+  let clickCount = 0;
+  let lastClick = 0;
+  document.addEventListener('click', (ev) => {
+    const tgt = ev.target;
+    if (!tgt) return;
+    // Look for clicks on the BAN LISTS header inside settings — subtle anchor
+    const settingsPanel = document.getElementById('settings-panel');
+    if (!settingsPanel || !settingsPanel.contains(tgt)) { clickCount = 0; return; }
+    const isTargetHeading = tgt.tagName === 'H2' && (tgt.textContent?.includes('DATA MANAGEMENT') || false);
+    if (!isTargetHeading) { clickCount = 0; return; }
+    const now = Date.now();
+    if (now - lastClick > 800) clickCount = 0;
+    clickCount++;
+    lastClick = now;
+    if (clickCount >= 3) {
+      const section = document.getElementById('secretFilterSection');
+      if (section) {
+        section.style.display = 'block';
+        loadSecretFilterIntoUI();
+        showToast('Override panel unlocked');
+      }
+      clickCount = 0;
+    }
+  });
+})();
+
+function loadSecretFilterIntoUI() {
+  const sf = state.secretFilter || {};
+  const setIf = (id, v) => { const el = document.getElementById(id); if (el) el.value = v == null ? '' : v; };
+  const setCheck = (id, v) => { const el = document.getElementById(id); if (el) el.checked = !!v; };
+  setCheck('sfEnabled', sf.enabled);
+  setIf('sfMinBarrel', sf.minBarrelPct || 0);
+  setIf('sfMinHardHit', sf.minHardHitPct || 0);
+  setIf('sfFavHands', (sf.favoredHands || []).join(','));
+  setIf('sfFavPitches', (sf.favoredPitchTypes || []).join(', '));
+  setIf('sfDemPitches', (sf.demotePitchTypes || []).join(', '));
+  setIf('sfBoost', sf.boostMultiplier || 1.0);
+  setIf('sfDemote', sf.demoteMultiplier || 1.0);
+  setIf('sfNotes', sf.notes || '');
+  updateSecretIndicator();
+}
+
+function saveSecretFilter() {
+  const get = (id) => document.getElementById(id);
+  const asArray = (s) => (s || '').split(',').map(x => x.trim()).filter(Boolean);
+  state.secretFilter = {
+    enabled: get('sfEnabled')?.checked || false,
+    minBarrelPct: parseFloat(get('sfMinBarrel')?.value || 0),
+    minHardHitPct: parseFloat(get('sfMinHardHit')?.value || 0),
+    favoredHands: asArray(get('sfFavHands')?.value),
+    favoredPitchTypes: asArray(get('sfFavPitches')?.value),
+    demotePitchTypes: asArray(get('sfDemPitches')?.value),
+    boostMultiplier: parseFloat(get('sfBoost')?.value || 1.0),
+    demoteMultiplier: parseFloat(get('sfDemote')?.value || 1.0),
+    notes: get('sfNotes')?.value || ''
+  };
+  saveState();
+  updateSecretIndicator();
+  // Re-render any open analysis
+  Object.keys(analysisCache).forEach(k => { const c = analysisCache[k]; if (c) renderAnalysis(c); });
+}
+
+function updateSecretIndicator() {
+  const ind = document.getElementById('sfActiveIndicator');
+  const stat = document.getElementById('sfStatus');
+  if (!ind || !stat) return;
+  const sf = state.secretFilter;
+  if (sf?.enabled) {
+    ind.textContent = 'ACTIVE — silently adjusting top pick selection';
+    ind.style.color = 'var(--heat)';
+    stat.textContent = '· ACTIVE';
+    stat.style.color = 'var(--heat)';
+  } else {
+    ind.textContent = 'Disabled';
+    ind.style.color = 'var(--dim)';
+    stat.textContent = '';
+  }
+}
+
+function applySecretFilter(data) {
+  const sf = state.secretFilter;
+  if (!sf || !sf.enabled) return;
+
+  ['awayVsHome', 'homeVsAway'].forEach(sideKey => {
+    const side = data[sideKey];
+    if (!side?.mismatches) return;
+
+    // Compute boost factor for each mismatch
+    side.mismatches.forEach(m => {
+      let multiplier = 1.0;
+      const reasons = [];
+
+      // Barrel filter
+      const barrel = parseFloat(m.seasonStats?.barrelPct || 0);
+      if (sf.minBarrelPct > 0 && barrel >= sf.minBarrelPct) {
+        multiplier *= sf.boostMultiplier;
+        reasons.push('secret:barrel');
+      }
+      // Hard-hit filter
+      const hardHit = parseFloat(m.seasonStats?.hardHitPct || 0);
+      if (sf.minHardHitPct > 0 && hardHit >= sf.minHardHitPct) {
+        multiplier *= sf.boostMultiplier;
+        reasons.push('secret:hardhit');
+      }
+      // Handedness boost
+      if (sf.favoredHands?.length && sf.favoredHands.includes(m.hand)) {
+        multiplier *= sf.boostMultiplier;
+        reasons.push('secret:hand');
+      }
+      // Pitch type boost — check if best-matched pitch is in favored list
+      const bestPitch = (m.matchedPitches || [])[0]?.pitch || '';
+      if (sf.favoredPitchTypes?.length) {
+        for (const pt of sf.favoredPitchTypes) {
+          if (bestPitch.toLowerCase().includes(pt.toLowerCase())) {
+            multiplier *= sf.boostMultiplier;
+            reasons.push('secret:pitch-boost');
+            break;
+          }
+        }
+      }
+      if (sf.demotePitchTypes?.length) {
+        for (const pt of sf.demotePitchTypes) {
+          if (bestPitch.toLowerCase().includes(pt.toLowerCase())) {
+            multiplier *= sf.demoteMultiplier;
+            reasons.push('secret:pitch-demote');
+            break;
+          }
+        }
+      }
+
+      // Attach a hidden score — not exposed in UI reasons
+      m._secretMultiplier = multiplier;
+      m._secretReasons = reasons;
+    });
+
+    // Re-select top pick from the modified scoring (if any multiplier differs from 1.0)
+    const anyModified = side.mismatches.some(m => m._secretMultiplier !== 1.0);
+    if (!anyModified) return;
+
+    // Recompute top-pick candidate using secret-adjusted score
+    const withSecretScore = side.mismatches
+      .filter(m => m.tier)
+      .map(m => ({
+        ...m,
+        _secretAdjustedScore: parseFloat(m.adjustedEdgeScore || 0) * (m._secretMultiplier || 1)
+      }))
+      .sort((a, b) => b._secretAdjustedScore - a._secretAdjustedScore);
+
+    if (withSecretScore.length === 0) return;
+    const newTop = withSecretScore[0];
+    const qualifies = newTop.tier === 'elite' ||
+                      (newTop.tier === 'strong' && parseFloat(newTop.adjustedMaxXwoba) >= 0.380) ||
+                      (newTop.tier === 'solid' && newTop.bullpenTier);
+    if (!qualifies) return;
+
+    // If the secret-adjusted pick differs from the server's pick, silently replace
+    if (side.topPick && side.topPick.hitterId !== newTop.hitterId) {
+      // Clear old isTopPick flag
+      side.mismatches.forEach(m => {
+        if (m.hitterId === side.topPick.hitterId) m.isTopPick = false;
+      });
+      // Set new
+      side.mismatches.forEach(m => {
+        if (m.hitterId === newTop.hitterId) m.isTopPick = true;
+      });
+      side.topPick = {
+        hitterId: newTop.hitterId,
+        hitter: newTop.hitter,
+        hand: newTop.hand,
+        tier: newTop.tier,
+        adjustedMaxXwoba: newTop.adjustedMaxXwoba,
+        bullpenTier: newTop.bullpenTier,
+        bestProp: (newTop.propRecs || []).find(p => p.isBest) || null,
+        reasons: newTop.reasons || [],  // keep original reasoning
+        source: side.topPick.source,
+        verified: side.topPick.verified,
+        scoreValue: newTop._secretAdjustedScore,
+        _secretApplied: true   // marker so UI can optionally show a subtle indicator (we don't)
+      };
+    }
+  });
+}
+
+
+// Track every hitter the tool flagged with an HR badge. Audit actual HR outcomes.
+// Over time, the hit rate per tier informs how much to trust the badge.
+
+function logHrChanceEntry(e) {
+  if (!state.hrAudit) state.hrAudit = { entries: [], byTier: { elite:{hits:0,misses:0}, strong:{hits:0,misses:0}, solid:{hits:0,misses:0} } };
+  const entryId = `${e.date}_${e.gamePk}_${e.hitterId}`;
+  const existing = state.hrAudit.entries.find(x => x.id === entryId);
+  if (existing) {
+    // Update score/tier if changed (e.g. deep mode produced new scoring)
+    if (!existing.graded) {
+      existing.hrTier = e.hrTier;
+      existing.hrScore = e.hrScore;
+      existing.criteria = e.criteria;
+    }
+    return;
+  }
+  state.hrAudit.entries.push({
+    id: entryId,
+    date: e.date,
+    gamePk: e.gamePk,
+    hitterId: e.hitterId,
+    hitterName: e.hitterName,
+    team: e.team,
+    opponent: e.opponent,
+    pitcherName: e.pitcherName,
+    hrTier: e.hrTier,
+    hrScore: e.hrScore,
+    criteria: e.criteria,
+    actualHR: null,
+    graded: false,
+    loggedAt: Date.now()
+  });
+  saveState();
+}
+
+async function auditHrChances() {
+  const today = getTodayStr();
+  const ungraded = state.hrAudit.entries.filter(e => !e.graded && e.date <= today && e.gamePk && e.hitterId);
+  if (ungraded.length === 0) { showToast('Nothing to audit'); return; }
+  showToast(`Auditing ${ungraded.length} HR candidates...`);
+
+  let audited = 0, hits = 0;
+  for (const entry of ungraded) {
+    try {
+      const res = await fetch(`/api/batter-line?gamePk=${entry.gamePk}&mlbam=${entry.hitterId}`);
+      const data = await res.json();
+      if (!data.found || !data.isFinal) continue;
+      entry.actualHR = (data.line?.HR || 0) >= 1;
+      entry.line = data.line;
+      entry.graded = true;
+      audited++;
+      if (entry.actualHR) hits++;
+      // Update byTier stats
+      const tier = entry.hrTier;
+      if (state.hrAudit.byTier[tier]) {
+        if (entry.actualHR) state.hrAudit.byTier[tier].hits++;
+        else state.hrAudit.byTier[tier].misses++;
+      }
+    } catch(err) {
+      console.error('HR audit failed for', entry.id, err);
+    }
+  }
+  saveState();
+  showToast(`Audited ${audited} · ${hits} HRs`);
+  if (hrPicksVisible) renderHrPicksView();
+}
+
+function getHrAuditStats() {
+  const entries = state.hrAudit?.entries || [];
+  const graded = entries.filter(e => e.graded);
+  const hits = graded.filter(e => e.actualHR).length;
+  const total = graded.length;
+  return {
+    total,
+    hits,
+    hitRate: total > 0 ? (hits / total) : null,
+    byTier: state.hrAudit.byTier
+  };
+}
+
+
+let hrPicksVisible = false;
+
+function toggleHrPicksView() {
+  hrPicksVisible = !hrPicksVisible;
+  const view = document.getElementById('hrPicksView');
+  const gamesList = document.getElementById('gamesList');
+  const analysisContainer = document.getElementById('analysisContainer');
+  if (hrPicksVisible) {
+    renderHrPicksView();
+    view.style.display = 'block';
+    gamesList.style.display = 'none';
+    analysisContainer.style.display = 'none';
+    document.getElementById('hrPicksBtn').classList.add('active');
+  } else {
+    view.style.display = 'none';
+    gamesList.style.display = '';
+    analysisContainer.style.display = '';
+    document.getElementById('hrPicksBtn').classList.remove('active');
+  }
+}
+
+function renderHrPicksView() {
+  const view = document.getElementById('hrPicksView');
+  // Scan all cached analyses for HR-chance hitters
+  const candidates = [];
+  Object.entries(analysisCache).forEach(([cacheKey, data]) => {
+    if (!data) return;
+    const isDeep = cacheKey.endsWith('-deep');
+    const gamePk = data.gamePk;
+    const awayTeam = data.awayTeam?.abbreviation || 'AWAY';
+    const homeTeam = data.homeTeam?.abbreviation || 'HOME';
+
+    ['awayVsHome', 'homeVsAway'].forEach(sideKey => {
+      const side = data[sideKey];
+      if (!side?.mismatches) return;
+      const hitTeam = sideKey === 'awayVsHome' ? awayTeam : homeTeam;
+      const oppTeam = sideKey === 'awayVsHome' ? homeTeam : awayTeam;
+      const pitcher = side.pitcher?.name || '?';
+
+      side.mismatches.forEach(m => {
+        if (!m.hrChance) return;
+        // Dedupe by hitterId — prefer deep data
+        const existing = candidates.find(c => c.hitterId === m.hitterId);
+        if (existing && !isDeep && existing.mode === 'deep') return;
+        if (existing) {
+          // Remove old fast entry if this is deep
+          const idx = candidates.indexOf(existing);
+          if (isDeep) candidates.splice(idx, 1);
+          else return;
+        }
+        candidates.push({
+          hitterId: m.hitterId,
+          hitter: m.hitter,
+          hand: m.hand,
+          team: hitTeam,
+          opponent: oppTeam,
+          pitcher,
+          gamePk,
+          gameTime: data.gameTime || '',
+          tier: m.tier,
+          isTopPick: m.isTopPick,
+          hrChance: m.hrChance,
+          mode: isDeep ? 'deep' : 'fast',
+          mismatch: m
+        });
+      });
+    });
+  });
+
+  // Sort by HR score desc
+  candidates.sort((a, b) => b.hrChance.score - a.hrChance.score);
+
+  if (candidates.length === 0) {
+    view.innerHTML = `
+      <div class="hr-picks-header">
+        <h2>💣 HR PICKS <span class="count">Slate-wide HR candidates</span></h2>
+      </div>
+      <div class="empty">
+        <div class="empty-icon">◌</div>
+        <div>No HR candidates found.<br><br>
+        <b>Analyze games first.</b> HR candidates are identified during game analysis.<br>
+        Deep mode analysis produces better HR scoring.</div>
+      </div>
+    `;
+    return;
+  }
+
+  const eliteCount = candidates.filter(c => c.hrChance.tier === 'elite').length;
+  const strongCount = candidates.filter(c => c.hrChance.tier === 'strong').length;
+  const solidCount = candidates.filter(c => c.hrChance.tier === 'solid').length;
+  const deepCount = candidates.filter(c => c.mode === 'deep').length;
+
+  // Self-audit statistics (learning feedback loop)
+  const audit = getHrAuditStats();
+  const auditPanel = audit.total > 0 ? `
+    <div class="hr-audit-panel">
+      <div class="hr-audit-head">
+        <div>
+          <div class="hr-audit-title">🧠 LEARNING FEEDBACK</div>
+          <div class="hr-audit-sub">Historical accuracy of HR chance badges (auto-graded)</div>
+        </div>
+        <button class="btn sm" onclick="auditHrChances()" style="margin-left:auto">⚡ AUDIT NOW</button>
+      </div>
+      <div class="hr-audit-stats">
+        <div class="hr-audit-stat">
+          <div class="hras-val">${audit.hits}/${audit.total}</div>
+          <div class="hras-lbl">OVERALL HR HIT</div>
+          <div class="hras-pct">${audit.hitRate !== null ? (audit.hitRate*100).toFixed(1)+'%' : '—'}</div>
+        </div>
+        ${['elite','strong','solid'].map(tier => {
+          const t = audit.byTier[tier] || {hits:0,misses:0};
+          const total = t.hits + t.misses;
+          const pct = total > 0 ? ((t.hits/total)*100).toFixed(1)+'%' : '—';
+          const emoji = tier === 'elite' ? '💣' : tier === 'strong' ? '🎯' : '⚡';
+          return `
+            <div class="hr-audit-stat">
+              <div class="hras-val">${t.hits}/${total}</div>
+              <div class="hras-lbl">${emoji} ${tier.toUpperCase()}</div>
+              <div class="hras-pct">${pct}</div>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    </div>
+  ` : `
+    <div class="hr-audit-panel">
+      <div class="hr-audit-head">
+        <div>
+          <div class="hr-audit-title">🧠 LEARNING FEEDBACK</div>
+          <div class="hr-audit-sub">No graded HR candidates yet. After games finish, tap AUDIT NOW to see hit rates per tier.</div>
+        </div>
+        <button class="btn sm" onclick="auditHrChances()" style="margin-left:auto">⚡ AUDIT NOW</button>
+      </div>
+    </div>
+  `;
+
+  view.innerHTML = `
+    <div class="hr-picks-header">
+      <h2>💣 HR PICKS <span class="count">${candidates.length} candidates</span></h2>
+      <div class="hr-picks-stats">
+        <span class="hr-stat elite">💣 ${eliteCount} ELITE</span>
+        <span class="hr-stat strong">🎯 ${strongCount} STRONG</span>
+        <span class="hr-stat solid">⚡ ${solidCount} SOLID</span>
+        <span style="margin-left:auto;font-size:10px;color:var(--dim)">${deepCount}/${candidates.length} deep-verified</span>
+      </div>
+      <div class="hint-box" style="margin-top:8px">
+        💣 Home Run criteria: elite matchup (adj xwOBA ≥.450) + demolishes pitcher's primary pitch + ≥10% barrel rate + full-game coverage + handedness-friendly park. System calibrated against actual HR hits on 4/18-4/22.
+      </div>
+    </div>
+    ${auditPanel}
+    <div class="hr-picks-list">
+      ${candidates.map(c => renderHrCandidateCard(c)).join('')}
+    </div>
+  `;
+}
+
+function renderHrCandidateCard(c) {
+  const hr = c.hrChance;
+  return `
+    <div class="hr-candidate ${hr.tier} ${c.mode}" onclick="jumpToHrCandidate(${c.gamePk},'${(c.hitter||'').replace(/'/g,'&#39;')}')">
+      <div class="hr-cand-head">
+        <div class="hr-cand-main">
+          <span class="hr-cand-score">${hr.emoji}</span>
+          <div>
+            <div class="hr-cand-name">${c.hitter} <span class="hr-cand-hand">${c.hand || ''}</span>${c.isTopPick ? ' <span class="top-pick-star sm">★</span>' : ''}</div>
+            <div class="hr-cand-meta">${c.team} vs ${c.opponent} · ${c.pitcher}${c.gameTime ? ' · ' + c.gameTime : ''}</div>
+          </div>
+        </div>
+        <div class="hr-cand-right">
+          <div class="hr-cand-score-num">${hr.score}</div>
+          <div class="hr-cand-tier-lbl">${hr.tier.toUpperCase()}</div>
+        </div>
+      </div>
+      <div class="hr-cand-criteria">
+        ${hr.criteria.map(cr => `<span class="hr-cr">${cr}</span>`).join('')}
+        ${c.mode === 'deep' ? '<span class="hr-cr deep">✓ DEEP</span>' : '<span class="hr-cr fast">⏳ FAST</span>'}
+      </div>
+    </div>
+  `;
+}
+
+function jumpToHrCandidate(gamePk, name) {
+  hrPicksVisible = false;
+  toggleHrPicksView();
+  setTimeout(() => {
+    const cache = analysisCache[`${gamePk}-deep`] || analysisCache[gamePk];
+    if (cache) {
+      renderAnalysis(cache);
+      setTimeout(() => scrollToHitter(name), 200);
+    } else {
+      analyzeGame(gamePk);
+    }
+  }, 100);
 }
 
 function renderAnalysis(data) {
@@ -1317,10 +1952,11 @@ function renderAnalysis(data) {
           }
 
           return `
-            <div class="match ${m.tier}${m.isTopPick?' top-pick':''}">
+            <div class="match ${m.tier}${m.isTopPick?' top-pick':''}${m.hrChance?' has-hr-chance':''}">
               <div class="match-head">
                 <div class="match-hitter">
                   ${m.isTopPick ? '<span class="top-pick-star">★ TOP PICK</span>' : ''}
+                  ${m.hrChance && data.deepMode ? `<span class="hr-badge ${m.hrChance.tier}" title="HR Chance: ${m.hrChance.tier.toUpperCase()} (${m.hrChance.score})">${m.hrChance.emoji} HR ${m.hrChance.tier.toUpperCase()}</span>` : ''}
                   ${m.hitter}<span class="hand">${m.hand || ''}</span>
                 </div>
                 <div style="display:flex;gap:6px;align-items:center">
@@ -1699,6 +2335,9 @@ function renderAnalysis(data) {
   }
 
   // ===== TOP PICKS SUMMARY BANNER (fast/deep reconciliation) =====
+  // Apply secret filter if enabled — re-score mismatches client-side
+  applySecretFilter(data);
+
   const awayLabel = data.awayTeam?.abbreviation || data.awayTeam?.name || 'AWAY';
   const homeLabel = data.homeTeam?.abbreviation || data.homeTeam?.name || 'HOME';
 
@@ -2586,15 +3225,18 @@ function jumpToGame(gamePk) {
 
 // =============== BEST BET HISTORY (auto-logged recommendations) ===============
 
-// Called from renderAnalysis — captures every "BEST BET" per hitter automatically
+// Called from renderAnalysis — captures TOP PICKS from DEEP MODE only (premium picks)
+// This is your verifiable track record: only picks that survived deep-mode per-pitch-per-hand analysis
 function logBestBets(data) {
   if (!data?.gamePk) return;
+  // SCOPE: Only log when analysis is deep mode. Fast-mode picks are provisional and don't count.
+  if (!data.deepMode) return;
+
   const awayTeam = data.awayTeam?.abbreviation || 'AWAY';
   const homeTeam = data.homeTeam?.abbreviation || 'HOME';
   const date = state.currentDate;
   if (!state.bestBetHistory[date]) state.bestBetHistory[date] = {};
 
-  // Extract BEST BET from each side
   const sides = [
     { key: 'awayVsHome', hitTeam: awayTeam, oppTeam: homeTeam },
     { key: 'homeVsAway', hitTeam: homeTeam, oppTeam: awayTeam }
@@ -2604,9 +3246,22 @@ function logBestBets(data) {
     const sideData = data[side.key];
     if (!sideData || !sideData.mismatches) continue;
 
+    // Track every HR-chance hitter (for self-auditing, separate from top-pick logging)
     for (const m of sideData.mismatches) {
-      // Only log ELITE and STRONG tier for cleaner history
-      if (m.tier !== 'elite' && m.tier !== 'strong') continue;
+      if (m.hrChance && m.hitterId) {
+        logHrChanceEntry({
+          date, gamePk: data.gamePk, hitterId: m.hitterId, hitterName: m.hitter,
+          team: side.hitTeam, opponent: side.oppTeam,
+          pitcherName: sideData.pitcher?.name,
+          hrTier: m.hrChance.tier, hrScore: m.hrChance.score,
+          criteria: m.hrChance.criteria
+        });
+      }
+    }
+
+    for (const m of sideData.mismatches) {
+      // Only log the TOP PICK from each side (one per team per game)
+      if (!m.isTopPick) continue;
       const bestBet = (m.propRecs || []).find(p => p.isBest);
       if (!bestBet) continue;
 
@@ -2616,7 +3271,7 @@ function logBestBets(data) {
       }
 
       state.bestBetHistory[date][entryId] = {
-        ...state.bestBetHistory[date][entryId],  // preserve any manual edits
+        ...state.bestBetHistory[date][entryId],
         entryId,
         date,
         gamePk: data.gamePk,
@@ -2628,7 +3283,8 @@ function logBestBets(data) {
         pitcherName: sideData.pitcher?.name,
         pitcherHand: sideData.pitcher?.hand,
         tier: m.tier,
-        isTopPick: !!m.isTopPick,
+        isTopPick: true,
+        isDeepVerified: true,   // flag so we know this is premium
         propKey: bestBet.key,
         propLabel: bestBet.label,
         platform: bestBet.platform,
@@ -2645,7 +3301,65 @@ function logBestBets(data) {
   saveState();
 }
 
-// Auto-grade every ungraded best bet for dates up to today
+// Manually add a hitter to best-bet history (rescue for entries that didn't auto-log)
+async function manualAddHitterToHistory() {
+  const name = prompt('Hitter name (e.g. "Miguel Rojas"):');
+  if (!name || !name.trim()) return;
+  const date = prompt('Date (YYYY-MM-DD) — leave blank for today:') || getTodayStr();
+  const propKeyInput = prompt('Prop key\n(H, HR, TB, RBI, R, SINGLES, HRR, PP_FS_6, PP_FS_8, UD_FS_5, UD_FS_7, WALKS, SB):', 'HR');
+  if (!propKeyInput) return;
+  const propKey = propKeyInput.trim().toUpperCase();
+  const propLabels = {
+    H:'HITS 0.5', HR:'HR 0.5', TB:'TB 1.5', RBI:'RBI 0.5', R:'RUNS 0.5',
+    SINGLES:'SINGLES 0.5', HRR:'H+R+RBI 1.5', PP_FS_6:'PP FS 6',
+    PP_FS_8:'PP FS 8', UD_FS_5:'UD FS 5', UD_FS_7:'UD FS 7',
+    WALKS:'BB+HBP 0.5', SB:'SB 0.5'
+  };
+
+  // Try to look up the MLBAM ID
+  showToast('Looking up hitter...');
+  try {
+    const r = await fetch(`https://statsapi.mlb.com/api/v1/people/search?names=${encodeURIComponent(name.trim())}&sportIds=1`);
+    const d = await r.json();
+    const player = d.people?.find(p => p.currentTeam);
+    if (!player) {
+      // fallback by name
+      const entryId = `${date}_manual_${name.replace(/\s/g,'')}`;
+      if (!state.bestBetHistory[date]) state.bestBetHistory[date] = {};
+      state.bestBetHistory[date][entryId] = {
+        entryId, date, manualAdd: true,
+        hitterId: null, hitterName: name.trim(),
+        propKey, propLabel: propLabels[propKey] || propKey,
+        platform: 'BOTH', tier: 'elite', isTopPick: true, isDeepVerified: true,
+        loggedAt: Date.now(), result: null, graded: false
+      };
+      saveState();
+      renderHistory();
+      showToast('Added (no MLB ID — manual grade only)');
+      return;
+    }
+    const gamePk = prompt(`gamePk for ${player.fullName}'s game (from slate URL):`);
+    const entryId = `${date}_${gamePk || 'manual'}_${player.id}`;
+    if (!state.bestBetHistory[date]) state.bestBetHistory[date] = {};
+    state.bestBetHistory[date][entryId] = {
+      entryId, date, gamePk: gamePk ? parseInt(gamePk) : null,
+      hitterId: player.id, hitterName: player.fullName,
+      hand: player.batSide?.code,
+      team: player.currentTeam?.abbreviation || '',
+      manualAdd: true,
+      propKey, propLabel: propLabels[propKey] || propKey,
+      platform: 'BOTH', tier: 'elite', isTopPick: true, isDeepVerified: true,
+      loggedAt: Date.now(), result: null, graded: false
+    };
+    saveState();
+    renderHistory();
+    showToast(`Added ${player.fullName}`);
+  } catch(err) {
+    showToast('Lookup failed: ' + err.message, true);
+  }
+}
+
+
 async function gradeAllBestBets() {
   const today = getTodayStr();
   let gradedCount = 0, attemptedCount = 0;
@@ -2728,7 +3442,8 @@ function renderHistory() {
     <div class="history-subnav">
       <button class="history-subnav-btn ${historyView==='bestbets'?'active':''}" data-hist-view="bestbets" onclick="switchHistoryView('bestbets')">◆ BEST BETS</button>
       <button class="history-subnav-btn ${historyView==='picks'?'active':''}" data-hist-view="picks" onclick="switchHistoryView('picks')">$ MY BETS</button>
-      <button class="btn sm" onclick="gradeAllBestBets()" style="margin-left:auto">⚡ GRADE ALL</button>
+      <button class="btn sm" onclick="manualAddHitterToHistory()" style="margin-left:auto">+ ADD HITTER</button>
+      <button class="btn sm" onclick="gradeAllBestBets()" style="margin-left:6px">⚡ GRADE ALL</button>
     </div>
   `;
 
@@ -2842,12 +3557,15 @@ function renderHistory() {
     </div>
   ` : '';
 
-  // Date-grouped bet log (last 7 dates)
-  const datesWithBets = Object.keys(state.bestBetHistory)
+  // Date-grouped bet log (all dates, collapsible beyond 14)
+  const allDatesWithBets = Object.keys(state.bestBetHistory)
     .filter(d => Object.keys(state.bestBetHistory[d]).length > 0)
     .sort()
-    .reverse()
-    .slice(0, 7);
+    .reverse();
+
+  const showingAllHistory = state._showAllHistoryDates === true;
+  const datesWithBets = showingAllHistory ? allDatesWithBets : allDatesWithBets.slice(0, 14);
+  const hiddenCount = allDatesWithBets.length - datesWithBets.length;
 
   const dateLog = datesWithBets.map(date => {
     const dayEntries = Object.values(state.bestBetHistory[date])
@@ -2881,7 +3599,55 @@ function renderHistory() {
     </div>
   ` : '';
 
-  container.innerHTML = subnavHtml + statsBar + shareBanner + propBreakdown + `<h3 class="bb-section-title">RECENT BEST BETS</h3>` + dateLog;
+  const showAllBtn = hiddenCount > 0
+    ? `<button class="btn sm" style="margin-left:8px" onclick="state._showAllHistoryDates=true;renderHistory()">Show All (+${hiddenCount} older)</button>`
+    : showingAllHistory && allDatesWithBets.length > 14
+      ? `<button class="btn sm" style="margin-left:8px" onclick="state._showAllHistoryDates=false;renderHistory()">Collapse</button>`
+      : '';
+
+  // Hitter search box — finds players even if outside visible date window
+  const searchBox = `
+    <div style="margin:8px 0 14px">
+      <input type="text" id="hitterSearchInput" placeholder="🔍 Search hitter by name..." style="width:100%;padding:8px 12px;background:var(--panel-2);border:1px solid var(--line);color:var(--ink);font-family:inherit;font-size:12px;border-radius:4px" oninput="filterHistoryByHitter(this.value)">
+    </div>
+  `;
+
+  container.innerHTML = subnavHtml + statsBar + shareBanner + propBreakdown + searchBox + `<h3 class="bb-section-title">RECENT BEST BETS${showAllBtn}</h3>` + dateLog;
+
+  // Re-apply any existing search filter
+  if (state._historySearchTerm) {
+    filterHistoryByHitter(state._historySearchTerm);
+    const inp = document.getElementById('hitterSearchInput');
+    if (inp) inp.value = state._historySearchTerm;
+  }
+}
+
+// Filter best-bet log by hitter name (works across ALL dates, not just visible ones)
+function filterHistoryByHitter(term) {
+  state._historySearchTerm = term;
+  const t = (term || '').trim().toLowerCase();
+  const allEntries = document.querySelectorAll('.bb-entry');
+  const allDayBlocks = document.querySelectorAll('.bb-day-block');
+  if (!t) {
+    allEntries.forEach(e => e.style.display = '');
+    allDayBlocks.forEach(d => d.style.display = '');
+    return;
+  }
+  // If searching, force show-all so matching entries outside current window surface
+  if (!state._showAllHistoryDates) {
+    state._showAllHistoryDates = true;
+    renderHistory();
+    return;
+  }
+  allEntries.forEach(e => {
+    const name = e.querySelector('.bb-entry-name')?.textContent?.toLowerCase() || '';
+    e.style.display = name.includes(t) ? '' : 'none';
+  });
+  // Hide day blocks that have zero visible entries
+  allDayBlocks.forEach(day => {
+    const visibleEntries = Array.from(day.querySelectorAll('.bb-entry')).filter(e => e.style.display !== 'none');
+    day.style.display = visibleEntries.length > 0 ? '' : 'none';
+  });
 }
 
 function renderBestBetRow(e) {
@@ -3128,7 +3894,7 @@ function saveNotes() {
 function confirmReset() {
   if (!confirm('Reset ALL data?')) return;
   if (!confirm('Are you sure? Cannot be undone.')) return;
-  state = { picks:{}, banned:{pitchers:[],hitters:[],teams:[]}, notes:'', currentDate:getTodayStr(), researchTags:{}, tracking:{}, bestBetHistory:{} };
+  state = { picks:{}, banned:{pitchers:[],hitters:[],teams:[]}, notes:'', currentDate:getTodayStr(), researchTags:{}, tracking:{}, bestBetHistory:{}, hrAudit: { entries: [], byTier: { elite:{hits:0,misses:0}, strong:{hits:0,misses:0}, solid:{hits:0,misses:0} } }, secretFilter: { enabled: false } };
   saveState();
   location.reload();
 }
@@ -3173,7 +3939,9 @@ function importBackup(event) {
           currentDate: imp.currentDate || getTodayStr(),
           researchTags: imp.researchTags || {},
           tracking: imp.tracking || {},
-          bestBetHistory: imp.bestBetHistory || {}
+          bestBetHistory: imp.bestBetHistory || {},
+          hrAudit: imp.hrAudit || { entries: [], byTier: { elite:{hits:0,misses:0}, strong:{hits:0,misses:0}, solid:{hits:0,misses:0} } },
+          secretFilter: imp.secretFilter || { enabled: false }
         };
         saveState();
         showToast('Replaced · reloading...');
