@@ -12,6 +12,7 @@ import { detectPitcherRole } from './_lib/pitcherRole.js';
 import { buildGameLineRecommendations } from './_lib/gameLineBets.js';
 import { estimatePropProbability, estimateTotalProbability, estimateSpreadProbability, estimateMoneylineProbability, americanToImpliedProb, computeEdge } from './_lib/probability.js';
 import { buildPitcherProps, evaluatePitcherProp } from './_lib/pitcherProps.js';
+import { computeFirstInningProbability } from './_lib/firstInning.js';
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -733,6 +734,14 @@ export default async function handler(req, res) {
     }));
 
     sideResults.forEach(r => { if (r) results[r.key] = r.data; });
+
+    // ===== FIRST-INNING SCORING PROJECTION =====
+    // YRFI/NRFI uses 1st-inning xwOBA-against from inning splits + lineup tier + park/weather/ump context
+    results.firstInning = computeFirstInningProbability(
+      results.awayVsHome,
+      results.homeVsAway,
+      { parkFactor, weatherImpact: results.weatherImpact, umpire: results.umpire }
+    );
 
     // ===== GAME-LEVEL PROJECTION =====
     // Use aggregated side data + context to project runs and win probability

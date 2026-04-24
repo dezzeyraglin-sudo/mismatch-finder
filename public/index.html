@@ -1047,7 +1047,137 @@
     border-radius:0 4px 4px 0;
   }
 
-  /* =============== PITCHER PROPS PANEL =============== */
+  /* =============== FIRST-INNING YRFI/NRFI PANEL =============== */
+  .yrfi-panel{
+    margin-top:12px;
+    background:linear-gradient(135deg, rgba(255,122,61,0.06), rgba(255,122,61,0.01));
+    border:1px solid rgba(255,122,61,0.25);
+    border-radius:10px;
+    padding:14px;
+  }
+  .yrfi-panel.yrfi-pass{
+    background:linear-gradient(135deg, rgba(155,155,155,0.04), transparent);
+    border-color:var(--line);
+  }
+  .yrfi-head{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:12px;
+    flex-wrap:wrap;
+    gap:8px;
+  }
+  .yrfi-brand{
+    color:var(--heat);
+    font-size:10px;
+    letter-spacing:0.14em;
+    font-weight:700;
+    font-family:'JetBrains Mono',monospace;
+  }
+  .yrfi-disclaimer{
+    font-size:9px;
+    color:var(--dim);
+    font-style:italic;
+    letter-spacing:0.04em;
+  }
+  .yrfi-best{
+    padding:12px;
+    background:var(--panel-2);
+    border:1px solid var(--heat);
+    border-radius:6px;
+  }
+  .yrfi-best-label{
+    font-size:9.5px;
+    letter-spacing:0.14em;
+    font-weight:700;
+    color:var(--heat);
+    margin-bottom:6px;
+  }
+  .yrfi-best-pick{
+    font-size:16px;
+    margin-bottom:10px;
+    font-family:'Archivo Black',sans-serif;
+    display:flex;
+    align-items:center;
+    gap:8px;
+    flex-wrap:wrap;
+  }
+  .yrfi-best-pick b{color:var(--accent);font-size:18px}
+  .yrfi-best-units{
+    background:var(--accent);
+    color:#0a0d0a;
+    padding:2px 7px;
+    border-radius:3px;
+    font-size:10px;
+    font-weight:700;
+    letter-spacing:0.08em;
+  }
+  .yrfi-best-prob{
+    padding:3px 8px;
+    border-radius:3px;
+    font-size:11px;
+    font-weight:700;
+    font-family:'JetBrains Mono',monospace;
+    letter-spacing:0.04em;
+  }
+  .yrfi-probs{
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:6px;
+    margin:10px 0;
+  }
+  @media(max-width:540px){.yrfi-probs{grid-template-columns:repeat(2,1fr)}}
+  .yrfi-prob-cell{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:4px;
+    padding:8px 6px;
+    text-align:center;
+  }
+  .yrfi-prob-label{
+    display:block;
+    font-size:8.5px;
+    letter-spacing:0.12em;
+    color:var(--dim);
+    font-weight:700;
+    margin-bottom:3px;
+  }
+  .yrfi-prob-val{
+    display:block;
+    font-family:'JetBrains Mono',monospace;
+    font-weight:700;
+    color:var(--ink);
+    font-size:14px;
+    font-variant-numeric:tabular-nums;
+  }
+  .yrfi-reasons{
+    list-style:none;
+    padding:0;
+    margin:10px 0;
+    font-size:10.5px;
+    line-height:1.6;
+  }
+  .yrfi-reasons li{
+    padding-left:12px;
+    position:relative;
+    color:var(--ink);
+    margin-bottom:3px;
+  }
+  .yrfi-reasons li::before{
+    content:'▸';
+    position:absolute;
+    left:0;
+    color:var(--heat);
+    font-size:9px;
+    top:3px;
+  }
+  .yrfi-empty{
+    padding:10px;
+    text-align:center;
+    color:var(--dim);
+    font-size:11px;
+    margin-top:8px;
+  }
   .pp-panel{
     margin-top:10px;
     background:linear-gradient(135deg, rgba(255,122,61,0.06), rgba(255,122,61,0.01));
@@ -1694,7 +1824,8 @@ let state = {
     entries: [],        // { date, hitterId, hitterName, gamePk, hrScore, hrTier, criteria, actualHR, graded }
     byTier: { elite: { hits:0, misses:0 }, strong: { hits:0, misses:0 }, solid: { hits:0, misses:0 } }
   },
-  gameLineBets: {}      // { 'YYYY-MM-DD_gamePk_type': { date, gamePk, pick, tier, type, price, away, home, result, graded } }
+  gameLineBets: {},      // { 'YYYY-MM-DD_gamePk_type': { date, gamePk, pick, tier, type, price, away, home, result, graded } }
+  firstInningBets: {}    // { 'YYYY-MM-DD_gamePk': { date, gamePk, pick, tier, units, probability, price, away, home, result, graded } }
 };
 let slateCache = {};      // {date: {games, fetchedAt}}
 let analysisCache = {};   // {gamePk: analysis}
@@ -1785,6 +1916,7 @@ function loadState() {
   state.hrAudit.entries = state.hrAudit.entries || [];
   state.hrAudit.byTier = state.hrAudit.byTier || { elite:{hits:0,misses:0}, strong:{hits:0,misses:0}, solid:{hits:0,misses:0} };
   state.gameLineBets = state.gameLineBets || {};
+  state.firstInningBets = state.firstInningBets || {};
   // Secret filter — personal override, adjusts scoring. Only owner knows the config.
   state.secretFilter = state.secretFilter || {
     enabled: false,
@@ -3258,6 +3390,71 @@ function renderAnalysis(data) {
       `;
     }
 
+    // First-inning (YRFI/NRFI) panel
+    let firstInningHtml = '';
+    const fi = data.firstInning;
+    if (fi) {
+      const tierClass = fi.recommendation.tier.toLowerCase();
+      const isPass = fi.recommendation.tier === 'PASS';
+      const probPct = (fi.recommendation.probability * 100).toFixed(1);
+      const yrfiPct = (fi.yrfiProb * 100).toFixed(1);
+      const nrfiPct = (fi.nrfiProb * 100).toFixed(1);
+      const awayPct = (fi.awayScoresProb * 100).toFixed(1);
+      const homePct = (fi.homeScoresProb * 100).toFixed(1);
+
+      const logCtx = JSON.stringify({
+        gamePk: data.gamePk,
+        date: data.gameDateET,
+        pick: fi.recommendation.side,
+        tier: fi.recommendation.tier,
+        units: fi.recommendation.units,
+        probability: fi.recommendation.probability,
+        away: data.awayTeam?.abbreviation,
+        home: data.homeTeam?.abbreviation
+      }).replace(/'/g, '&#39;');
+
+      firstInningHtml = `
+        <div class="yrfi-panel ${isPass ? 'yrfi-pass' : ''}">
+          <div class="yrfi-head">
+            <span class="yrfi-brand">◉ FIRST INNING · YRFI / NRFI</span>
+            <span class="yrfi-disclaimer">Based on 1st-inn xwOBA + top-of-order + park/weather</span>
+          </div>
+          ${isPass ? `
+            <div class="yrfi-probs">
+              <div class="yrfi-prob-cell"><span class="yrfi-prob-label">YRFI</span><span class="yrfi-prob-val">${yrfiPct}%</span></div>
+              <div class="yrfi-prob-cell"><span class="yrfi-prob-label">NRFI</span><span class="yrfi-prob-val">${nrfiPct}%</span></div>
+              <div class="yrfi-prob-cell"><span class="yrfi-prob-label">AWAY SCORES</span><span class="yrfi-prob-val">${awayPct}%</span></div>
+              <div class="yrfi-prob-cell"><span class="yrfi-prob-label">HOME SCORES</span><span class="yrfi-prob-val">${homePct}%</span></div>
+            </div>
+            <div class="yrfi-empty">○ <b>NO PLAY</b> — projection within ±3% of 57% baseline. Market priced fair.</div>
+          ` : `
+            <div class="yrfi-best">
+              <div class="yrfi-best-label">★ RECOMMENDATION · ${fi.recommendation.tier}</div>
+              <div class="yrfi-best-pick">
+                <b>${fi.recommendation.side}</b>
+                <span class="yrfi-best-units">${fi.recommendation.units}u</span>
+                <span class="yrfi-best-prob ${probTier(fi.recommendation.probability)}">${probPct}%</span>
+              </div>
+              <div class="yrfi-probs">
+                <div class="yrfi-prob-cell"><span class="yrfi-prob-label">YRFI</span><span class="yrfi-prob-val">${yrfiPct}%</span></div>
+                <div class="yrfi-prob-cell"><span class="yrfi-prob-label">NRFI</span><span class="yrfi-prob-val">${nrfiPct}%</span></div>
+                <div class="yrfi-prob-cell"><span class="yrfi-prob-label">AWAY SCORES</span><span class="yrfi-prob-val">${awayPct}%</span></div>
+                <div class="yrfi-prob-cell"><span class="yrfi-prob-label">HOME SCORES</span><span class="yrfi-prob-val">${homePct}%</span></div>
+              </div>
+              ${fi.reasoning?.length > 0 ? `
+                <ul class="yrfi-reasons">
+                  ${fi.reasoning.slice(0, 5).map(r => `<li>${r}</li>`).join('')}
+                </ul>
+              ` : ''}
+              <button class="glb-log-btn" onclick='logFirstInningBet(${logCtx})'>
+                + LOG THIS BET
+              </button>
+            </div>
+          `}
+        </div>
+      `;
+    }
+
     projectionHtml = `
       <div class="proj-section">
         <div class="proj-grid">
@@ -3266,6 +3463,7 @@ function renderAnalysis(data) {
         </div>
         ${divergenceHtml}
         ${gameLinesHtml}
+        ${firstInningHtml}
       </div>
     `;
   }
@@ -4620,6 +4818,100 @@ function computeGameLineBetStats(entries) {
   return { total: entries.length, wins, losses, pushes, pending, graded, winPct, profitUnits: +profitUnits.toFixed(2) };
 }
 
+// YRFI/NRFI shares the same stat computation as game-line bets
+const computeYrfiStats = computeGameLineBetStats;
+
+// ==================== FIRST-INNING (YRFI/NRFI) LOGGING, GRADING, STATS ====================
+
+function logFirstInningBet(ctx) {
+  if (!ctx || !ctx.gamePk || !ctx.pick) return;
+  const date = ctx.date || getTodayStr();
+  const key = `${date}_${ctx.gamePk}`;
+
+  if (state.firstInningBets[key]) {
+    showToast('Already logged for this game');
+    return;
+  }
+
+  state.firstInningBets[key] = {
+    date,
+    gamePk: ctx.gamePk,
+    pick: ctx.pick,          // 'YRFI' or 'NRFI'
+    tier: ctx.tier,
+    units: ctx.units || 0,
+    probability: ctx.probability || null,
+    price: ctx.price || null,
+    away: ctx.away,
+    home: ctx.home,
+    loggedAt: Date.now(),
+    result: null,
+    graded: false,
+    awayRunsInn1: null,
+    homeRunsInn1: null
+  };
+  saveState();
+  showToast(`★ Logged: ${ctx.tier} ${ctx.pick} (${ctx.units || 0}u)`);
+}
+
+async function gradeFirstInningBets() {
+  const today = getTodayStr();
+  const entries = Object.entries(state.firstInningBets).filter(([k, b]) => b.date <= today && !b.graded);
+  if (entries.length === 0) { showToast('No pending YRFI/NRFI bets to grade'); return; }
+  showToast('Grading YRFI/NRFI bets...');
+  let graded = 0;
+
+  const byGame = {};
+  for (const [key, bet] of entries) {
+    if (!byGame[bet.gamePk]) byGame[bet.gamePk] = [];
+    byGame[bet.gamePk].push([key, bet]);
+  }
+
+  for (const [gamePk, gameEntries] of Object.entries(byGame)) {
+    try {
+      const res = await fetch(`https://statsapi.mlb.com/api/v1.1/game/${gamePk}/feed/live`);
+      if (!res.ok) continue;
+      const feed = await res.json();
+      const status = feed?.gameData?.status?.codedGameState;
+      if (status !== 'F' && status !== 'O' && status !== 'I') {
+        // Need at least 1st inning complete — for in-progress, check inning > 1
+        const currentInn = feed?.liveData?.linescore?.currentInning;
+        if (!currentInn || currentInn < 2) continue;
+      }
+
+      const innings = feed?.liveData?.linescore?.innings || [];
+      const inn1 = innings.find(i => i.num === 1);
+      if (!inn1) continue;
+      const awayR = inn1.away?.runs ?? 0;
+      const homeR = inn1.home?.runs ?? 0;
+
+      for (const [key, bet] of gameEntries) {
+        const totalInn1 = awayR + homeR;
+        const scored = totalInn1 > 0;
+        const result = bet.pick === 'YRFI' ? (scored ? 'win' : 'loss') : (scored ? 'loss' : 'win');
+        state.firstInningBets[key] = {
+          ...bet,
+          result,
+          graded: true,
+          awayRunsInn1: awayR,
+          homeRunsInn1: homeR,
+          gradedAt: Date.now()
+        };
+        graded++;
+      }
+    } catch (err) {
+      console.warn('YRFI grade fetch failed:', err.message);
+    }
+  }
+
+  saveState();
+  showToast(`Graded ${graded} YRFI/NRFI bet${graded !== 1 ? 's' : ''}`);
+  renderHistory();
+}
+
+function computeFirstInningBetStats(entries) {
+  return computeGameLineBetStats(entries);  // same math applies
+}
+
 function computeBestBetStats(entries) {
   const wins = entries.filter(e => e.result === 'win').length;
   const losses = entries.filter(e => e.result === 'loss').length;
@@ -4631,7 +4923,7 @@ function computeBestBetStats(entries) {
 }
 
 // =============== HISTORY TAB ===============
-let historyView = 'bestbets';  // 'bestbets' | 'gamebets' | 'picks'
+let historyView = 'bestbets';  // 'bestbets' | 'gamebets' | 'yrfi' | 'picks'
 
 function switchHistoryView(view) {
   historyView = view;
@@ -4650,8 +4942,9 @@ function renderHistory() {
     <div class="history-subnav">
       <button class="history-subnav-btn ${historyView==='bestbets'?'active':''}" data-hist-view="bestbets" onclick="switchHistoryView('bestbets')">◆ BEST BETS</button>
       <button class="history-subnav-btn ${historyView==='gamebets'?'active':''}" data-hist-view="gamebets" onclick="switchHistoryView('gamebets')">◈ GAME BETS</button>
+      <button class="history-subnav-btn ${historyView==='yrfi'?'active':''}" data-hist-view="yrfi" onclick="switchHistoryView('yrfi')">◉ YRFI/NRFI</button>
       <button class="history-subnav-btn ${historyView==='picks'?'active':''}" data-hist-view="picks" onclick="switchHistoryView('picks')">$ MY BETS</button>
-      ${historyView === 'gamebets' ? `<button class="btn sm" onclick="gradeGameLineBets()" style="margin-left:auto">⚡ GRADE ALL</button>` : `<button class="btn sm" onclick="manualAddHitterToHistory()" style="margin-left:auto">+ ADD HITTER</button>
+      ${historyView === 'gamebets' ? `<button class="btn sm" onclick="gradeGameLineBets()" style="margin-left:auto">⚡ GRADE ALL</button>` : historyView === 'yrfi' ? `<button class="btn sm" onclick="gradeFirstInningBets()" style="margin-left:auto">⚡ GRADE ALL</button>` : `<button class="btn sm" onclick="manualAddHitterToHistory()" style="margin-left:auto">+ ADD HITTER</button>
       <button class="btn sm" onclick="gradeAllBestBets()" style="margin-left:6px">⚡ GRADE ALL</button>`}
     </div>
   `;
@@ -4760,6 +5053,97 @@ function renderHistory() {
                     <span class="bb-entry-result ${resultClass}">${resultLabel}</span>
                   </div>
                   <div class="bb-entry-meta">${b.away} @ ${b.home}${scoreText}</div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        `;
+      }).join('')}
+    `;
+    return;
+  }
+
+  // YRFI/NRFI history view
+  if (historyView === 'yrfi') {
+    const allBets = Object.values(state.firstInningBets || {});
+    if (allBets.length === 0) {
+      container.innerHTML = subnavHtml + `
+        <div class="empty">
+          <div class="empty-icon">◉</div>
+          <div>No YRFI/NRFI bets logged yet.</div>
+          <div style="font-size:11px;color:var(--dim);margin-top:8px">
+            Analyze a game and tap "LOG THIS BET" on the first-inning panel recommendation.
+          </div>
+        </div>`;
+      return;
+    }
+    const stats = computeYrfiStats(allBets);
+    const byTier = {};
+    ['STRONG','MODERATE','SLIGHT'].forEach(t => {
+      byTier[t] = computeYrfiStats(allBets.filter(e => e.tier === t));
+    });
+    const bySide = {
+      YRFI: computeYrfiStats(allBets.filter(e => e.pick === 'YRFI')),
+      NRFI: computeYrfiStats(allBets.filter(e => e.pick === 'NRFI'))
+    };
+
+    const byDate = {};
+    allBets.forEach(b => { (byDate[b.date] = byDate[b.date] || []).push(b); });
+    const sortedDates = Object.keys(byDate).sort().reverse();
+
+    const profitSign = stats.profitUnits >= 0 ? '+' : '';
+    const profitCls = stats.profitUnits >= 0 ? 'profit-pos' : 'profit-neg';
+
+    container.innerHTML = subnavHtml + `
+      <div class="bestbet-stats">
+        <div class="bbs-grid">
+          <div class="bbs-cell">
+            <div class="bbs-label">RECORD</div>
+            <div class="bbs-value">${stats.wins}-${stats.losses}</div>
+            <div class="bbs-sub">${stats.winPct}% · ${stats.pending} pending</div>
+          </div>
+          <div class="bbs-cell">
+            <div class="bbs-label">UNITS P/L</div>
+            <div class="bbs-value ${profitCls}">${profitSign}${stats.profitUnits}u</div>
+            <div class="bbs-sub">across ${stats.graded} graded</div>
+          </div>
+          <div class="bbs-cell">
+            <div class="bbs-label">STRONG</div>
+            <div class="bbs-value">${byTier.STRONG.wins}-${byTier.STRONG.losses}</div>
+            <div class="bbs-sub">${byTier.STRONG.winPct}%</div>
+          </div>
+          <div class="bbs-cell">
+            <div class="bbs-label">YRFI</div>
+            <div class="bbs-value">${bySide.YRFI.wins}-${bySide.YRFI.losses}</div>
+            <div class="bbs-sub">${bySide.YRFI.winPct}%</div>
+          </div>
+          <div class="bbs-cell">
+            <div class="bbs-label">NRFI</div>
+            <div class="bbs-value">${bySide.NRFI.wins}-${bySide.NRFI.losses}</div>
+            <div class="bbs-sub">${bySide.NRFI.winPct}%</div>
+          </div>
+        </div>
+      </div>
+      ${sortedDates.map(d => {
+        const bets = byDate[d].sort((a, b) => b.loggedAt - a.loggedAt);
+        return `
+          <div class="bb-date-group">
+            <div class="bb-date-head">${d}</div>
+            ${bets.map(b => {
+              const resultClass = b.result === 'win' ? 'res-win' : b.result === 'loss' ? 'res-loss' : 'res-pending';
+              const resultLabel = b.result === 'win' ? 'W' : b.result === 'loss' ? 'L' : 'PENDING';
+              const scoreText = b.graded && b.awayRunsInn1 != null ? ` · 1st inn: ${b.away} ${b.awayRunsInn1} @ ${b.home} ${b.homeRunsInn1}` : '';
+              const probText = b.probability ? ` · ${(b.probability*100).toFixed(0)}%` : '';
+              return `
+                <div class="bb-entry glb-history-entry">
+                  <div class="bb-entry-head">
+                    <span class="bb-entry-tier glb-tier-${b.tier.toLowerCase()}">${b.tier}</span>
+                    <span class="bb-entry-type">1st INN</span>
+                    <span class="bb-entry-pick">${b.pick}</span>
+                    <span class="bb-entry-units">${b.units}u</span>
+                    <span class="bb-entry-result ${resultClass}">${resultLabel}</span>
+                  </div>
+                  <div class="bb-entry-meta">${b.away} @ ${b.home}${probText}${scoreText}</div>
                 </div>
               `;
             }).join('')}
@@ -5217,7 +5601,7 @@ function saveNotes() {
 function confirmReset() {
   if (!confirm('Reset ALL data?')) return;
   if (!confirm('Are you sure? Cannot be undone.')) return;
-  state = { picks:{}, banned:{pitchers:[],hitters:[],teams:[]}, notes:'', currentDate:getTodayStr(), researchTags:{}, tracking:{}, bestBetHistory:{}, hrAudit: { entries: [], byTier: { elite:{hits:0,misses:0}, strong:{hits:0,misses:0}, solid:{hits:0,misses:0} } }, gameLineBets: {}, secretFilter: { enabled: false } };
+  state = { picks:{}, banned:{pitchers:[],hitters:[],teams:[]}, notes:'', currentDate:getTodayStr(), researchTags:{}, tracking:{}, bestBetHistory:{}, hrAudit: { entries: [], byTier: { elite:{hits:0,misses:0}, strong:{hits:0,misses:0}, solid:{hits:0,misses:0} } }, gameLineBets: {}, firstInningBets: {}, secretFilter: { enabled: false } };
   saveState();
   location.reload();
 }
@@ -5265,6 +5649,7 @@ function importBackup(event) {
           bestBetHistory: imp.bestBetHistory || {},
           hrAudit: imp.hrAudit || { entries: [], byTier: { elite:{hits:0,misses:0}, strong:{hits:0,misses:0}, solid:{hits:0,misses:0} } },
           gameLineBets: imp.gameLineBets || {},
+          firstInningBets: imp.firstInningBets || {},
           secretFilter: imp.secretFilter || { enabled: false }
         };
         saveState();
