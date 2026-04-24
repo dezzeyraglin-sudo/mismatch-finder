@@ -5,6 +5,7 @@
 import { PARK_FACTORS_BY_TEAM } from './_data/parkFactors.js';
 import { UMPIRE_FACTORS, classifyUmp } from './_data/umpireFactors.js';
 import { getProbables, getPitcherArsenal, getBullpenProfile, getLineup, getHitterStats, getHitterSplits, getPitcherSplits, getHitterPitchTypeByHand, getGameOdds } from './_lib/data.js';
+import { getBlendedInningSplits } from './_lib/pitcherInnings.js';
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -94,11 +95,13 @@ export default async function handler(req, res) {
     const sideResults = await Promise.all(sides.map(async s => {
       if (!s.pitcher || !s.hitTeamId) return null;
 
-      const [arsenal, lineup, bullpen, pitcherSplits] = await Promise.all([
+      const [arsenal, lineup, bullpen, pitcherSplits, inningSplits] = await Promise.all([
         getPitcherArsenal(s.pitcher.id, season).catch(() => []),
         getLineup(s.hitTeamId, gamePk, s.side).catch(() => []),
         getBullpenProfile(s.pitTeamAbbr, season, s.pitcher.id).catch(() => ({ pitches: [], pitcherCount: 0 })),
-        getPitcherSplits(s.pitcher.id, season).catch(() => ({ vsR: null, vsL: null }))
+        getPitcherSplits(s.pitcher.id, season).catch(() => ({ vsR: null, vsL: null })),
+        // Inning splits fetched in deep mode only (heavy data pull) or when game has odds (likely big-money matchup)
+        (deepMode ? getBlendedInningSplits(s.pitcher.id).catch(() => null) : Promise.resolve(null))
       ]);
 
       const keyPitches = arsenal.slice(0, 3);
@@ -377,6 +380,7 @@ export default async function handler(req, res) {
           hitter: h.name,
           hand: h.hand,
           position: h.position,
+          battingOrder: h.battingOrder || null,
           matchedPitches,
           maxXwoba: maxXwoba.toFixed(3),
           adjustedMaxXwoba: adjustedMaxXwoba.toFixed(3),
@@ -502,6 +506,20 @@ export default async function handler(req, res) {
                                    (candidate.tier === 'solid' && candidate.bullpenTier);
         if (candidateQualifies) {
           candidate.isTopPick = true;
+          const baseReasons = buildTopPickReasons(candidate);
+          // Inning-based reasoning layer (only if inningSplits loaded)
+          const abTiming = inningSplits ? estimateAtBatTiming(candidate.battingOrder, inningSplits) : null;
+          if (abTiming && abTiming.alignsWithMeltdown) {
+            const mAb = abTiming.meltdownAb;
+            baseReasons.push(`🎯 AB ${mAb.ab} aligns with ${ordinal(inningSplits.meltdownInning)}-inning meltdown (pitcher xwOBA ${inningSplits.meltdownXw?.toFixed(3)})`);
+          } else if (abTiming && abTiming.bestAb) {
+            const bAb = abTiming.bestAb;
+            baseReasons.push(`Best window: AB ${bAb.ab} in inning ${bAb.inning} (pitcher xwOBA ${bAb.xwobaAgainst?.toFixed(3)})`);
+          }
+          if (inningSplits?.controlTier === 'wild' || inningSplits?.controlTier === 'below-average') {
+            baseReasons.push(`Pitcher has ${inningSplits.controlTier} control — walk props viable`);
+          }
+
           topPick = {
             hitterId: candidate.hitterId,
             hitter: candidate.hitter,
@@ -510,9 +528,9 @@ export default async function handler(req, res) {
             adjustedMaxXwoba: candidate.adjustedMaxXwoba,
             bullpenTier: candidate.bullpenTier,
             bestProp: (candidate.propRecs || []).find(p => p.isBest) || null,
-            reasons: buildTopPickReasons(candidate),
+            reasons: baseReasons,
+            abTiming,
             source: deepMode ? 'deep' : 'fast',
-            // Verification status: fast-mode picks need deep mode to verify them
             verified: deepMode,
             scoreValue: candidate._topPickScore
           };
@@ -528,12 +546,26 @@ export default async function handler(req, res) {
       // Aggregate pitcher-vs-lineup tier
       const lineupTier = computeLineupTier(analyzed, arsenal);
 
+      // Pitcher inning narrative — rich analysis of control, meltdown pattern, shutdown inning
+      const pitcherNarrative = inningSplits ? buildPitcherInningNarrative(inningSplits, s.pitcher) : null;
+
+      // Per-AB prop timing: map each hitter (batting order slot) to their likely PA innings
+      // and flag which AB aligns with pitcher's meltdown inning
+      if (inningSplits) {
+        finalTiered.forEach(h => {
+          const abTiming = estimateAtBatTiming(h.battingOrder, inningSplits);
+          if (abTiming) h.abTiming = abTiming;
+        });
+      }
+
       return {
         key: s.key,
         data: {
           pitcher: s.pitcher,
           pitcherArsenal: arsenal,
           pitcherSplits,
+          inningSplits,
+          pitcherNarrative,
           bullpen: {
             pitches: keyBullpenPitches,
             pitcherCount: bullpen.pitcherCount || 0,
@@ -628,14 +660,39 @@ function buildGameProjection({ awayVsHome, homeVsAway, parkFactor, umpire, odds 
       ? 1.0 + ((bullpenXwAgainst - 0.320) * 0.8)
       : 1.0;
 
+    // Inning-splits overlay: if pitcher has a known meltdown pattern, nudge the pitcherMult upward
+    // If elite control, nudge it downward
+    let inningMult = 1.0;
+    const isplits = side.inningSplits;
+    if (isplits) {
+      // Meltdown signal: if any inning has xwOBA-against >=.400 with ≥15 PA, pitcher is more volatile
+      if (isplits.meltdownXw >= 0.400 && isplits.meltdownDelta >= 0.040) {
+        inningMult *= 1.04;  // +4% runs expected
+      }
+      // Control signal
+      if (isplits.controlTier === 'wild') inningMult *= 1.06;
+      else if (isplits.controlTier === 'below-average') inningMult *= 1.02;
+      else if (isplits.controlTier === 'elite') inningMult *= 0.96;
+      // Times through order degradation
+      const f = isplits.groups?.firstTime;
+      const s = isplits.groups?.secondTime;
+      if (f?.pa >= 20 && s?.pa >= 20 && f.xwobaAgainst != null && s.xwobaAgainst != null) {
+        const ttDelta = s.xwobaAgainst - f.xwobaAgainst;
+        if (ttDelta >= 0.050) inningMult *= 1.03;  // fades hard second time through
+      }
+    }
+
     return {
       lineupMult,
-      pitcherMult,
+      pitcherMult: pitcherMult * inningMult,  // apply inning overlay to pitcher multiplier
       bullpenMult,
       factors: {
         avgMaxXw: avgMaxXw.toFixed(3),
         pitcherXwAgainst: pitcherXwAgainst ? pitcherXwAgainst.toFixed(3) : null,
         bullpenXwAgainst: bullpenXwAgainst ? bullpenXwAgainst.toFixed(3) : null,
+        inningMult: inningMult.toFixed(3),
+        controlTier: isplits?.controlTier || null,
+        meltdownInning: isplits?.meltdownInning || null,
         lineupTierLabel: lt?.label || 'UNKNOWN'
       }
     };
@@ -757,6 +814,24 @@ function buildGameProjection({ awayVsHome, homeVsAway, parkFactor, umpire, odds 
     const bxw = parseFloat(homeComp.factors.bullpenXwAgainst);
     if (bxw >= 0.355) projReasoning.push(`Away bullpen weak (${bxw.toFixed(3)} xwOBA-against) — late-game run exposure`);
     else if (bxw <= 0.290) projReasoning.push(`Away bullpen elite (${bxw.toFixed(3)} xwOBA-against) — locks down late`);
+  }
+
+  // Inning-split reasoning (control + meltdown patterns from blended current+prior data)
+  const awaySplits = awayVsHome?.inningSplits;
+  const homeSplits = homeVsAway?.inningSplits;
+  if (awaySplits) {
+    if (awaySplits.controlTier === 'wild') projReasoning.push(`Home SP is wild (${awaySplits.controlTier}) — walks inflate away offense`);
+    else if (awaySplits.controlTier === 'elite') projReasoning.push(`Home SP has elite control — suppresses free passes`);
+    if (awaySplits.meltdownInning && awaySplits.meltdownXw >= 0.400 && (awaySplits.meltdownDelta || 0) >= 0.040) {
+      projReasoning.push(`Home SP meltdown in ${ordinal(awaySplits.meltdownInning)} inning (xwOBA ${awaySplits.meltdownXw.toFixed(3)}) — high-leverage window for overs`);
+    }
+  }
+  if (homeSplits) {
+    if (homeSplits.controlTier === 'wild') projReasoning.push(`Away SP is wild (${homeSplits.controlTier}) — walks inflate home offense`);
+    else if (homeSplits.controlTier === 'elite') projReasoning.push(`Away SP has elite control — suppresses free passes`);
+    if (homeSplits.meltdownInning && homeSplits.meltdownXw >= 0.400 && (homeSplits.meltdownDelta || 0) >= 0.040) {
+      projReasoning.push(`Away SP meltdown in ${ordinal(homeSplits.meltdownInning)} inning (xwOBA ${homeSplits.meltdownXw.toFixed(3)}) — high-leverage window for overs`);
+    }
   }
 
   // Park reasoning
@@ -1256,4 +1331,181 @@ function getParkHrMult(parkFactor, batSide) {
   const pf = batSide === 'L' ? parkFactor.lhbHr : parkFactor.rhbHr;
   if (pf == null) return (parkFactor.hr || 100) / 100;
   return pf / 100;
+}
+
+// ==================== PITCHER INNING ANALYSIS ====================
+
+// Build detailed narrative from inning splits data
+function buildPitcherInningNarrative(splits, pitcher) {
+  if (!splits) return null;
+  const n = {
+    pitcherName: pitcher?.name || 'Pitcher',
+    pitcherHand: pitcher?.hand || '?',
+    control: null,
+    controlReason: null,
+    meltdownReason: null,
+    shutdownReason: null,
+    timesThroughOrder: null,
+    firstInningRisk: null,
+    sampleWarning: null,
+    keyInsights: []
+  };
+
+  const groups = splits.groups || {};
+  const f = groups.firstTime;
+  const s = groups.secondTime;
+  const t = groups.thirdTime;
+
+  // Control narrative
+  if (splits.controlTier) {
+    const bbPctOverall = splits.perInning ? Object.values(splits.perInning).reduce((sum, i) => sum + (i.bbPct || 0) * (i.pa || 0), 0) / Math.max(1, Object.values(splits.perInning).reduce((sum, i) => sum + (i.pa || 0), 0)) : null;
+    const pct = bbPctOverall ? (bbPctOverall * 100).toFixed(1) : '?';
+    switch (splits.controlTier) {
+      case 'elite':
+        n.control = 'elite';
+        n.controlReason = `Elite control (${pct}% BB) — rarely hurts himself, fade walk/HBP props`;
+        break;
+      case 'above-average':
+        n.control = 'above-avg';
+        n.controlReason = `Above-average control (${pct}% BB)`;
+        break;
+      case 'average':
+        n.control = 'average';
+        n.controlReason = `Average control (${pct}% BB)`;
+        break;
+      case 'below-average':
+        n.control = 'below-avg';
+        n.controlReason = `Below-average control (${pct}% BB) — target opposing walk props`;
+        break;
+      case 'wild':
+        n.control = 'wild';
+        n.controlReason = `Wild (${pct}% BB) — strong target for opposing walks + H+R+RBI overs`;
+        break;
+    }
+  }
+
+  // Times through the order comparison
+  if (f?.pa >= 20 && s?.pa >= 20 && f.xwobaAgainst != null && s.xwobaAgainst != null) {
+    const delta = s.xwobaAgainst - f.xwobaAgainst;
+    if (delta >= 0.040) {
+      n.timesThroughOrder = {
+        pattern: 'fades',
+        firstXw: f.xwobaAgainst,
+        secondXw: s.xwobaAgainst,
+        delta,
+        description: `Fades 2nd time through order (1st: ${f.xwobaAgainst.toFixed(3)} → 2nd: ${s.xwobaAgainst.toFixed(3)}, +${delta.toFixed(3)}). Hitters see him better on 2nd/3rd PA.`
+      };
+      n.keyInsights.push(`2nd-3rd AB hitters have ${((delta/f.xwobaAgainst)*100).toFixed(0)}% higher xwOBA-against`);
+    } else if (delta <= -0.030) {
+      n.timesThroughOrder = {
+        pattern: 'settles',
+        firstXw: f.xwobaAgainst,
+        secondXw: s.xwobaAgainst,
+        delta,
+        description: `Settles in 2nd time through (1st: ${f.xwobaAgainst.toFixed(3)} → 2nd: ${s.xwobaAgainst.toFixed(3)}). Early innings are the window.`
+      };
+      n.keyInsights.push(`First time through hitters have best chance — target 1st/2nd AB props`);
+    } else {
+      n.timesThroughOrder = {
+        pattern: 'consistent',
+        firstXw: f.xwobaAgainst,
+        secondXw: s.xwobaAgainst,
+        delta,
+        description: `Consistent across the order (1st: ${f.xwobaAgainst.toFixed(3)}, 2nd: ${s.xwobaAgainst.toFixed(3)}).`
+      };
+    }
+  }
+
+  // Meltdown inning narrative
+  if (splits.meltdownInning && splits.meltdownXw) {
+    const mi = splits.meltdownInning;
+    const delta = splits.meltdownDelta || 0;
+    const whatsIn = mi <= 3 ? 'fresh innings' : mi <= 6 ? '2nd time through' : 'late/fatigue';
+    n.meltdownReason = `Meltdown inning: ${ordinal(mi)} (xwOBA ${splits.meltdownXw.toFixed(3)}, ${whatsIn}). ${delta > 0.040 ? 'Significantly worse than his overall rate — high-leverage window for overs.' : 'Only modestly worse than overall.'}`;
+    if (delta > 0.040) {
+      n.keyInsights.push(`Inning ${mi} is when hitters tee off — ${splits.meltdownXw.toFixed(3)} xwOBA-against`);
+    }
+  }
+
+  // First-inning-specific risk
+  if (splits.perInning?.[1]?.pa >= 15) {
+    const inn1 = splits.perInning[1];
+    if (inn1.xwobaAgainst != null && inn1.xwobaAgainst >= 0.360) {
+      n.firstInningRisk = `Slow starter — 1st inning xwOBA ${inn1.xwobaAgainst.toFixed(3)} (${inn1.pa} PA). Consider 1st-inning YRFI / team-total-over-first-3.`;
+      n.keyInsights.push(`Vulnerable in 1st inning — consider YRFI / over 1st 3 innings`);
+    } else if (inn1.xwobaAgainst != null && inn1.xwobaAgainst <= 0.270) {
+      n.firstInningRisk = `Strong starter — 1st inning xwOBA ${inn1.xwobaAgainst.toFixed(3)}. Fade early overs.`;
+    }
+  }
+
+  // Shutdown inning narrative
+  if (splits.shutdownInning && splits.shutdownXw && splits.shutdownXw < 0.280) {
+    n.shutdownReason = `Dominant in ${ordinal(splits.shutdownInning)} (xwOBA ${splits.shutdownXw.toFixed(3)}). Hitters struggle there — avoid props around that AB.`;
+  }
+
+  // Sample warnings
+  const totalPa = Object.values(splits.perInning || {}).reduce((sum, i) => sum + (i.pa || 0), 0);
+  if (totalPa < 150) {
+    n.sampleWarning = `Limited sample (${totalPa} blended PA) — predictions will be less reliable. Lean heavier on arsenal matchup.`;
+  }
+
+  return n;
+}
+
+// Estimate which AB of the game a hitter (at batting order slot) is most likely to hit their prop
+// Assumes ~9 batters per team per time through the order
+function estimateAtBatTiming(battingOrder, inningSplits) {
+  if (!battingOrder || !inningSplits?.perInning) return null;
+  const slot = parseInt(battingOrder) || null;
+  if (!slot || slot < 1 || slot > 9) return null;
+
+  // Approx inning for each AB. First AB: slot 1-3 in inning 1, 4-6 inning 1-2, 7-9 inning 2.
+  // More precisely: each PA uses ~1/9 of the lineup, so:
+  //   AB1: hitter's slot / 9 * 1 = inning 1 (for slots 1-5), inning 2 (for slots 6-9)
+  //   AB2: roughly 9 batters later → add ~3 innings
+  //   AB3: 18 batters later → add ~6 innings
+
+  // Simple model: slot S faces pitcher first in inning ceil(S/4.5), then every ~3 innings after
+  // Refine: assume pitcher throws 4 batters per inning (standard)
+  const batsPerInning = 4;
+  const ab1Inning = Math.max(1, Math.ceil(slot / batsPerInning));
+  const ab2Inning = ab1Inning + Math.ceil(9 / batsPerInning);
+  const ab3Inning = ab2Inning + Math.ceil(9 / batsPerInning);
+  const ab4Inning = ab3Inning + Math.ceil(9 / batsPerInning);
+
+  const abs = [
+    { ab: 1, inning: ab1Inning, xwobaAgainst: inningSplits.perInning[ab1Inning]?.xwobaAgainst },
+    { ab: 2, inning: ab2Inning, xwobaAgainst: inningSplits.perInning[ab2Inning]?.xwobaAgainst },
+    { ab: 3, inning: ab3Inning, xwobaAgainst: inningSplits.perInning[ab3Inning]?.xwobaAgainst },
+    { ab: 4, inning: ab4Inning <= 9 ? ab4Inning : null, xwobaAgainst: ab4Inning <= 9 ? inningSplits.perInning[ab4Inning]?.xwobaAgainst : null }
+  ].filter(a => a.inning != null && a.inning <= 9);
+
+  // Find the AB with highest xwOBA-against = best PA for the hitter
+  let bestAb = null, bestXw = 0;
+  for (const a of abs) {
+    if (a.xwobaAgainst != null && a.xwobaAgainst > bestXw) {
+      bestXw = a.xwobaAgainst;
+      bestAb = a;
+    }
+  }
+
+  // Meltdown alignment — is any of this hitter's ABs in the meltdown inning?
+  const meltdownAb = inningSplits.meltdownInning
+    ? abs.find(a => a.inning === inningSplits.meltdownInning)
+    : null;
+
+  return {
+    slot,
+    abs,
+    bestAb: bestAb ? { ab: bestAb.ab, inning: bestAb.inning, xwobaAgainst: bestAb.xwobaAgainst } : null,
+    meltdownAb: meltdownAb ? { ab: meltdownAb.ab, inning: meltdownAb.inning } : null,
+    alignsWithMeltdown: !!meltdownAb,
+    pitcherMeltdownInning: inningSplits.meltdownInning
+  };
+}
+
+function ordinal(n) {
+  const s = ['th', 'st', 'nd', 'rd'];
+  const v = n % 100;
+  return n + (s[(v - 20) % 10] || s[v] || s[0]);
 }
