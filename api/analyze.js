@@ -9,6 +9,7 @@ import { getBlendedInningSplits } from './_lib/pitcherInnings.js';
 import { getWeatherForecast, computeWeatherImpact } from './_lib/weather.js';
 import { getHitterSituationalByMlbam } from './_lib/brefSplits.js';
 import { detectPitcherRole } from './_lib/pitcherRole.js';
+import { buildGameLineRecommendations } from './_lib/gameLineBets.js';
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -575,6 +576,13 @@ export default async function handler(req, res) {
             baseReasons.push(`Pitcher has ${inningSplits.controlTier} control — walk props viable`);
           }
 
+          // Prop unit sizing based on composite score and tier
+          // ELITE + FULL GAME edge: 2u · ELITE or STRONG + FG: 1u · SOLID or single-edge: 0.5u
+          let propUnits = 0.5;
+          if (candidate.tier === 'elite' && candidate.bullpenTier === 'FULL_GAME') propUnits = 2;
+          else if (candidate.tier === 'elite' || (candidate.tier === 'strong' && candidate.bullpenTier === 'FULL_GAME')) propUnits = 1;
+          else propUnits = 0.5;
+
           topPick = {
             hitterId: candidate.hitterId,
             hitter: candidate.hitter,
@@ -585,6 +593,7 @@ export default async function handler(req, res) {
             bestProp: (candidate.propRecs || []).find(p => p.isBest) || null,
             reasons: baseReasons,
             abTiming,
+            units: propUnits,
             source: deepMode ? 'deep' : 'fast',
             verified: deepMode,
             scoreValue: candidate._topPickScore
@@ -694,6 +703,13 @@ export default async function handler(req, res) {
     });
     results.projection = projection;
     results.odds = odds;
+
+    // Game-line bet recommendations (ML/Spread/Total) — runs after projection + odds are ready
+    results.gameLineBets = buildGameLineRecommendations({
+      projection,
+      odds,
+      teams: { awayTeam: results.awayTeam, homeTeam: results.homeTeam }
+    });
 
     res.setHeader('Cache-Control', 's-maxage=900, stale-while-revalidate=3600');
     return res.status(200).json(results);
