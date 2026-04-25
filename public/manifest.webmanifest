@@ -1,14 +1,14 @@
 {
-  "name": "Mismatch Finder",
-  "short_name": "Mismatch",
-  "description": "Live MLB prop betting analysis — probability-driven hitter and pitcher recommendations with projection vs market divergence",
+  "name": "Lyrid",
+  "short_name": "Lyrid",
+  "description": "A clear signal. Research-grade MLB analytics — projections, calibrated probabilities, and self-auditing accuracy tracking.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#0a0d0a",
-  "theme_color": "#c6ff3d",
-  "categories": ["sports", "utilities"],
+  "background_color": "#FAFAF7",
+  "theme_color": "#1B3A5B",
+  "categories": ["sports", "utilities", "finance"],
   "icons": [
     {
       "src": "/icons/icon-192.png",
@@ -37,14 +37,14 @@
   ],
   "shortcuts": [
     {
-      "name": "Today's Slate",
+      "name": "Today's slate",
       "short_name": "Today",
-      "description": "Analyze today's MLB games",
+      "description": "View today's MLB games",
       "url": "/?shortcut=today",
       "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
     },
     {
-      "name": "History",
+      "name": "Bet history",
       "short_name": "History",
       "description": "Review past bets and projections",
       "url": "/?tab=history",

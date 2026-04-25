@@ -3,53 +3,440 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<meta name="description" content="Live MLB prop betting analysis — probability-driven hitter and pitcher recommendations with projection vs market divergence">
-<title>Mismatch Finder · Live MLB</title>
+<meta name="description" content="Lyrid — research-grade MLB analytics for serious bettors. Calibrated projections, transparent accuracy tracking, no hype.">
+<title>Lyrid · A clear signal</title>
 
 <!-- PWA manifest -->
 <link rel="manifest" href="/manifest.webmanifest">
-<meta name="theme-color" content="#c6ff3d">
-<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#1B3A5B">
+<meta name="color-scheme" content="light">
 
 <!-- Apple iOS web app -->
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Mismatch">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Lyrid">
 <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
 
 <!-- Favicons -->
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16.png">
 <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png">
 
 <!-- Android Chrome -->
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="application-name" content="Mismatch Finder">
+<meta name="application-name" content="Lyrid">
 
+<!-- Open Graph -->
+<meta property="og:title" content="Lyrid · A clear signal">
+<meta property="og:description" content="Research-grade MLB analytics for serious bettors. Calibrated projections, transparent accuracy tracking.">
+<meta property="og:type" content="website">
+<meta property="og:image" content="/icons/icon-512.png">
+
+<!-- Lyrid brand fonts -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=JetBrains+Mono:wght@400;600;700&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;1,400&family=Inter:wght@400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<!-- Lyrid design tokens — drives all colors, spacing, typography -->
+<link rel="stylesheet" href="/lyrid-tokens.css">
 <style>
+  /*
+   * LYRID COMPATIBILITY LAYER
+   * The old style block below uses legacy variables (--bg, --accent, --heat, etc.).
+   * Rather than rewrite every component this session, we remap the legacy vars
+   * to Lyrid tokens. This gives instant brand transformation across the entire app.
+   *
+   * Once components are individually rewritten to use Lyrid tokens directly,
+   * this remap can be removed. Until then, it's the bridge.
+   */
   :root{
-    --bg:#0a0d0a; --panel:#12171a; --panel-2:#1a2025; --panel-3:#232a2d;
-    --ink:#eef2ee; --dim:#8a9490; --heat:#ff7a3d; --accent:#c6ff3d;
-    --cool:#66d9e8; --warn:#ffb84d; --danger:#ff5a5a; --line:#232a2d;
+    --bg: var(--surface-page);
+    --panel: var(--surface-card);
+    --panel-2: var(--surface-muted);
+    --panel-3: var(--surface-muted);
+    --ink: var(--text-primary);
+    --dim: var(--text-secondary);
+    --heat: var(--brand-primary);
+    --accent: var(--brand-primary);
+    --cool: var(--data-live);
+    --warn: var(--data-warning);
+    --danger: var(--data-negative);
+    --line: var(--border-hairline);
   }
   *{box-sizing:border-box;margin:0;padding:0}
-  html,body{background:var(--bg);color:var(--ink);font-family:'JetBrains Mono',monospace;font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased}
-  body{background:radial-gradient(1200px 600px at 20% -10%, rgba(255,122,61,0.05), transparent 60%),radial-gradient(900px 500px at 110% 90%, rgba(198,255,61,0.03), transparent 60%),var(--bg);min-height:100vh;padding:16px 14px 80px;padding-top:max(16px, env(safe-area-inset-top));padding-bottom:max(80px, calc(80px + env(safe-area-inset-bottom)));padding-left:max(14px, env(safe-area-inset-left));padding-right:max(14px, env(safe-area-inset-right))}
-  /* Standalone mode (installed as PWA) — hide browser-only affordances, tighten spacing */
+  html,body{background:var(--surface-page);color:var(--text-primary);font-family:var(--font-sans);font-size:var(--size-body);line-height:var(--line-body);-webkit-font-smoothing:antialiased}
+  body{background:var(--surface-page);min-height:100vh;padding:0 0 80px;padding-top:max(0px, env(safe-area-inset-top));padding-bottom:max(80px, calc(80px + env(safe-area-inset-bottom)));padding-left:max(0px, env(safe-area-inset-left));padding-right:max(0px, env(safe-area-inset-right))}
+
+  /* Standalone mode (installed as PWA) — hide browser-only affordances */
   @media all and (display-mode: standalone) {
-    body { padding-top: max(40px, env(safe-area-inset-top)); }
+    body { padding-top: max(0px, env(safe-area-inset-top)); }
     .install-prompt { display: none !important; }
   }
-  @media all and (display-mode: fullscreen) { body { padding-top: 16px; } }
 
-  /* Install prompt (Android/Chrome) — shown when the app is installable */
-  .install-prompt{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:var(--panel-2);border:1px solid var(--accent);border-radius:8px;padding:10px 14px;display:none;align-items:center;gap:12px;font-size:12px;z-index:9999;box-shadow:0 4px 20px rgba(0,0,0,0.4);max-width:calc(100vw - 32px)}
+  /* Install prompt (Android/Chrome) */
+  .install-prompt{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--surface-card);border:0.5px solid var(--brand-primary);border-radius:var(--radius-md);padding:12px 16px;display:none;align-items:center;gap:14px;font-size:13px;z-index:9999;box-shadow:var(--elevation-modal);max-width:calc(100vw - 32px);font-family:var(--font-sans);color:var(--text-primary)}
   .install-prompt.show{display:flex}
-  .install-prompt b{color:var(--accent)}
-  .install-prompt button{background:var(--accent);color:#0a0d0a;border:none;padding:6px 12px;border-radius:4px;font-size:10px;font-weight:700;letter-spacing:0.08em;cursor:pointer;font-family:'JetBrains Mono',monospace}
-  .install-prompt .install-dismiss{background:transparent;color:var(--dim);border:1px solid var(--line);margin-left:auto}
+  .install-prompt b{color:var(--brand-primary);font-weight:500}
+  .install-prompt button{background:var(--brand-primary);color:var(--text-on-primary);border:none;padding:7px 14px;border-radius:var(--radius-sm);font-size:11px;font-weight:500;letter-spacing:0.04em;cursor:pointer;font-family:var(--font-sans);transition:background var(--duration-fast) var(--easing-standard)}
+  .install-prompt button:hover{background:var(--brand-primary-hover)}
+  .install-prompt .install-dismiss{background:transparent;color:var(--text-muted);border:0.5px solid var(--border-hairline);margin-left:auto}
+  .install-prompt .install-dismiss:hover{background:var(--surface-muted);color:var(--text-secondary)}
+
+  /* ===========================================================
+     LYRID HEADER — Layer 1 component
+     The wordmark + tagline on the left, navigation on the right.
+     =========================================================== */
+  .lyrid-header{
+    position:sticky;
+    top:0;
+    z-index:100;
+    background:var(--surface-card);
+    border-bottom:0.5px solid var(--border-hairline);
+    padding:14px 24px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:24px;
+    backdrop-filter:saturate(180%) blur(8px);
+    -webkit-backdrop-filter:saturate(180%) blur(8px);
+  }
+  .lyrid-header-brand{
+    display:flex;
+    align-items:baseline;
+    gap:14px;
+    min-width:0;
+    flex:0 1 auto;
+  }
+  .lyrid-wordmark{
+    font-family:var(--font-serif);
+    font-size:24px;
+    font-weight:600;
+    letter-spacing:-0.02em;
+    color:var(--brand-primary);
+    line-height:1;
+    text-decoration:none;
+  }
+  .lyrid-tagline{
+    font-family:var(--font-serif);
+    font-style:italic;
+    font-size:14px;
+    color:var(--text-muted);
+    line-height:1;
+    white-space:nowrap;
+  }
+  @media (max-width: 640px){
+    .lyrid-tagline{display:none}
+    .lyrid-header{padding:12px 16px}
+  }
+  .lyrid-header-nav{
+    display:flex;
+    align-items:center;
+    gap:18px;
+  }
+  .lyrid-nav-btn{
+    background:transparent;
+    border:none;
+    color:var(--text-secondary);
+    font-family:var(--font-sans);
+    font-size:14px;
+    font-weight:500;
+    cursor:pointer;
+    padding:8px 4px;
+    transition:color var(--duration-fast) var(--easing-standard);
+    position:relative;
+  }
+  .lyrid-nav-btn:hover{color:var(--text-primary)}
+  .lyrid-nav-btn.active{color:var(--brand-primary)}
+  .lyrid-nav-btn.active::after{
+    content:'';
+    position:absolute;
+    bottom:-15px;
+    left:0;
+    right:0;
+    height:2px;
+    background:var(--brand-primary);
+    border-radius:2px 2px 0 0;
+  }
+  @media (max-width: 640px){
+    .lyrid-header-nav{gap:12px}
+    .lyrid-nav-btn{font-size:13px}
+  }
+
+  /* ===========================================================
+     PAGE WRAPPER — content area below header
+     =========================================================== */
+  .lyrid-wrap{
+    max-width:920px;
+    margin:0 auto;
+    padding:32px 24px 80px;
+  }
+  @media (max-width: 640px){
+    .lyrid-wrap{padding:20px 16px 60px}
+  }
+
+  /* Page eyebrow + title for slate / history pages */
+  .lyrid-page-head{margin-bottom:32px}
+  .lyrid-page-eyebrow{
+    font-size:11px;
+    letter-spacing:0.12em;
+    text-transform:uppercase;
+    color:var(--text-muted);
+    font-weight:500;
+    margin-bottom:6px;
+  }
+  .lyrid-page-title{
+    font-family:var(--font-serif);
+    font-size:32px;
+    font-weight:600;
+    letter-spacing:-0.02em;
+    line-height:1.15;
+    color:var(--text-primary);
+    margin:0 0 8px;
+  }
+  .lyrid-page-subtitle{
+    font-size:14px;
+    color:var(--text-secondary);
+    line-height:1.5;
+    margin:0;
+  }
+
+  /* ===========================================================
+     LYRID DATE NAV — calm date selector
+     =========================================================== */
+  .lyrid-date-nav{
+    display:inline-flex;
+    align-items:center;
+    background:var(--surface-card);
+    border:0.5px solid var(--border-hairline);
+    border-radius:var(--radius-md);
+    padding:4px;
+    gap:2px;
+    margin-bottom:24px;
+  }
+  .lyrid-date-btn{
+    background:transparent;
+    border:none;
+    color:var(--text-secondary);
+    width:32px;
+    height:32px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    cursor:pointer;
+    border-radius:var(--radius-sm);
+    transition:background var(--duration-fast) var(--easing-standard), color var(--duration-fast) var(--easing-standard);
+    font-size:14px;
+  }
+  .lyrid-date-btn:hover{
+    background:var(--surface-muted);
+    color:var(--text-primary);
+  }
+  .lyrid-date-current{
+    font-family:var(--font-mono);
+    font-size:13px;
+    font-weight:500;
+    color:var(--text-primary);
+    padding:0 14px;
+    min-width:120px;
+    text-align:center;
+    font-variant-numeric:tabular-nums;
+  }
+
+  /* ===========================================================
+     LYRID GAME CARD — slate listing
+     =========================================================== */
+  .lyrid-games-list{
+    display:flex;
+    flex-direction:column;
+    gap:12px;
+  }
+  .lyrid-game-card{
+    background:var(--surface-card);
+    border:0.5px solid var(--border-hairline);
+    border-radius:var(--radius-md);
+    padding:20px 24px;
+    cursor:pointer;
+    transition:border-color var(--duration-fast) var(--easing-standard), box-shadow var(--duration-fast) var(--easing-standard);
+    display:flex;
+    align-items:center;
+    gap:20px;
+    text-align:left;
+    width:100%;
+    font-family:var(--font-sans);
+    color:var(--text-primary);
+  }
+  .lyrid-game-card:hover{
+    border-color:var(--border-strong);
+    box-shadow:var(--elevation-hover);
+  }
+  .lyrid-game-card:focus-visible{
+    outline:none;
+    border-color:var(--brand-primary);
+    box-shadow:var(--elevation-focus);
+  }
+
+  /* The Tonight's Signal treatment — applied to the strongest game of the day */
+  .lyrid-game-card.signal{
+    border:2px solid var(--brand-primary);
+    position:relative;
+    padding:24px;
+  }
+  .lyrid-game-card.signal::before{
+    content:"Tonight's signal";
+    position:absolute;
+    top:-12px;
+    left:20px;
+    background:var(--brand-primary);
+    color:var(--brand-secondary);
+    font-size:10px;
+    font-weight:500;
+    letter-spacing:0.12em;
+    text-transform:uppercase;
+    padding:4px 10px;
+    border-radius:var(--radius-pill);
+    line-height:1;
+  }
+
+  .lyrid-game-time{
+    flex-shrink:0;
+    width:80px;
+    text-align:left;
+  }
+  .lyrid-game-time-value{
+    font-family:var(--font-mono);
+    font-size:14px;
+    font-weight:500;
+    color:var(--text-primary);
+    font-variant-numeric:tabular-nums;
+    letter-spacing:-0.02em;
+  }
+  .lyrid-game-time-zone{
+    font-size:11px;
+    color:var(--text-muted);
+    margin-top:2px;
+  }
+  .lyrid-game-status{
+    font-size:11px;
+    letter-spacing:0.08em;
+    font-weight:500;
+    text-transform:uppercase;
+    margin-top:4px;
+  }
+  .lyrid-game-status.live{color:var(--data-live)}
+  .lyrid-game-status.final{color:var(--text-muted)}
+  .lyrid-game-status.scheduled{color:var(--text-muted)}
+
+  .lyrid-game-matchup{
+    flex:1;
+    min-width:0;
+  }
+  .lyrid-game-teams{
+    font-family:var(--font-serif);
+    font-size:18px;
+    font-weight:500;
+    color:var(--text-primary);
+    line-height:1.3;
+    letter-spacing:-0.01em;
+    margin-bottom:4px;
+  }
+  .lyrid-game-teams .at{
+    color:var(--text-muted);
+    font-style:italic;
+    padding:0 6px;
+  }
+  .lyrid-game-pitchers{
+    font-size:13px;
+    color:var(--text-secondary);
+    line-height:1.4;
+  }
+  .lyrid-game-pitchers .hand{
+    color:var(--text-muted);
+    font-size:11px;
+    margin-left:3px;
+  }
+
+  .lyrid-game-projection{
+    flex-shrink:0;
+    text-align:right;
+    min-width:80px;
+  }
+  .lyrid-game-projection-label{
+    font-size:10px;
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+    color:var(--text-muted);
+    font-weight:500;
+    margin-bottom:2px;
+  }
+  .lyrid-game-projection-value{
+    font-family:var(--font-mono);
+    font-size:18px;
+    font-weight:500;
+    color:var(--text-primary);
+    font-variant-numeric:tabular-nums;
+    line-height:1;
+  }
+  .lyrid-game-projection.signal .lyrid-game-projection-value{
+    color:var(--brand-primary);
+  }
+
+  @media (max-width: 640px){
+    .lyrid-game-card{padding:16px;gap:14px}
+    .lyrid-game-card.signal{padding:18px 16px}
+    .lyrid-game-time{width:64px}
+    .lyrid-game-teams{font-size:16px}
+    .lyrid-game-pitchers{font-size:12px}
+    .lyrid-game-projection-value{font-size:16px}
+  }
+
+  /* ===========================================================
+     LYRID SKELETON LOADERS — match final layout
+     =========================================================== */
+  @keyframes lyrid-shimmer {
+    0% { background-position: -200px 0; }
+    100% { background-position: calc(200px + 100%) 0; }
+  }
+  .lyrid-skel{
+    background:linear-gradient(90deg, var(--surface-muted) 0%, var(--border-hairline) 50%, var(--surface-muted) 100%);
+    background-size:200px 100%;
+    background-repeat:no-repeat;
+    border-radius:var(--radius-sm);
+    animation:lyrid-shimmer 1.5s infinite linear;
+    display:inline-block;
+  }
+  .lyrid-skel-card{
+    background:var(--surface-card);
+    border:0.5px solid var(--border-hairline);
+    border-radius:var(--radius-md);
+    padding:20px 24px;
+    display:flex;
+    align-items:center;
+    gap:20px;
+  }
+
+  /* ===========================================================
+     EMPTY STATES
+     =========================================================== */
+  .lyrid-empty{
+    text-align:center;
+    padding:64px 24px;
+    color:var(--text-muted);
+  }
+  .lyrid-empty-title{
+    font-family:var(--font-serif);
+    font-size:20px;
+    font-weight:500;
+    color:var(--text-primary);
+    margin-bottom:8px;
+  }
+  .lyrid-empty-text{
+    font-size:14px;
+    line-height:1.5;
+    color:var(--text-secondary);
+    max-width:380px;
+    margin:0 auto;
+  }
+
   .wrap{max-width:860px;margin:0 auto}
 
   header{border-bottom:1px solid var(--line);padding-bottom:16px;margin-bottom:20px}
@@ -1974,22 +2361,29 @@
 
 <!-- PWA install prompt (Android/Chrome) -->
 <div class="install-prompt" id="installPrompt">
-  <span>Install <b>Mismatch Finder</b> for fullscreen app experience</span>
-  <button onclick="triggerInstall()">INSTALL</button>
+  <span>Install <b>Lyrid</b> as an app for the best experience</span>
+  <button onclick="triggerInstall()">Install</button>
   <button class="install-dismiss" onclick="dismissInstall()">×</button>
 </div>
-<div class="wrap">
 
-<header>
-  <div class="eyebrow">MISMATCH FINDER · LIVE MLB DATA</div>
-  <h1>The Workbench <em>/ daily</em></h1>
-  <div class="sub">
-    <span class="date-pill live" id="currentDate"></span>
-    <span class="date-pill" id="statusPill">READY</span>
+<!-- LYRID HEADER -->
+<header class="lyrid-header" role="banner">
+  <div class="lyrid-header-brand">
+    <a href="/" class="lyrid-wordmark" aria-label="Lyrid home">Lyrid</a>
+    <span class="lyrid-tagline">A clear signal</span>
   </div>
+  <nav class="lyrid-header-nav" role="navigation" aria-label="Main">
+    <button class="lyrid-nav-btn active" data-tab="slate" onclick="switchTab('slate')">Slate</button>
+    <button class="lyrid-nav-btn" data-tab="track" onclick="switchTab('track')">Track</button>
+    <button class="lyrid-nav-btn" data-tab="history" onclick="switchTab('history')">History</button>
+    <button class="lyrid-nav-btn" data-tab="settings" onclick="switchTab('settings')">Settings</button>
+  </nav>
 </header>
 
-<div class="tabs">
+<div class="lyrid-wrap">
+
+<!-- Hidden legacy tabs container — keeps existing JS happy -->
+<div class="tabs" style="display:none">
   <button class="tab active" data-tab="slate">SLATE</button>
   <button class="tab" data-tab="research">RESEARCH</button>
   <button class="tab" data-tab="track">TRACK</button>
@@ -1999,11 +2393,25 @@
 
 <!-- SLATE -->
 <div class="panel-content active" id="slate-panel">
-  <div class="controls">
-    <input type="date" class="date-input" id="slateDate">
-    <button class="btn primary" id="loadSlateBtn" onclick="loadLiveSlate()">⟳ LOAD LIVE SLATE</button>
-    <button class="btn" id="hrPicksBtn" onclick="toggleHrPicksView()" title="Show all HR-chance hitters across today's slate">💣 HR PICKS</button>
+  <!-- Lyrid page header -->
+  <div class="lyrid-page-head">
+    <div class="lyrid-page-eyebrow" id="slatePageEyebrow">Today · Live MLB</div>
+    <h1 class="lyrid-page-title">Tonight's slate</h1>
+    <p class="lyrid-page-subtitle">Tap a game to see Lyrid's projection, the strongest plays, and how the model compares to market.</p>
   </div>
+
+  <!-- Date navigation + load button -->
+  <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:24px">
+    <div class="lyrid-date-nav">
+      <button class="lyrid-date-btn" onclick="changeSlateDate(-1)" aria-label="Previous day">‹</button>
+      <span class="lyrid-date-current" id="lyridDateDisplay">Loading…</span>
+      <button class="lyrid-date-btn" onclick="changeSlateDate(1)" aria-label="Next day">›</button>
+    </div>
+    <input type="date" class="date-input" id="slateDate" style="display:none">
+    <button class="btn primary" id="loadSlateBtn" onclick="loadLiveSlate()" style="background:var(--brand-primary);color:var(--text-on-primary);border:none;padding:9px 18px;border-radius:var(--radius-sm);font-family:var(--font-sans);font-size:13px;font-weight:500;letter-spacing:0;cursor:pointer;transition:background var(--duration-fast) var(--easing-standard)">Refresh</button>
+    <button class="btn" id="hrPicksBtn" onclick="toggleHrPicksView()" title="Show all HR-chance hitters across today's slate" style="background:transparent;border:0.5px solid var(--border-hairline);color:var(--text-secondary);padding:9px 14px;border-radius:var(--radius-sm);font-family:var(--font-sans);font-size:13px;font-weight:500;cursor:pointer;transition:all var(--duration-fast) var(--easing-standard)">HR picks</button>
+  </div>
+
   <div id="hrPicksView" style="display:none"></div>
   <div id="gamesList"></div>
   <div id="analysisContainer"></div>
@@ -2434,6 +2842,7 @@ function showToast(msg, danger) {
 
 function setStatus(text, cls) {
   const pill = document.getElementById('statusPill');
+  if (!pill) return;  // Lyrid header doesn't expose a status pill — silently no-op
   pill.textContent = text;
   pill.className = 'date-pill ' + (cls||'');
 }
@@ -2454,12 +2863,79 @@ function probTier(p) {
 }
 
 // =============== TABS ===============
+
+// Lyrid header tab switcher — used by the new lyrid-nav-btn elements.
+// Bridges to the legacy tab system to keep all panel logic working.
+window.switchTab = function(tabName) {
+  // Update Lyrid nav active state
+  document.querySelectorAll('.lyrid-nav-btn').forEach(b => b.classList.remove('active'));
+  const activeBtn = document.querySelector(`.lyrid-nav-btn[data-tab="${tabName}"]`);
+  if (activeBtn) activeBtn.classList.add('active');
+
+  // Update legacy panel system
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.panel-content').forEach(p => p.classList.remove('active'));
+  const legacyTab = document.querySelector(`.tab[data-tab="${tabName}"]`);
+  if (legacyTab) legacyTab.classList.add('active');
+  const panel = document.getElementById(tabName + '-panel');
+  if (panel) panel.classList.add('active');
+
+  if (tabName === 'track') renderTrack();
+  if (tabName === 'history') renderHistory();
+  if (tabName === 'settings') renderSettings();
+  if (tabName === 'research') renderResearch();
+};
+
+// Lyrid date navigation
+window.changeSlateDate = function(deltaDays) {
+  const current = state.currentDate || getTodayStr();
+  const d = new Date(current + 'T12:00:00');
+  d.setDate(d.getDate() + deltaDays);
+  state.currentDate = d.toISOString().slice(0, 10);
+  saveState();
+  document.getElementById('slateDate').value = state.currentDate;
+  updateDateDisplay();
+  updateLyridDateDisplay();
+  document.getElementById('gamesList').innerHTML = '';
+  document.getElementById('analysisContainer').innerHTML = '';
+  setStatus('READY');
+  // Auto-fetch the new date
+  loadLiveSlate();
+};
+
+// Display the current slate date in the new Lyrid date nav
+window.updateLyridDateDisplay = function() {
+  const el = document.getElementById('lyridDateDisplay');
+  if (!el || !state.currentDate) return;
+  const d = new Date(state.currentDate + 'T12:00:00');
+  const today = getTodayStr();
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const tomorrowStr = tomorrow.toISOString().slice(0, 10);
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+  const yesterdayStr = yesterday.toISOString().slice(0, 10);
+
+  let label;
+  if (state.currentDate === today) label = 'Today';
+  else if (state.currentDate === tomorrowStr) label = 'Tomorrow';
+  else if (state.currentDate === yesterdayStr) label = 'Yesterday';
+  else label = d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+
+  el.textContent = label;
+};
+
+// Legacy tab listeners — still wired so old code paths keep working
 document.querySelectorAll('.tab').forEach(tab => {
   tab.addEventListener('click', () => {
     document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
     document.querySelectorAll('.panel-content').forEach(p=>p.classList.remove('active'));
     tab.classList.add('active');
     document.getElementById(tab.dataset.tab+'-panel').classList.add('active');
+    // Sync the new Lyrid header
+    document.querySelectorAll('.lyrid-nav-btn').forEach(b => b.classList.remove('active'));
+    const lyridBtn = document.querySelector(`.lyrid-nav-btn[data-tab="${tab.dataset.tab}"]`);
+    if (lyridBtn) lyridBtn.classList.add('active');
     if (tab.dataset.tab === 'track') renderTrack();
     if (tab.dataset.tab === 'history') renderHistory();
     if (tab.dataset.tab === 'settings') renderSettings();
@@ -2477,8 +2953,11 @@ document.getElementById('slateDate').addEventListener('change', e => {
 });
 
 function updateDateDisplay() {
-  document.getElementById('currentDate').textContent = formatDateDisplay(state.currentDate);
+  const cd = document.getElementById('currentDate');
+  if (cd) cd.textContent = formatDateDisplay(state.currentDate);
   document.getElementById('slateDate').value = state.currentDate;
+  // Also update the Lyrid date pill if it exists
+  if (typeof updateLyridDateDisplay === 'function') updateLyridDateDisplay();
 }
 
 // =============== LIVE SLATE ===============
@@ -2486,7 +2965,20 @@ async function loadLiveSlate() {
   const btn = document.getElementById('loadSlateBtn');
   btn.disabled = true;
   setStatus('FETCHING PROBABLES...', 'loading');
-  document.getElementById('gamesList').innerHTML = '<div class="loading"><span class="loading-spinner"></span>Pulling today\'s slate from MLB...</div>';
+  // Lyrid skeleton loader matching final card layout
+  const skeletonRow = `
+    <div class="lyrid-skel-card">
+      <div style="flex-shrink:0;width:80px">
+        <div class="lyrid-skel" style="height:14px;width:60px;margin-bottom:6px"></div>
+        <div class="lyrid-skel" style="height:11px;width:30px"></div>
+      </div>
+      <div style="flex:1">
+        <div class="lyrid-skel" style="height:18px;width:70%;margin-bottom:8px"></div>
+        <div class="lyrid-skel" style="height:13px;width:90%"></div>
+      </div>
+      <div class="lyrid-skel" style="height:36px;width:36px;border-radius:50%;flex-shrink:0"></div>
+    </div>`;
+  document.getElementById('gamesList').innerHTML = `<div class="lyrid-games-list">${skeletonRow.repeat(5)}</div>`;
 
   try {
     const res = await fetch(`/api/probables?date=${state.currentDate}`);
@@ -2511,44 +3003,86 @@ function renderGames() {
   const list = document.getElementById('gamesList');
 
   if (!slate || !slate.games || slate.games.length === 0) {
-    list.innerHTML = `<div class="empty"><div class="empty-icon">○</div><div>Tap <b>LOAD LIVE SLATE</b> to pull today's games.</div></div>`;
+    list.innerHTML = `
+      <div class="lyrid-empty">
+        <div class="lyrid-empty-title">No games scheduled</div>
+        <div class="lyrid-empty-text">Try a different date or refresh in case the slate just posted.</div>
+      </div>`;
     return;
   }
 
-  list.innerHTML = slate.games.map(g => {
+  // Format game time as "7:05 PM" rather than the API's "7:05 PM ET" string
+  const formatTime = (gameTime) => {
+    if (!gameTime) return 'TBD';
+    return gameTime.replace(/\s*ET$/i, '').trim();
+  };
+
+  // Determine "Tonight's signal" — the game with the strongest projected mismatch.
+  // For now, this is a placeholder until we wire in slate-level signal scoring.
+  // We'll mark the *first* non-banned game as the signal as a visual demonstration.
+  // A future enhancement scans all games for top-pick adjusted xwOBA and picks the strongest.
+  let signalGameIdx = -1;
+  for (let i = 0; i < slate.games.length; i++) {
+    const g = slate.games[i];
+    const awTeamBanned = isBanned('teams', g.awayTeam.abbreviation) || isBanned('teams', g.awayTeam.name);
+    const hmTeamBanned = isBanned('teams', g.homeTeam.abbreviation) || isBanned('teams', g.homeTeam.name);
+    if (!awTeamBanned && !hmTeamBanned && g.awayPitcher && g.homePitcher) {
+      signalGameIdx = i;
+      break;
+    }
+  }
+
+  list.innerHTML = `<div class="lyrid-games-list">${slate.games.map((g, i) => {
     const awName = g.awayPitcher?.name || 'TBD';
     const hmName = g.homePitcher?.name || 'TBD';
+    const awHand = g.awayPitcher?.hand || '?';
+    const hmHand = g.homePitcher?.hand || '?';
     const awTeam = g.awayTeam.abbreviation || g.awayTeam.name || 'Away';
     const hmTeam = g.homeTeam.abbreviation || g.homeTeam.name || 'Home';
-    const awBanned = isBanned('pitchers', awName);
-    const hmBanned = isBanned('pitchers', hmName);
+    const awTeamFull = g.awayTeam.name || awTeam;
+    const hmTeamFull = g.homeTeam.name || hmTeam;
     const awTeamBanned = isBanned('teams', awTeam) || isBanned('teams', g.awayTeam.name);
     const hmTeamBanned = isBanned('teams', hmTeam) || isBanned('teams', g.homeTeam.name);
-    const gameFullyBanned = (awTeamBanned && hmTeamBanned) || (awBanned && hmBanned);
-    const gameBannedClass = gameFullyBanned ? ' banned-game' : '';
+    const gameFullyBanned = (awTeamBanned && hmTeamBanned);
+
+    const isSignal = i === signalGameIdx;
+    const cardClass = `lyrid-game-card${isSignal ? ' signal' : ''}${gameFullyBanned ? ' is-banned' : ''}`;
+
+    // Game time formatting
+    const timeStr = formatTime(g.gameTime);
+
+    // Status pill
+    let statusHtml = '';
+    if (g.status && g.status !== 'Scheduled' && g.status !== 'Pre-Game') {
+      const statusLower = g.status.toLowerCase();
+      let statusClass = 'scheduled';
+      if (statusLower.includes('progress') || statusLower.includes('live')) statusClass = 'live';
+      else if (statusLower.includes('final')) statusClass = 'final';
+      statusHtml = `<div class="lyrid-game-status ${statusClass}">${g.status}</div>`;
+    }
 
     return `
-      <div class="game-card${gameBannedClass}" onclick="analyzeGame(${g.gamePk})">
-        <div class="game-head">
-          <div>
-            <div class="game-title">${awTeam}${awTeamBanned?'<span class="scratch-badge" style="margin-left:4px">BANNED</span>':''} @ ${hmTeam}${hmTeamBanned?'<span class="scratch-badge" style="margin-left:4px">BANNED</span>':''}</div>
-            <div class="game-time">${g.gameTime}${g.venue ? ' · '+g.venue : ''}</div>
-          </div>
-          <div class="game-time">${g.status === 'Scheduled' ? '' : g.status}</div>
+      <button class="${cardClass}" onclick="analyzeGame(${g.gamePk})" type="button" aria-label="Analyze ${awTeamFull} at ${hmTeamFull}">
+        <div class="lyrid-game-time">
+          <div class="lyrid-game-time-value">${timeStr}</div>
+          <div class="lyrid-game-time-zone">ET</div>
+          ${statusHtml}
         </div>
-        <div class="pitcher-pair">
-          <div class="pitcher-slot">
-            <div class="label">AWAY · ${g.awayPitcher?.hand || '?'}HP</div>
-            <div class="name">${awName}${awBanned?'<span class="scratch-badge">BANNED</span>':''}</div>
+        <div class="lyrid-game-matchup">
+          <div class="lyrid-game-teams">
+            <span>${awTeam}</span><span class="at">at</span><span>${hmTeam}</span>
           </div>
-          <div class="pitcher-slot">
-            <div class="label">HOME · ${g.homePitcher?.hand || '?'}HP</div>
-            <div class="name">${hmName}${hmBanned?'<span class="scratch-badge">BANNED</span>':''}</div>
+          <div class="lyrid-game-pitchers">
+            ${awName}<span class="hand">${awHand}HP</span> · ${hmName}<span class="hand">${hmHand}HP</span>
           </div>
         </div>
-      </div>
+        <div class="lyrid-game-projection${isSignal ? ' signal' : ''}">
+          <div class="lyrid-game-projection-label">${isSignal ? 'Signal' : 'Analyze'}</div>
+          <div class="lyrid-game-projection-value" aria-hidden="true">${isSignal ? '★' : '→'}</div>
+        </div>
+      </button>
     `;
-  }).join('');
+  }).join('')}</div>`;
 }
 
 let deepModeActive = true;    // deep mode is default — premium picks only

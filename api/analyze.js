@@ -13,14 +13,40 @@ import { buildGameLineRecommendations } from './_lib/gameLineBets.js';
 import { estimatePropProbability, estimateTotalProbability, estimateSpreadProbability, estimateMoneylineProbability, americanToImpliedProb, computeEdge } from './_lib/probability.js';
 import { buildPitcherProps, evaluatePitcherProp } from './_lib/pitcherProps.js';
 import { computeFirstInningProbability } from './_lib/firstInning.js';
+import { tryAuth, checkAndIncrementQuota, AuthError } from './_lib/auth.js';
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   if (req.method === 'OPTIONS') return res.status(200).end();
 
   const { gamePk, deep } = req.query;
   if (!gamePk) return res.status(400).json({ error: 'gamePk required' });
   const deepMode = deep === '1' || deep === 'true';
+
+  // ============ AUTH + QUOTA GATE ============
+  // Free tier: 3 deep analyses per day. Pro/Sharp: unlimited. Anonymous: must sign in for deep.
+  // Fast mode is unrestricted for everyone (no quota check).
+  const user = await tryAuth(req, res);
+  if (res.headersSent) return;
+
+  let quotaInfo = null;
+  if (deepMode) {
+    try {
+      quotaInfo = await checkAndIncrementQuota(user, 'deep_analyses');
+    } catch (err) {
+      if (err instanceof AuthError) {
+        return res.status(err.status).json({
+          error: err.message,
+          code: err.code,
+          tier: user?.tier || null,
+          upgradeUrl: '/upgrade',
+        });
+      }
+      console.error('[analyze] quota check failed:', err);
+      // Don't block the request on quota system failures — degrade gracefully
+    }
+  }
 
   const season = new Date().getFullYear();
 
@@ -839,6 +865,20 @@ export default async function handler(req, res) {
     }
 
     res.setHeader('Cache-Control', 's-maxage=900, stale-while-revalidate=3600');
+
+    // Attach quota + tier info so client can update its UI ("2 of 3 deep analyses today")
+    if (quotaInfo) {
+      results._quota = {
+        deep_analyses: {
+          used: quotaInfo.used,
+          limit: quotaInfo.limit === Infinity ? null : quotaInfo.limit,
+        },
+      };
+    }
+    if (user) {
+      results._user = { tier: user.tier, isPro: user.isPro, isSharp: user.isSharp };
+    }
+
     return res.status(200).json(results);
   } catch (err) {
     console.error('Analyze error:', err);
