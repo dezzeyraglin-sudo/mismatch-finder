@@ -12,21 +12,41 @@
 //   - We fetch tier + entitlement state from our profiles table
 //   - We attach to `req.user` for the endpoint handler
 
-import { getSupabaseAdmin } from './supabase-admin.js';
+import { getSupabaseAdmin, isSupabaseConfigured } from './supabase-admin.js';
+
+/**
+ * When Supabase isn't configured (pre-monetization mode), every request
+ * is treated as an anonymous Pro user — full access, no quota enforcement.
+ * This lets the tool work normally until you finish setting up Supabase.
+ */
+const PRE_MONETIZATION_USER = {
+  id: null,
+  email: null,
+  tier: 'pro',
+  isPro: true,
+  isSharp: false,
+  profile: null,
+  preMonetization: true,
+};
 
 /**
  * Verify a request's auth token and return the authenticated user with tier info.
  * Returns null for unauthenticated requests (anonymous = free tier with limits).
  *
+ * If Supabase isn't configured, returns PRE_MONETIZATION_USER (effectively unlimited).
+ *
  * @returns {Promise<null | { id, email, tier, isPro, isSharp, profile }>}
  */
 export async function authenticate(req) {
+  // Pre-monetization mode: Supabase not configured, treat as Pro
+  if (!isSupabaseConfigured()) return PRE_MONETIZATION_USER;
+
   const authHeader = req.headers?.authorization || req.headers?.Authorization;
   if (!authHeader || !authHeader.startsWith('Bearer ')) return null;
   const token = authHeader.slice('Bearer '.length).trim();
   if (!token) return null;
 
-  const supabase = getSupabaseAdmin();
+  const supabase = await getSupabaseAdmin();
 
   // Step 1: verify the JWT belongs to a real user
   const { data: { user }, error: userErr } = await supabase.auth.getUser(token);
@@ -40,8 +60,6 @@ export async function authenticate(req) {
     .single();
 
   if (entErr) {
-    // User exists in auth.users but no profile row yet — handle_new_user trigger should have run,
-    // but if there's a race, treat as free tier and let it self-heal.
     console.warn('[auth] No profile row for user', user.id, entErr.message);
     return {
       id: user.id,
@@ -53,7 +71,6 @@ export async function authenticate(req) {
     };
   }
 
-  // "isPro" semantically means "Pro tier OR higher" — Sharp users are also Pro
   const isProActive = ent.is_pro_active || ent.is_sharp_active;
   const isSharpActive = ent.is_sharp_active;
 
@@ -137,6 +154,11 @@ const DAILY_QUOTAS = {
 };
 
 export async function checkAndIncrementQuota(user, feature) {
+  // Pre-monetization mode: no quota enforcement
+  if (!isSupabaseConfigured() || user?.preMonetization) {
+    return { used: 0, limit: Infinity };
+  }
+
   if (!user) {
     // Anonymous users get the same free quota but tracked by IP would be needed in real prod;
     // for now, return a quota error to push them to sign up
@@ -148,7 +170,7 @@ export async function checkAndIncrementQuota(user, feature) {
   if (limit == null) return { used: 0, limit: 0 };
   if (limit === Infinity) return { used: 0, limit: Infinity };
 
-  const supabase = getSupabaseAdmin();
+  const supabase = await getSupabaseAdmin();
   const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
 
   // Atomic upsert: increment the counter, returning the new value
@@ -206,7 +228,10 @@ export async function checkAndIncrementQuota(user, feature) {
  * Used by /api/me to display "2 of 3 deep analyses today" in the UI.
  */
 export async function getDailyUsage(userId) {
-  const supabase = getSupabaseAdmin();
+  if (!isSupabaseConfigured() || !userId) {
+    return { deep_analyses: 0 };
+  }
+  const supabase = await getSupabaseAdmin();
   const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
   const { data } = await supabase
     .from('daily_usage')

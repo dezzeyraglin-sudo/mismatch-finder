@@ -250,3 +250,99 @@ a:hover {
   background: var(--brand-tint);
   color: var(--brand-primary);
 }
+
+/* ===========================================================
+   LYRID BUTTON SYSTEM
+   Three variants only:
+     .lyrid-btn.primary   → solid brand blue, single most-important action
+     .lyrid-btn.secondary → outlined brand blue, non-destructive actions
+     .lyrid-btn.ghost     → text-only brand blue, tertiary actions
+   Sizes: default 36px tall; .sm = 30px; .lg = 44px (touch-friendly mobile)
+   =========================================================== */
+.lyrid-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: 0;
+  height: 36px;
+  padding: 0 16px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition:
+    background var(--duration-fast) var(--easing-standard),
+    border-color var(--duration-fast) var(--easing-standard),
+    color var(--duration-fast) var(--easing-standard);
+  white-space: nowrap;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+.lyrid-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.lyrid-btn.sm { height: 30px; padding: 0 12px; font-size: 12px; }
+.lyrid-btn.lg { height: 44px; padding: 0 22px; font-size: 14px; }
+
+/* Primary — solid brand blue, white text */
+.lyrid-btn.primary {
+  background: var(--brand-primary);
+  color: var(--text-on-primary);
+  border: 1px solid var(--brand-primary);
+}
+.lyrid-btn.primary:hover:not(:disabled) {
+  background: var(--brand-primary-hover);
+  border-color: var(--brand-primary-hover);
+}
+.lyrid-btn.primary:active:not(:disabled) {
+  background: var(--brand-primary-active);
+  border-color: var(--brand-primary-active);
+}
+
+/* Secondary — outlined brand blue (visible against off-white) */
+.lyrid-btn.secondary {
+  background: var(--surface-card);
+  color: var(--brand-primary);
+  border: 1px solid var(--brand-primary);
+}
+.lyrid-btn.secondary:hover:not(:disabled) {
+  background: var(--brand-tint);
+}
+.lyrid-btn.secondary:active:not(:disabled) {
+  background: var(--brand-tint-hover);
+}
+
+/* Ghost — text-only with subtle border, brand blue text */
+.lyrid-btn.ghost {
+  background: transparent;
+  color: var(--brand-primary);
+  border: 1px solid var(--border-strong);
+}
+.lyrid-btn.ghost:hover:not(:disabled) {
+  background: var(--brand-tint);
+  border-color: var(--brand-primary);
+}
+.lyrid-btn.ghost:active:not(:disabled) {
+  background: var(--brand-tint-hover);
+}
+
+/* Danger — only for confirmation flows (delete, reset) */
+.lyrid-btn.danger {
+  background: var(--surface-card);
+  color: var(--data-negative);
+  border: 1px solid var(--data-negative);
+}
+.lyrid-btn.danger:hover:not(:disabled) {
+  background: var(--data-negative-surface);
+}
+
+/* Icon-only round button (for tab bar / toolbar) */
+.lyrid-btn.icon {
+  width: 36px;
+  padding: 0;
+  border-radius: var(--radius-sm);
+}
