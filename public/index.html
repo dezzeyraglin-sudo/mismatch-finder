@@ -2,8 +2,29 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="description" content="Live MLB prop betting analysis — probability-driven hitter and pitcher recommendations with projection vs market divergence">
 <title>Mismatch Finder · Live MLB</title>
+
+<!-- PWA manifest -->
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="theme-color" content="#c6ff3d">
+<meta name="color-scheme" content="dark">
+
+<!-- Apple iOS web app -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Mismatch">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+
+<!-- Favicons -->
+<link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32.png">
+<link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png">
+
+<!-- Android Chrome -->
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="application-name" content="Mismatch Finder">
+
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=JetBrains+Mono:wght@400;600;700&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
@@ -15,7 +36,20 @@
   }
   *{box-sizing:border-box;margin:0;padding:0}
   html,body{background:var(--bg);color:var(--ink);font-family:'JetBrains Mono',monospace;font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased}
-  body{background:radial-gradient(1200px 600px at 20% -10%, rgba(255,122,61,0.05), transparent 60%),radial-gradient(900px 500px at 110% 90%, rgba(198,255,61,0.03), transparent 60%),var(--bg);min-height:100vh;padding:16px 14px 80px}
+  body{background:radial-gradient(1200px 600px at 20% -10%, rgba(255,122,61,0.05), transparent 60%),radial-gradient(900px 500px at 110% 90%, rgba(198,255,61,0.03), transparent 60%),var(--bg);min-height:100vh;padding:16px 14px 80px;padding-top:max(16px, env(safe-area-inset-top));padding-bottom:max(80px, calc(80px + env(safe-area-inset-bottom)));padding-left:max(14px, env(safe-area-inset-left));padding-right:max(14px, env(safe-area-inset-right))}
+  /* Standalone mode (installed as PWA) — hide browser-only affordances, tighten spacing */
+  @media all and (display-mode: standalone) {
+    body { padding-top: max(40px, env(safe-area-inset-top)); }
+    .install-prompt { display: none !important; }
+  }
+  @media all and (display-mode: fullscreen) { body { padding-top: 16px; } }
+
+  /* Install prompt (Android/Chrome) — shown when the app is installable */
+  .install-prompt{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:var(--panel-2);border:1px solid var(--accent);border-radius:8px;padding:10px 14px;display:none;align-items:center;gap:12px;font-size:12px;z-index:9999;box-shadow:0 4px 20px rgba(0,0,0,0.4);max-width:calc(100vw - 32px)}
+  .install-prompt.show{display:flex}
+  .install-prompt b{color:var(--accent)}
+  .install-prompt button{background:var(--accent);color:#0a0d0a;border:none;padding:6px 12px;border-radius:4px;font-size:10px;font-weight:700;letter-spacing:0.08em;cursor:pointer;font-family:'JetBrains Mono',monospace}
+  .install-prompt .install-dismiss{background:transparent;color:var(--dim);border:1px solid var(--line);margin-left:auto}
   .wrap{max-width:860px;margin:0 auto}
 
   header{border-bottom:1px solid var(--line);padding-bottom:16px;margin-bottom:20px}
@@ -319,12 +353,373 @@
 
   /* =============== GAME PROJECTION (SPLIT LAYOUT) =============== */
   .proj-section{margin:14px 0}
+
+  /* =============== LIVE SCORE + PROJECTION AUDIT MINI =============== */
+  .live-score-bar{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding:10px 12px;
+    margin:10px 0;
+    background:var(--panel-2);
+    border:1px solid var(--line);
+    border-radius:6px;
+    flex-wrap:wrap;
+  }
+  .live-score-bar.hidden{display:none}
+  .live-badge{
+    padding:3px 8px;
+    border-radius:3px;
+    background:var(--danger);
+    color:#0a0d0a;
+    font-family:'JetBrains Mono',monospace;
+    font-size:9px;
+    font-weight:800;
+    letter-spacing:1px;
+    animation:livePulse 2s ease-in-out infinite;
+  }
+  .live-badge.final{
+    background:var(--accent);
+    animation:none;
+  }
+  @keyframes livePulse{
+    0%, 100%{opacity:1}
+    50%{opacity:0.55}
+  }
+  .live-score{
+    color:var(--ink);
+    font-family:'JetBrains Mono',monospace;
+    font-size:14px;
+    font-weight:800;
+    font-variant-numeric:tabular-nums;
+    letter-spacing:0.5px;
+  }
+  .live-inning{
+    color:var(--dim);
+    font-size:10px;
+    font-style:italic;
+    letter-spacing:0.5px;
+  }
+  .audit-mini{
+    flex-basis:100%;
+    display:flex;
+    align-items:center;
+    gap:6px;
+    padding-top:6px;
+    margin-top:4px;
+    border-top:1px solid var(--line);
+    flex-wrap:wrap;
+  }
+  .audit-label{
+    color:var(--dim);
+    font-size:9px;
+    letter-spacing:1px;
+    font-weight:700;
+    text-transform:uppercase;
+  }
+  .audit-chip{
+    padding:2px 6px;
+    border-radius:3px;
+    font-size:10px;
+    font-weight:700;
+    font-family:'JetBrains Mono',monospace;
+    border:1px solid;
+  }
+  .audit-chip.audit-good{
+    background:rgba(198,255,61,0.12);
+    color:var(--accent);
+    border-color:var(--accent);
+  }
+  .audit-chip.audit-ok{
+    background:rgba(255,200,61,0.12);
+    color:var(--warn);
+    border-color:var(--warn);
+  }
+  .audit-chip.audit-miss{
+    background:rgba(255,85,85,0.12);
+    color:var(--danger);
+    border-color:var(--danger);
+  }
+
+  /* =============== CALIBRATION HISTORY TAB =============== */
+  .calibration-view{padding:0}
+  .cal-headline{
+    background:var(--panel-2);
+    border:1px solid var(--cool);
+    border-radius:8px;
+    padding:14px;
+    margin-bottom:14px;
+  }
+  .cal-headline-label{
+    color:var(--cool);
+    font-size:9px;
+    letter-spacing:1.4px;
+    font-weight:800;
+    margin-bottom:6px;
+  }
+  .cal-headline-value{
+    color:var(--ink);
+    font-size:26px;
+    font-weight:900;
+    font-family:'Archivo Black',sans-serif;
+    letter-spacing:-0.5px;
+  }
+  .cal-headline-sub{
+    color:var(--dim);
+    font-size:11px;
+    margin-top:4px;
+    font-style:italic;
+  }
+  .cal-row{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:8px;
+    margin-bottom:8px;
+  }
+  .cal-cell{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:6px;
+    padding:10px;
+  }
+  .cal-cell-label{
+    color:var(--dim);
+    font-size:9px;
+    letter-spacing:1.2px;
+    font-weight:700;
+    margin-bottom:4px;
+  }
+  .cal-cell-value{
+    color:var(--ink);
+    font-size:18px;
+    font-weight:800;
+    font-family:'JetBrains Mono',monospace;
+    font-variant-numeric:tabular-nums;
+  }
+  .cal-cell-sub{
+    color:var(--dim);
+    font-size:10px;
+    margin-top:3px;
+  }
+  .cal-compare{
+    background:var(--panel-2);
+    border:1px solid var(--line);
+    border-radius:6px;
+    padding:10px;
+    margin-bottom:14px;
+  }
+  .cal-compare-head{
+    color:var(--accent);
+    font-size:10px;
+    letter-spacing:1.2px;
+    font-weight:800;
+    margin-bottom:8px;
+  }
+  .cal-compare-row{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding:6px 0;
+    border-bottom:1px solid var(--line);
+  }
+  .cal-compare-row:last-child{border-bottom:none}
+  .cal-compare-label{color:var(--dim);font-size:11px}
+  .cal-compare-val{
+    color:var(--ink);
+    font-size:12px;
+    font-weight:700;
+    font-family:'JetBrains Mono',monospace;
+    font-variant-numeric:tabular-nums;
+  }
+  .cal-compare-val.good{color:var(--accent)}
+  .cal-entry{
+    display:grid;
+    grid-template-columns:80px 1fr 90px 90px 60px;
+    gap:8px;
+    align-items:center;
+    padding:8px 10px;
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:5px;
+    margin-bottom:4px;
+    font-size:11px;
+  }
+  .cal-entry-date{color:var(--dim);font-size:9.5px;font-family:'JetBrains Mono',monospace}
+  .cal-entry-matchup{color:var(--ink);font-weight:700;font-size:11px}
+  .cal-entry-proj,.cal-entry-actual{
+    font-family:'JetBrains Mono',monospace;
+    font-variant-numeric:tabular-nums;
+    font-size:10.5px;
+    color:var(--dim);
+  }
+  .cal-entry-err{
+    font-family:'JetBrains Mono',monospace;
+    font-weight:800;
+    font-size:11px;
+    text-align:right;
+    padding:2px 5px;
+    border-radius:3px;
+  }
+  .cal-entry-err.audit-good{color:var(--accent);background:rgba(198,255,61,0.1)}
+  .cal-entry-err.audit-ok{color:var(--warn);background:rgba(255,200,61,0.1)}
+  .cal-entry-err.audit-miss{color:var(--danger);background:rgba(255,85,85,0.1)}
+  @media (max-width:480px){
+    .cal-entry{grid-template-columns:1fr 60px;grid-template-rows:auto auto;gap:4px}
+    .cal-entry-date{grid-column:1 / -1;margin-bottom:2px}
+    .cal-entry-matchup{grid-column:1}
+    .cal-entry-err{grid-column:2;grid-row:2}
+    .cal-entry-proj,.cal-entry-actual{grid-column:1;font-size:10px}
+  }
   .proj-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
   @media(max-width:560px){.proj-grid{grid-template-columns:1fr}}
 
   /* Our projection panel */
   .projection-panel{background:linear-gradient(135deg, rgba(198,255,61,0.08), rgba(198,255,61,0.02));border:1px solid rgba(198,255,61,0.25);border-radius:10px;padding:14px}
   .projection-panel .pp-brand{color:var(--accent);font-size:10px;letter-spacing:0.14em;font-weight:700;margin-bottom:2px}
+
+  /* Live score bar — shown inline between projection grid and divergence */
+  .live-score-bar{
+    margin:10px 0;
+    padding:10px 12px;
+    background:var(--panel-2);
+    border:1px solid var(--line);
+    border-radius:8px;
+    display:flex;
+    align-items:center;
+    gap:10px;
+    flex-wrap:wrap;
+  }
+  .live-score-bar.hidden{display:none}
+  .live-badge{
+    font-size:9.5px;
+    letter-spacing:0.14em;
+    font-weight:700;
+    padding:3px 8px;
+    border-radius:3px;
+    background:var(--danger);
+    color:#fff;
+    animation:pulse 2s ease-in-out infinite;
+  }
+  .live-badge.final{
+    background:var(--accent);
+    color:#0a0d0a;
+    animation:none;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.6; }
+  }
+  .live-score{
+    font-family:'JetBrains Mono',monospace;
+    font-size:15px;
+    font-weight:700;
+    color:var(--ink);
+    font-variant-numeric:tabular-nums;
+    letter-spacing:0.5px;
+  }
+  .live-inning{
+    font-size:11px;
+    color:var(--dim);
+    font-style:italic;
+  }
+  .audit-mini{
+    width:100%;
+    display:flex;
+    align-items:center;
+    gap:8px;
+    margin-top:6px;
+    padding-top:6px;
+    border-top:1px solid var(--line);
+    flex-wrap:wrap;
+  }
+  .audit-label{
+    font-size:10px;
+    color:var(--dim);
+    letter-spacing:0.08em;
+    font-weight:600;
+  }
+  .audit-chip{
+    font-size:10px;
+    padding:2px 7px;
+    border-radius:3px;
+    font-weight:700;
+    letter-spacing:0.04em;
+    font-family:'JetBrains Mono',monospace;
+  }
+  .audit-good{
+    background:var(--accent);
+    color:#0a0d0a;
+  }
+  .audit-ok{
+    background:rgba(255,200,61,0.2);
+    color:var(--warn);
+    border:1px solid var(--warn);
+  }
+  .audit-miss{
+    background:rgba(255,85,85,0.15);
+    color:var(--danger);
+    border:1px solid var(--danger);
+  }
+
+  /* Calibration view */
+  .calib-insight{
+    background:linear-gradient(135deg, rgba(198,255,61,0.04), rgba(102,217,232,0.03));
+    border:1px solid rgba(198,255,61,0.25);
+    border-radius:8px;
+    padding:14px;
+    margin-bottom:16px;
+  }
+  .calib-insight-thin{
+    background:var(--panel-2);
+    border-color:var(--line);
+  }
+  .calib-insight-label{
+    color:var(--accent);
+    font-size:10px;
+    letter-spacing:0.14em;
+    font-weight:700;
+    margin-bottom:8px;
+  }
+  .calib-insight-list{
+    list-style:none;
+    padding:0;
+    margin:0;
+    font-size:11px;
+    line-height:1.7;
+  }
+  .calib-insight-list li{
+    padding-left:14px;
+    position:relative;
+    color:var(--ink);
+    margin-bottom:4px;
+  }
+  .calib-insight-list li::before{
+    content:'▸';
+    position:absolute;
+    left:0;
+    color:var(--accent);
+    font-size:9px;
+    top:4px;
+  }
+  .calib-entry{
+    padding:10px 12px;
+    border-bottom:1px solid var(--line);
+    border-left:3px solid var(--line);
+  }
+  .calib-matchup{
+    font-size:12px;
+    font-weight:700;
+    color:var(--ink);
+    flex:0;
+    min-width:110px;
+  }
+  .calib-actual{
+    font-size:11px;
+    color:var(--ink);
+    font-family:'JetBrains Mono',monospace;
+    font-variant-numeric:tabular-nums;
+    flex:1;
+  }
 
   /* Market panel */
   .market-panel{background:linear-gradient(135deg, rgba(102,217,232,0.06), rgba(102,217,232,0.01));border:1px solid rgba(102,217,232,0.22);border-radius:10px;padding:14px}
@@ -1576,6 +1971,13 @@
 </style>
 </head>
 <body>
+
+<!-- PWA install prompt (Android/Chrome) -->
+<div class="install-prompt" id="installPrompt">
+  <span>Install <b>Mismatch Finder</b> for fullscreen app experience</span>
+  <button onclick="triggerInstall()">INSTALL</button>
+  <button class="install-dismiss" onclick="dismissInstall()">×</button>
+</div>
 <div class="wrap">
 
 <header>
@@ -1811,6 +2213,79 @@
 </div>
 
 <script>
+// =============== PWA / SERVICE WORKER ===============
+let deferredInstallPrompt = null;
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js', { scope: '/' })
+      .then(reg => {
+        // Check for updates every 30 min while app is open
+        setInterval(() => reg.update(), 30 * 60 * 1000);
+
+        // Handle new service worker activation
+        reg.addEventListener('updatefound', () => {
+          const newSW = reg.installing;
+          if (newSW) {
+            newSW.addEventListener('statechange', () => {
+              if (newSW.state === 'installed' && navigator.serviceWorker.controller) {
+                // New version ready — could show a toast here, but for now just activate on next load
+                console.log('[PWA] New version available, will activate on next reload');
+              }
+            });
+          }
+        });
+      })
+      .catch(err => console.warn('[PWA] Service worker registration failed:', err));
+  });
+}
+
+// Android/Chrome: catch the install prompt event and surface our custom UI
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredInstallPrompt = e;
+  // Only show if not previously dismissed in this session
+  if (sessionStorage.getItem('installDismissed') !== '1') {
+    const prompt = document.getElementById('installPrompt');
+    if (prompt) {
+      // Show after 3 seconds so user has a chance to see the app first
+      setTimeout(() => prompt.classList.add('show'), 3000);
+    }
+  }
+});
+
+// Hide prompt after successful install
+window.addEventListener('appinstalled', () => {
+  const prompt = document.getElementById('installPrompt');
+  if (prompt) prompt.classList.remove('show');
+  deferredInstallPrompt = null;
+});
+
+function triggerInstall() {
+  if (!deferredInstallPrompt) {
+    // iOS path — show instructions
+    alert('To install on iOS:\n\n1. Tap the Share button in Safari (square with arrow)\n2. Scroll and tap "Add to Home Screen"\n3. Tap Add in the top right');
+    return;
+  }
+  deferredInstallPrompt.prompt();
+  deferredInstallPrompt.userChoice.then(() => {
+    deferredInstallPrompt = null;
+    document.getElementById('installPrompt')?.classList.remove('show');
+  });
+}
+
+function dismissInstall() {
+  sessionStorage.setItem('installDismissed', '1');
+  document.getElementById('installPrompt')?.classList.remove('show');
+}
+
+// Check if running as installed PWA for analytics / UI tweaks
+const isStandalone = window.matchMedia('(display-mode: standalone)').matches ||
+                     window.navigator.standalone === true;
+if (isStandalone) {
+  document.documentElement.classList.add('standalone-mode');
+}
+
 // =============== STATE ===============
 let state = {
   picks: {},
@@ -1825,7 +2300,8 @@ let state = {
     byTier: { elite: { hits:0, misses:0 }, strong: { hits:0, misses:0 }, solid: { hits:0, misses:0 } }
   },
   gameLineBets: {},      // { 'YYYY-MM-DD_gamePk_type': { date, gamePk, pick, tier, type, price, away, home, result, graded } }
-  firstInningBets: {}    // { 'YYYY-MM-DD_gamePk': { date, gamePk, pick, tier, units, probability, price, away, home, result, graded } }
+  firstInningBets: {},   // { 'YYYY-MM-DD_gamePk': { date, gamePk, pick, tier, units, probability, price, away, home, result, graded } }
+  projectionAudit: {}    // { 'YYYY-MM-DD_gamePk': { date, gamePk, capturedAt, awayTeam, homeTeam, projAwayRuns, projHomeRuns, projTotal, homeWinProb, marketTotal, marketSpread, favoriteML, actualAwayRuns, actualHomeRuns, actualTotal, winner, isFinal, graded } }
 };
 let slateCache = {};      // {date: {games, fetchedAt}}
 let analysisCache = {};   // {gamePk: analysis}
@@ -1917,6 +2393,7 @@ function loadState() {
   state.hrAudit.byTier = state.hrAudit.byTier || { elite:{hits:0,misses:0}, strong:{hits:0,misses:0}, solid:{hits:0,misses:0} };
   state.gameLineBets = state.gameLineBets || {};
   state.firstInningBets = state.firstInningBets || {};
+  state.projectionAudit = state.projectionAudit || {};
   // Secret filter — personal override, adjusts scoring. Only owner knows the config.
   state.secretFilter = state.secretFilter || {
     enabled: false,
@@ -2588,6 +3065,14 @@ function renderAnalysis(data) {
   // Auto-log every "BEST BET" recommendation from this analysis
   logBestBets(data);
 
+  // Snapshot the projection for self-auditing (compared against actuals after game ends)
+  captureProjection(data);
+
+  // Fetch live score in background so we can display it alongside the projection
+  fetchLiveScore(data.gamePk).then(live => {
+    if (live) updateLiveScoreDisplay(data.gamePk, live);
+  }).catch(() => {});
+
   const sideHtml = (key, label) => {
     const s = data[key];
     if (!s || !s.pitcher) return '';
@@ -3057,15 +3542,18 @@ function renderAnalysis(data) {
 
   const umpBlock = ump?.assigned ? `
     <div class="ctx-item">
-      <div class="ctx-label">HP UMPIRE</div>
+      <div class="ctx-label">
+        HP UMPIRE
+        ${ump.absAdjusted ? `<span class="ump-abs-badge ${ump.highOverturn ? 'ump-abs-high' : ''}" title="Factors dampened for 2026 ABS challenge system${ump.highOverturn ? ' — high overturn rate ump, extra dampening applied' : ''}">${ump.highOverturn ? '⚠ HIGH OVERTURN' : 'ABS-ADJ'}</span>` : ''}
+      </div>
       <div class="ctx-value">${ump.name}</div>
       <div class="ctx-sub ctx-lean-${ump.lean === 'hitter-friendly' || ump.lean === 'hitter-leaning' ? 'hitter' : ump.lean === 'pitcher-friendly' || ump.lean === 'pitcher-leaning' ? 'pitcher' : 'neutral'}">
         ${ump.lean === 'hitter-friendly' ? '▲ Hitter-friendly' : ump.lean === 'hitter-leaning' ? '▲ Slight hitter lean' : ump.lean === 'pitcher-friendly' ? '▼ Pitcher-friendly' : ump.lean === 'pitcher-leaning' ? '▼ Slight pitcher lean' : '○ Neutral'}
         ${ump.strength && ump.strength !== 'weak' ? ` (${ump.strength})` : ''}
       </div>
       <div class="ctx-pf">
-        <span class="ctx-chip ${ump.factors.k > 1.03 ? 'cold' : ump.factors.k < 0.97 ? 'hot' : ''}">K <b>${ump.factors.k}x</b></span>
-        <span class="ctx-chip ${ump.factors.bb > 1.03 ? 'hot' : ump.factors.bb < 0.97 ? 'cold' : ''}">BB <b>${ump.factors.bb}x</b></span>
+        <span class="ctx-chip ${ump.factors.k > 1.03 ? 'cold' : ump.factors.k < 0.97 ? 'hot' : ''}" title="${ump.factors.rawK != null ? `Raw historical: ${ump.factors.rawK}x · ABS dampened to ${ump.factors.k}x` : ''}">K <b>${ump.factors.k}x</b></span>
+        <span class="ctx-chip ${ump.factors.bb > 1.03 ? 'hot' : ump.factors.bb < 0.97 ? 'cold' : ''}" title="${ump.factors.rawBb != null ? `Raw historical: ${ump.factors.rawBb}x · ABS + league walk inflation: ${ump.factors.bb}x` : ''}">BB <b>${ump.factors.bb}x</b></span>
         <span class="ctx-chip ${ump.factors.runs > 1.02 ? 'hot' : ump.factors.runs < 0.98 ? 'cold' : ''}">Runs <b>${ump.factors.runs}x</b></span>
       </div>
       ${ump.factors.notes ? `<div class="ctx-sub" style="margin-top:4px;font-style:italic">${ump.factors.notes}</div>` : ''}
@@ -3461,6 +3949,7 @@ function renderAnalysis(data) {
           ${ourPanel}
           ${marketPanel}
         </div>
+        <div id="liveScore_${data.gamePk}" class="live-score-bar hidden"></div>
         ${divergenceHtml}
         ${gameLinesHtml}
         ${firstInningHtml}
@@ -4821,6 +5310,272 @@ function computeGameLineBetStats(entries) {
 // YRFI/NRFI shares the same stat computation as game-line bets
 const computeYrfiStats = computeGameLineBetStats;
 
+// ==================== PROJECTION AUDIT ====================
+// Self-calibration system: every time a game is analyzed, snapshot the projection.
+// When the game finalizes, compare to actual outcome and aggregate error metrics.
+
+// In-memory cache of live scores — keyed by gamePk. 20-second freshness.
+const liveScoreCache = new Map();
+
+/**
+ * Fetch current live score for a game. Used to show "Live 4-2 in 6th" next to projection.
+ * Returns null if game isn't live / final yet.
+ */
+async function fetchLiveScore(gamePk) {
+  if (!gamePk) return null;
+  const cached = liveScoreCache.get(gamePk);
+  if (cached && Date.now() - cached.fetchedAt < 20000) return cached.data;
+  try {
+    const res = await fetch(`/api/game-state?gamePk=${gamePk}`);
+    if (!res.ok) return null;
+    const data = await res.json();
+    liveScoreCache.set(gamePk, { data, fetchedAt: Date.now() });
+    // If final, auto-update the projection audit entry
+    if (data.status?.isFinal) gradeProjectionFromLiveData(gamePk, data);
+    return data;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Update the projection audit with actuals from a live-fetch — happens silently
+ * when the user views an already-finished game.
+ */
+function gradeProjectionFromLiveData(gamePk, liveData) {
+  if (!liveData?.status?.isFinal) return;
+  const today = getTodayStr();
+  // Find the projection audit entry for this gamePk (may be under any date)
+  for (const [key, entry] of Object.entries(state.projectionAudit)) {
+    if (entry.gamePk !== gamePk) continue;
+    if (entry.graded) return;  // already graded
+    const away = liveData.score?.away;
+    const home = liveData.score?.home;
+    if (away == null || home == null) return;
+    const winner = home > away ? entry.homeTeam : away > home ? entry.awayTeam : null;
+    state.projectionAudit[key] = {
+      ...entry,
+      actualAwayRuns: away,
+      actualHomeRuns: home,
+      actualTotal: away + home,
+      winner,
+      isFinal: true,
+      graded: true,
+      gradedAt: Date.now()
+    };
+    saveState();
+    return;
+  }
+}
+
+/**
+ * Render the live score inline on the analysis screen, next to the projection panel.
+ */
+function updateLiveScoreDisplay(gamePk, live) {
+  const el = document.getElementById(`liveScore_${gamePk}`);
+  if (!el || !live) return;
+
+  if (live.status?.isLive) {
+    const inning = live.inning?.ordinal ? `${live.inning.state || ''} ${live.inning.ordinal}` : 'In Progress';
+    el.innerHTML = `
+      <span class="live-badge">● LIVE</span>
+      <span class="live-score">${live.teams?.away?.abbreviation || ''} ${live.score.away ?? 0} – ${live.score.home ?? 0} ${live.teams?.home?.abbreviation || ''}</span>
+      <span class="live-inning">${inning}</span>
+    `;
+    el.classList.remove('hidden');
+  } else if (live.status?.isFinal) {
+    el.innerHTML = `
+      <span class="live-badge final">✓ FINAL</span>
+      <span class="live-score">${live.teams?.away?.abbreviation || ''} ${live.score.away ?? 0} – ${live.score.home ?? 0} ${live.teams?.home?.abbreviation || ''}</span>
+    `;
+    el.classList.remove('hidden');
+
+    // Compute projection vs actual on the fly
+    const entry = Object.values(state.projectionAudit).find(p => p.gamePk === gamePk);
+    if (entry && entry.projTotal != null) {
+      const actualTotal = (live.score.away ?? 0) + (live.score.home ?? 0);
+      const totalErr = entry.projTotal - actualTotal;
+      const winnerCorrect = live.score.home > live.score.away
+        ? entry.projWinner === entry.homeTeam
+        : live.score.away > live.score.home
+        ? entry.projWinner === entry.awayTeam
+        : null;
+      const errClass = Math.abs(totalErr) <= 1.0 ? 'audit-good' : Math.abs(totalErr) <= 2.0 ? 'audit-ok' : 'audit-miss';
+      el.innerHTML += `
+        <div class="audit-mini">
+          <span class="audit-label">vs projection:</span>
+          <span class="audit-chip ${errClass}">
+            Total off by ${totalErr >= 0 ? '+' : ''}${totalErr.toFixed(1)}
+          </span>
+          ${winnerCorrect != null ? `
+            <span class="audit-chip ${winnerCorrect ? 'audit-good' : 'audit-miss'}">
+              Winner ${winnerCorrect ? '✓' : '✗'}
+            </span>
+          ` : ''}
+        </div>
+      `;
+    }
+  }
+}
+
+function captureProjection(data) {
+  if (!data?.gamePk || !data?.projection) return;
+  const date = data.gameDateET || getTodayStr();
+  const key = `${date}_${data.gamePk}`;
+
+  const existing = state.projectionAudit[key];
+  // Don't overwrite if already graded (actuals locked in)
+  if (existing?.graded) return;
+  const entry = {
+    date,
+    gamePk: data.gamePk,
+    capturedAt: existing?.capturedAt || Date.now(),
+    awayTeam: data.awayTeam?.abbreviation || '',
+    homeTeam: data.homeTeam?.abbreviation || '',
+    projAwayRuns: +parseFloat(data.projection.projAwayRuns),
+    projHomeRuns: +parseFloat(data.projection.projHomeRuns),
+    projTotal: +parseFloat(data.projection.projTotal),
+    homeWinProb: +parseFloat(data.projection.homeWinProb) / 100,  // decimal
+    projWinner: parseFloat(data.projection.homeWinProb) >= 50 ? data.homeTeam?.abbreviation : data.awayTeam?.abbreviation,
+    marketTotal: data.odds?.total ?? null,
+    marketSpread: data.odds?.spread ?? null,
+    favoriteML: data.odds?.favoriteML ?? null,
+    favorite: data.odds?.favorite ?? null,
+    deepMode: data.deepMode || false,
+    // Fields filled in on grading:
+    actualAwayRuns: existing?.actualAwayRuns ?? null,
+    actualHomeRuns: existing?.actualHomeRuns ?? null,
+    actualTotal: existing?.actualTotal ?? null,
+    winner: existing?.winner ?? null,
+    isFinal: existing?.isFinal ?? false,
+    graded: existing?.graded ?? false,
+    gradedAt: existing?.gradedAt ?? null
+  };
+
+  state.projectionAudit[key] = entry;
+  saveState();
+}
+
+/**
+ * Grade all ungraded projections against actual final scores.
+ * Uses the existing /api/game-state endpoint if available, falls back to MLB Stats API.
+ */
+async function gradeProjectionAudit() {
+  const today = getTodayStr();
+  const pending = Object.entries(state.projectionAudit).filter(([, p]) => p.date <= today && !p.graded);
+  if (pending.length === 0) { showToast('No pending projections to grade'); return; }
+
+  showToast(`Grading ${pending.length} projection${pending.length !== 1 ? 's' : ''}...`);
+  let graded = 0;
+
+  for (const [key, entry] of pending) {
+    try {
+      const res = await fetch(`/api/game-state?gamePk=${entry.gamePk}`);
+      if (!res.ok) continue;
+      const data = await res.json();
+      if (!data.status?.isFinal) continue;
+
+      const away = data.score?.away;
+      const home = data.score?.home;
+      if (away == null || home == null) continue;
+
+      const total = away + home;
+      const winner = home > away ? entry.homeTeam : away > home ? entry.awayTeam : null;
+
+      state.projectionAudit[key] = {
+        ...entry,
+        actualAwayRuns: away,
+        actualHomeRuns: home,
+        actualTotal: total,
+        winner,
+        isFinal: true,
+        graded: true,
+        gradedAt: Date.now()
+      };
+      graded++;
+    } catch (err) {
+      console.warn('Projection grading failed:', err.message);
+    }
+  }
+
+  saveState();
+  showToast(`Graded ${graded} projection${graded !== 1 ? 's' : ''}`);
+  renderHistory();
+}
+
+/**
+ * Compute aggregate calibration metrics across all graded projections.
+ */
+function computeProjectionStats(entries) {
+  const graded = entries.filter(e => e.graded && e.actualTotal != null);
+  if (graded.length === 0) {
+    return {
+      total: entries.length,
+      graded: 0,
+      pending: entries.length,
+      mae: null,
+      bias: null,
+      winnerAccuracy: null,
+      deepModeMae: null,
+      fastModeMae: null,
+      byTotalRange: {}
+    };
+  }
+
+  // Mean Absolute Error on total
+  let sumAbsErr = 0;
+  let sumSignedErr = 0;
+  let winnerCorrect = 0;
+  let winnerAttempted = 0;
+  let deepErrs = [];
+  let fastErrs = [];
+
+  // Bucket errors by projected total range (to see if we're worse on high-total games)
+  const buckets = { low: [], mid: [], high: [] };
+
+  graded.forEach(e => {
+    const err = e.projTotal - e.actualTotal;
+    sumAbsErr += Math.abs(err);
+    sumSignedErr += err;
+
+    if (e.winner && e.projWinner) {
+      winnerAttempted++;
+      if (e.winner === e.projWinner) winnerCorrect++;
+    }
+
+    if (e.deepMode) deepErrs.push(Math.abs(err));
+    else fastErrs.push(Math.abs(err));
+
+    // Bucket
+    if (e.projTotal < 8) buckets.low.push(Math.abs(err));
+    else if (e.projTotal < 10) buckets.mid.push(Math.abs(err));
+    else buckets.high.push(Math.abs(err));
+  });
+
+  const avg = arr => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null;
+
+  return {
+    total: entries.length,
+    graded: graded.length,
+    pending: entries.length - graded.length,
+    mae: +(sumAbsErr / graded.length).toFixed(2),
+    bias: +(sumSignedErr / graded.length).toFixed(2),
+    winnerAccuracy: winnerAttempted > 0 ? +((winnerCorrect / winnerAttempted) * 100).toFixed(1) : null,
+    winnerCorrect,
+    winnerAttempted,
+    deepModeMae: deepErrs.length ? +avg(deepErrs).toFixed(2) : null,
+    fastModeMae: fastErrs.length ? +avg(fastErrs).toFixed(2) : null,
+    deepModeCount: deepErrs.length,
+    fastModeCount: fastErrs.length,
+    byTotalRange: {
+      low: { count: buckets.low.length, mae: buckets.low.length ? +avg(buckets.low).toFixed(2) : null, label: '<8 runs' },
+      mid: { count: buckets.mid.length, mae: buckets.mid.length ? +avg(buckets.mid).toFixed(2) : null, label: '8-10 runs' },
+      high: { count: buckets.high.length, mae: buckets.high.length ? +avg(buckets.high).toFixed(2) : null, label: '10+ runs' }
+    }
+  };
+}
+
+
 // ==================== FIRST-INNING (YRFI/NRFI) LOGGING, GRADING, STATS ====================
 
 function logFirstInningBet(ctx) {
@@ -4943,8 +5698,9 @@ function renderHistory() {
       <button class="history-subnav-btn ${historyView==='bestbets'?'active':''}" data-hist-view="bestbets" onclick="switchHistoryView('bestbets')">◆ BEST BETS</button>
       <button class="history-subnav-btn ${historyView==='gamebets'?'active':''}" data-hist-view="gamebets" onclick="switchHistoryView('gamebets')">◈ GAME BETS</button>
       <button class="history-subnav-btn ${historyView==='yrfi'?'active':''}" data-hist-view="yrfi" onclick="switchHistoryView('yrfi')">◉ YRFI/NRFI</button>
+      <button class="history-subnav-btn ${historyView==='calibration'?'active':''}" data-hist-view="calibration" onclick="switchHistoryView('calibration')">◎ CALIBRATION</button>
       <button class="history-subnav-btn ${historyView==='picks'?'active':''}" data-hist-view="picks" onclick="switchHistoryView('picks')">$ MY BETS</button>
-      ${historyView === 'gamebets' ? `<button class="btn sm" onclick="gradeGameLineBets()" style="margin-left:auto">⚡ GRADE ALL</button>` : historyView === 'yrfi' ? `<button class="btn sm" onclick="gradeFirstInningBets()" style="margin-left:auto">⚡ GRADE ALL</button>` : `<button class="btn sm" onclick="manualAddHitterToHistory()" style="margin-left:auto">+ ADD HITTER</button>
+      ${historyView === 'gamebets' ? `<button class="btn sm" onclick="gradeGameLineBets()" style="margin-left:auto">⚡ GRADE ALL</button>` : historyView === 'yrfi' ? `<button class="btn sm" onclick="gradeFirstInningBets()" style="margin-left:auto">⚡ GRADE ALL</button>` : historyView === 'calibration' ? `<button class="btn sm" onclick="gradeProjectionAudit()" style="margin-left:auto">⚡ GRADE ALL</button>` : `<button class="btn sm" onclick="manualAddHitterToHistory()" style="margin-left:auto">+ ADD HITTER</button>
       <button class="btn sm" onclick="gradeAllBestBets()" style="margin-left:6px">⚡ GRADE ALL</button>`}
     </div>
   `;
@@ -5144,6 +5900,140 @@ function renderHistory() {
                     <span class="bb-entry-result ${resultClass}">${resultLabel}</span>
                   </div>
                   <div class="bb-entry-meta">${b.away} @ ${b.home}${probText}${scoreText}</div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        `;
+      }).join('')}
+    `;
+    return;
+  }
+
+  // CALIBRATION view — self-auditing projection accuracy
+  if (historyView === 'calibration') {
+    const allEntries = Object.values(state.projectionAudit || {});
+    if (allEntries.length === 0) {
+      container.innerHTML = subnavHtml + `
+        <div class="empty">
+          <div class="empty-icon">◎</div>
+          <div>No projection snapshots yet.</div>
+          <div style="font-size:11px;color:var(--dim);margin-top:8px;max-width:400px;text-align:center">
+            Every time you analyze a game, the tool snapshots its projection.
+            After games finalize, tap GRADE ALL to see how close your projections were.
+            Over 20+ games, this reveals whether the model is systematically over or under.
+          </div>
+        </div>`;
+      return;
+    }
+
+    const stats = computeProjectionStats(allEntries);
+    const graded = allEntries.filter(e => e.graded && e.actualTotal != null);
+
+    // Bias interpretation
+    const biasDirection = stats.bias == null ? ''
+      : stats.bias > 0.2 ? `under-projects by ${stats.bias.toFixed(2)} runs on avg`
+      : stats.bias < -0.2 ? `over-projects by ${Math.abs(stats.bias).toFixed(2)} runs on avg`
+      : 'very balanced (near zero bias)';
+
+    // MAE quality label
+    const maeLabel = stats.mae == null ? ''
+      : stats.mae <= 1.0 ? 'SHARP'
+      : stats.mae <= 1.75 ? 'COMPETITIVE'
+      : stats.mae <= 2.5 ? 'BASELINE'
+      : 'NEEDS WORK';
+    const maeLabelColor = stats.mae <= 1.0 ? 'var(--accent)'
+      : stats.mae <= 1.75 ? 'var(--cool)'
+      : stats.mae <= 2.5 ? 'var(--warn)'
+      : 'var(--danger)';
+
+    // Deep vs fast comparison
+    let deepFastVerdict = '';
+    if (stats.deepModeMae != null && stats.fastModeMae != null && stats.deepModeCount >= 5 && stats.fastModeCount >= 5) {
+      const diff = stats.fastModeMae - stats.deepModeMae;
+      if (diff > 0.15) deepFastVerdict = `Deep mode is ${diff.toFixed(2)} runs more accurate — worth the wait`;
+      else if (diff < -0.15) deepFastVerdict = `Fast mode is actually ${Math.abs(diff).toFixed(2)} runs more accurate — deep mode may be overfitting`;
+      else deepFastVerdict = 'Deep and fast modes perform similarly on this sample';
+    }
+
+    // Group by date for entry table
+    const byDate = {};
+    graded.forEach(e => { (byDate[e.date] = byDate[e.date] || []).push(e); });
+    const sortedDates = Object.keys(byDate).sort().reverse();
+
+    container.innerHTML = subnavHtml + `
+      <div class="bestbet-stats">
+        <div class="bbs-grid">
+          <div class="bbs-cell">
+            <div class="bbs-label">SAMPLE</div>
+            <div class="bbs-value">${stats.graded}</div>
+            <div class="bbs-sub">${stats.pending} pending</div>
+          </div>
+          <div class="bbs-cell">
+            <div class="bbs-label">TOTAL MAE</div>
+            <div class="bbs-value" style="color:${maeLabelColor}">${stats.mae ?? '—'}</div>
+            <div class="bbs-sub">${maeLabel}</div>
+          </div>
+          <div class="bbs-cell">
+            <div class="bbs-label">WINNER %</div>
+            <div class="bbs-value">${stats.winnerAccuracy ?? '—'}%</div>
+            <div class="bbs-sub">${stats.winnerCorrect}/${stats.winnerAttempted}</div>
+          </div>
+          <div class="bbs-cell">
+            <div class="bbs-label">BIAS</div>
+            <div class="bbs-value">${stats.bias == null ? '—' : (stats.bias >= 0 ? '+' : '') + stats.bias}</div>
+            <div class="bbs-sub">${stats.bias == null ? 'need more' : stats.bias > 0 ? 'runs under' : 'runs over'}</div>
+          </div>
+          <div class="bbs-cell">
+            <div class="bbs-label">DEEP MAE</div>
+            <div class="bbs-value">${stats.deepModeMae ?? '—'}</div>
+            <div class="bbs-sub">${stats.deepModeCount} games</div>
+          </div>
+        </div>
+      </div>
+
+      ${stats.graded >= 5 ? `
+        <div class="calib-insight">
+          <div class="calib-insight-label">◎ WHAT THIS MEANS</div>
+          <ul class="calib-insight-list">
+            <li>Model ${biasDirection}</li>
+            ${stats.mae != null ? `<li>Total projections land within ±${stats.mae} runs of final on average (${maeLabel.toLowerCase()})</li>` : ''}
+            ${stats.winnerAccuracy != null ? `<li>Picks the winner ${stats.winnerAccuracy}% of the time — vs 50% coin flip baseline</li>` : ''}
+            ${deepFastVerdict ? `<li>${deepFastVerdict}</li>` : ''}
+            ${stats.byTotalRange.low.mae != null && stats.byTotalRange.high.mae != null ? `<li>Error by range: <b>${stats.byTotalRange.low.mae}</b> on low-total (<8), <b>${stats.byTotalRange.mid.mae || '—'}</b> mid (8-10), <b>${stats.byTotalRange.high.mae}</b> high (10+)</li>` : ''}
+          </ul>
+        </div>
+      ` : `
+        <div class="calib-insight calib-insight-thin">
+          <div class="calib-insight-label">◎ NEED MORE DATA</div>
+          <p style="font-size:11px;color:var(--dim);margin:6px 0 0;line-height:1.5">
+            Calibration numbers need at least ~20 graded games to be meaningful.
+            You have ${stats.graded}. Keep analyzing games to build the sample.
+          </p>
+        </div>
+      `}
+
+      ${sortedDates.map(d => {
+        const entries = byDate[d].sort((a, b) => b.gradedAt - a.gradedAt);
+        return `
+          <div class="bb-date-group">
+            <div class="bb-date-head">${d}</div>
+            ${entries.map(e => {
+              const err = e.projTotal - e.actualTotal;
+              const errClass = Math.abs(err) <= 1.0 ? 'audit-good' : Math.abs(err) <= 2.0 ? 'audit-ok' : 'audit-miss';
+              const winnerCorrect = e.winner === e.projWinner;
+              return `
+                <div class="bb-entry calib-entry">
+                  <div class="bb-entry-head">
+                    <span class="calib-matchup">${e.awayTeam} @ ${e.homeTeam}</span>
+                    <span class="calib-actual">${e.actualAwayRuns}-${e.actualHomeRuns} (Total ${e.actualTotal})</span>
+                    <span class="audit-chip ${errClass}">${err >= 0 ? '+' : ''}${err.toFixed(2)}</span>
+                    <span class="audit-chip ${winnerCorrect ? 'audit-good' : 'audit-miss'}">${winnerCorrect ? 'W✓' : 'W✗'}</span>
+                  </div>
+                  <div class="bb-entry-meta">
+                    Projected ${e.projAwayRuns.toFixed(1)}–${e.projHomeRuns.toFixed(1)} (Total ${e.projTotal.toFixed(1)}) · ${e.deepMode ? 'Deep' : 'Fast'} mode
+                    ${e.marketTotal != null ? ` · Market ${e.marketTotal}` : ''}
+                  </div>
                 </div>
               `;
             }).join('')}
@@ -5601,7 +6491,7 @@ function saveNotes() {
 function confirmReset() {
   if (!confirm('Reset ALL data?')) return;
   if (!confirm('Are you sure? Cannot be undone.')) return;
-  state = { picks:{}, banned:{pitchers:[],hitters:[],teams:[]}, notes:'', currentDate:getTodayStr(), researchTags:{}, tracking:{}, bestBetHistory:{}, hrAudit: { entries: [], byTier: { elite:{hits:0,misses:0}, strong:{hits:0,misses:0}, solid:{hits:0,misses:0} } }, gameLineBets: {}, firstInningBets: {}, secretFilter: { enabled: false } };
+  state = { picks:{}, banned:{pitchers:[],hitters:[],teams:[]}, notes:'', currentDate:getTodayStr(), researchTags:{}, tracking:{}, bestBetHistory:{}, hrAudit: { entries: [], byTier: { elite:{hits:0,misses:0}, strong:{hits:0,misses:0}, solid:{hits:0,misses:0} } }, gameLineBets: {}, firstInningBets: {}, projectionAudit: {}, secretFilter: { enabled: false } };
   saveState();
   location.reload();
 }
@@ -5650,6 +6540,7 @@ function importBackup(event) {
           hrAudit: imp.hrAudit || { entries: [], byTier: { elite:{hits:0,misses:0}, strong:{hits:0,misses:0}, solid:{hits:0,misses:0} } },
           gameLineBets: imp.gameLineBets || {},
           firstInningBets: imp.firstInningBets || {},
+          projectionAudit: imp.projectionAudit || {},
           secretFilter: imp.secretFilter || { enabled: false }
         };
         saveState();

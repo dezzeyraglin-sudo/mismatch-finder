@@ -2,7 +2,7 @@
 // Returns assigned home plate umpire for a game + their historical K/BB/runs factors
 // Umpire assignments post ~1-3 hours before first pitch per MLB
 
-import { UMPIRE_FACTORS, classifyUmp } from './_data/umpireFactors.js';
+import { UMPIRE_FACTORS, classifyUmp, getAbsAdjustedFactors } from './_data/umpireFactors.js';
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -47,7 +47,7 @@ export default async function handler(req, res) {
     }
 
     const umpName = hpUmp.official?.fullName || '';
-    const factors = UMPIRE_FACTORS[umpName] || null;
+    const factors = getAbsAdjustedFactors(umpName);
 
     const result = {
       gamePk,
@@ -56,7 +56,9 @@ export default async function handler(req, res) {
         id: hpUmp.official?.id,
         name: umpName
       },
-      factors: factors || { k: 1.00, bb: 1.00, runs: 1.00, notes: 'No historical tendency data (new/low-sample ump)' },
+      factors,
+      absAdjusted: factors.absAdjusted || false,
+      highOverturn: factors.highOverturn || false,
       ...classifyUmp(factors)
     };
 

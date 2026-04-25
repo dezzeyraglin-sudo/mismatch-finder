@@ -3,7 +3,7 @@
 // Calls helper functions DIRECTLY (no HTTP) to avoid Vercel cold-start 404 issues.
 
 import { PARK_FACTORS_BY_TEAM, PARK_GEO, getParkGeo } from './_data/parkFactors.js';
-import { UMPIRE_FACTORS, classifyUmp } from './_data/umpireFactors.js';
+import { UMPIRE_FACTORS, classifyUmp, getAbsAdjustedFactors } from './_data/umpireFactors.js';
 import { getProbables, getPitcherArsenal, getBullpenProfile, getLineup, getHitterStats, getHitterSplits, getPitcherSplits, getHitterPitchTypeByHand, getGameOdds } from './_lib/data.js';
 import { getBlendedInningSplits } from './_lib/pitcherInnings.js';
 import { getWeatherForecast, computeWeatherImpact } from './_lib/weather.js';
@@ -90,12 +90,14 @@ export default async function handler(req, res) {
       const hp = officials.find(o => o.officialType === 'Home Plate' || o.officialType === 'Home');
       if (hp) {
         const umpName = hp.official?.fullName || '';
-        const factors = UMPIRE_FACTORS[umpName] || null;
+        const factors = getAbsAdjustedFactors(umpName);
         const classification = classifyUmp(factors);
         results.umpire = {
           assigned: true,
           name: umpName,
-          factors: factors || { k: 1.00, bb: 1.00, runs: 1.00, notes: 'No historical data' },
+          factors,
+          absAdjusted: factors.absAdjusted || false,
+          highOverturn: factors.highOverturn || false,
           ...classification
         };
       } else {
@@ -735,6 +737,39 @@ export default async function handler(req, res) {
 
     sideResults.forEach(r => { if (r) results[r.key] = r.data; });
 
+    // ===== ONE TOP PICK PER GAME =====
+    // Keep only the higher-scoring top pick across both sides; null out the other.
+    // Tiebreakers (stable, deterministic): scoreValue desc → FULL_GAME bullpen edge →
+    // deep-mode verified → higher adj xwOBA → alphabetical hitter name.
+    {
+      const a = results.awayVsHome?.topPick || null;
+      const h = results.homeVsAway?.topPick || null;
+      if (a && h) {
+        const cmp = (x, y) => {
+          if ((y.scoreValue || 0) !== (x.scoreValue || 0)) return (y.scoreValue || 0) - (x.scoreValue || 0);
+          const xFull = x.bullpenTier === 'FULL_GAME' ? 1 : 0;
+          const yFull = y.bullpenTier === 'FULL_GAME' ? 1 : 0;
+          if (xFull !== yFull) return yFull - xFull;
+          const xDeep = x.verified ? 1 : 0;
+          const yDeep = y.verified ? 1 : 0;
+          if (xDeep !== yDeep) return yDeep - xDeep;
+          if ((y.adjustedMaxXwoba || 0) !== (x.adjustedMaxXwoba || 0)) return (y.adjustedMaxXwoba || 0) - (x.adjustedMaxXwoba || 0);
+          return (x.hitter || '').localeCompare(y.hitter || '');
+        };
+        // Negative result means away wins (a should stay), positive means home wins
+        const winnerIsAway = cmp(a, h) <= 0;
+        const losingSide = winnerIsAway ? results.homeVsAway : results.awayVsHome;
+        // Null the losing side's topPick AND clear the corresponding mismatch's isTopPick flag
+        if (losingSide?.topPick && Array.isArray(losingSide.mismatches)) {
+          const losingId = losingSide.topPick.hitterId;
+          for (const m of losingSide.mismatches) {
+            if (m.hitterId === losingId) m.isTopPick = false;
+          }
+        }
+        losingSide.topPick = null;
+      }
+    }
+
     // ===== FIRST-INNING SCORING PROJECTION =====
     // YRFI/NRFI uses 1st-inning xwOBA-against from inning splits + lineup tier + park/weather/ump context
     results.firstInning = computeFirstInningProbability(
@@ -781,7 +816,9 @@ export default async function handler(req, res) {
         }
       }
       if (gl.moneyline && gl.moneyline.side) {
-        gl.moneyline.probability = estimateMoneylineProbability(Number(projection.homeWinProb), gl.moneyline.side);
+        // projection.homeWinProb is stored as a percentage string ("62.5"), divide by 100 for decimal
+        const homeWPDecimal = Number(projection.homeWinProb) / 100;
+        gl.moneyline.probability = estimateMoneylineProbability(homeWPDecimal, gl.moneyline.side);
         if (gl.moneyline.price != null) {
           gl.moneyline.edge = computeEdge(gl.moneyline.probability, gl.moneyline.price);
         }

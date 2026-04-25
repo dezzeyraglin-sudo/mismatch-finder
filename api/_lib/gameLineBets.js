@@ -54,7 +54,8 @@ export function buildGameLineRecommendations({ projection, odds, teams }) {
 
   // ==================== MONEYLINE ====================
   if (odds.favoriteML != null && odds.favorite && projection.homeWinProb != null) {
-    const modelHomeWP = Number(projection.homeWinProb);
+    // projection.homeWinProb is stored as a percentage string ("62.5"), divide by 100 for decimal
+    const modelHomeWP = Number(projection.homeWinProb) / 100;
     const modelAwayWP = 1 - modelHomeWP;
     // Derive underdog ML from favorite ML (assume dime line: +((|fav| - 10) sign-flipped))
     // This is an approximation — actual dog price varies by book
