@@ -1,0 +1,754 @@
+/**
+ * Lyrid Analysis Screen Styles
+ *
+ * Overrides for the existing analysis screen markup. The renderAnalysis()
+ * function still produces the same HTML structure — these styles give it
+ * the Sharp Light visual treatment per the Lyrid brand spec.
+ *
+ * In a future session, the renderAnalysis() function will be rewritten to
+ * produce the canonical Lyrid markup directly. This file is the bridge.
+ */
+
+/* ===========================================================
+   ANALYSIS HEADER — game matchup band
+   =========================================================== */
+#analysisContainer .analysis-head {
+  background: var(--surface-card);
+  border: 0.5px solid var(--border-hairline);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  margin-bottom: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+#analysisContainer .analysis-title {
+  font-family: var(--font-serif);
+  font-size: 28px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+#analysisContainer .analysis-head .ctx-sub,
+#analysisContainer .analysis-head .game-time {
+  font-family: var(--font-sans);
+  font-size: 14px;
+  color: var(--text-secondary);
+  font-weight: 400;
+  letter-spacing: 0;
+}
+
+/* Deep mode toggle / banner — quieter, more refined */
+#analysisContainer .deep-mode-banner,
+#analysisContainer .deep-toggle {
+  background: var(--surface-muted);
+  border: 0.5px solid var(--border-hairline);
+  border-radius: var(--radius-md);
+  padding: 12px 16px;
+  margin: 0 0 16px;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+#analysisContainer .deep-mode-banner .dmb-label {
+  color: var(--brand-primary);
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+#analysisContainer .deep-mode-banner .dmb-desc {
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-style: normal;
+}
+
+#analysisContainer .deep-upgrade-btn {
+  background: var(--brand-primary);
+  color: var(--text-on-primary);
+  border: none;
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: var(--font-sans);
+  letter-spacing: 0;
+  margin-left: auto;
+}
+#analysisContainer .deep-upgrade-btn:hover {
+  background: var(--brand-primary-hover);
+}
+
+/* ===========================================================
+   PROJECTION PANEL — Lyrid model column
+   =========================================================== */
+#analysisContainer .projection-panel,
+#analysisContainer .market-panel {
+  background: var(--surface-card);
+  border: 0.5px solid var(--border-hairline);
+  border-radius: var(--radius-md);
+  padding: 20px;
+}
+
+#analysisContainer .projection-panel {
+  background: linear-gradient(135deg, rgba(27, 58, 91, 0.025), rgba(27, 58, 91, 0.005));
+  border: 0.5px solid rgba(27, 58, 91, 0.20);
+}
+
+#analysisContainer .projection-panel .pp-brand,
+#analysisContainer .market-panel .mp-brand {
+  font-family: var(--font-sans);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-weight: 500;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+
+#analysisContainer .projection-panel .pp-brand {
+  color: var(--brand-primary);
+}
+
+/* Score line numbers in mono */
+#analysisContainer .pp-total,
+#analysisContainer .mp-total {
+  font-family: var(--font-mono);
+  font-size: 28px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+  line-height: 1;
+}
+
+#analysisContainer .projection-panel .pp-total {
+  color: var(--brand-primary);
+}
+
+#analysisContainer .pp-team-row,
+#analysisContainer .mp-team-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  color: var(--text-secondary);
+  padding: 4px 0;
+}
+
+#analysisContainer .pp-team-row .pp-team-runs,
+#analysisContainer .mp-team-row .mp-team-runs {
+  font-family: var(--font-mono);
+  font-weight: 500;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ===========================================================
+   DIVERGENCE CALLOUT — model vs market
+   =========================================================== */
+#analysisContainer .divergence-panel {
+  background: var(--surface-card);
+  border-left: 3px solid var(--brand-primary);
+  border-top: 0;
+  border-right: 0;
+  border-bottom: 0;
+  border-radius: 0;
+  padding: 12px 18px;
+  margin: 16px 0;
+}
+
+#analysisContainer .divergence-head {
+  font-family: var(--font-sans);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-weight: 500;
+  color: var(--brand-primary);
+  margin-bottom: 4px;
+}
+
+#analysisContainer .divergence-panel p,
+#analysisContainer .divergence-panel .edge-desc {
+  font-family: var(--font-sans);
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* ===========================================================
+   GAME LINES (ML/Spread/Total)
+   =========================================================== */
+#analysisContainer .gamelines-panel {
+  background: var(--surface-card);
+  border: 0.5px solid var(--border-hairline);
+  border-radius: var(--radius-md);
+  padding: 20px;
+  margin: 16px 0;
+}
+
+#analysisContainer .gamelines-panel .glb-head,
+#analysisContainer .gamelines-panel .glb-brand {
+  font-family: var(--font-sans);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-weight: 500;
+  color: var(--text-muted);
+  margin-bottom: 12px;
+}
+
+#analysisContainer .glb-best {
+  background: var(--brand-tint);
+  border: 1px solid var(--brand-primary);
+  border-radius: var(--radius-md);
+  padding: 16px 18px;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+#analysisContainer .glb-best-label {
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-weight: 500;
+  color: var(--brand-primary);
+}
+
+#analysisContainer .glb-best-pick {
+  font-family: var(--font-serif);
+  font-size: 18px;
+  font-weight: 500;
+  color: var(--text-primary);
+  letter-spacing: -0.01em;
+}
+
+#analysisContainer .glb-best-price,
+#analysisContainer .glb-price {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+#analysisContainer .glb-best-units,
+#analysisContainer .glb-prob {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--brand-primary);
+  background: var(--surface-card);
+  padding: 3px 8px;
+  border-radius: var(--radius-sm);
+  border: 0.5px solid var(--border-hairline);
+}
+
+#analysisContainer .glb-rows {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 6px;
+}
+
+#analysisContainer .glb-rows > div {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  background: var(--surface-muted);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  flex-wrap: wrap;
+}
+
+#analysisContainer .glb-type {
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  font-weight: 500;
+  min-width: 60px;
+}
+
+#analysisContainer .glb-pick {
+  flex: 1;
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+#analysisContainer .glb-tier {
+  font-family: var(--font-sans);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  font-weight: 500;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: var(--radius-sm);
+}
+
+#analysisContainer .glb-tier.STRONG {
+  background: var(--data-positive-surface);
+  color: var(--data-positive);
+}
+#analysisContainer .glb-tier.MODERATE {
+  background: var(--data-live-surface);
+  color: var(--data-live);
+}
+#analysisContainer .glb-tier.SLIGHT {
+  background: var(--data-warning-surface);
+  color: var(--data-warning);
+}
+#analysisContainer .glb-tier.PASS {
+  background: var(--surface-muted);
+  color: var(--text-muted);
+}
+
+#analysisContainer .glb-best-reasons {
+  font-family: var(--font-sans);
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  width: 100%;
+  margin-top: 8px;
+}
+
+#analysisContainer .glb-log-btn {
+  background: var(--brand-primary);
+  color: var(--text-on-primary);
+  border: none;
+  padding: 7px 14px;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  letter-spacing: 0;
+  margin-top: 8px;
+}
+#analysisContainer .glb-log-btn:hover { background: var(--brand-primary-hover); }
+#analysisContainer .glb-log-btn:disabled {
+  background: var(--surface-muted);
+  color: var(--text-muted);
+  cursor: not-allowed;
+}
+
+#analysisContainer .glb-empty,
+#analysisContainer .glb-disclaimer {
+  font-family: var(--font-sans);
+  font-size: 12px;
+  color: var(--text-muted);
+  font-style: italic;
+  text-align: center;
+  padding: 12px;
+}
+
+/* ===========================================================
+   FIRST INNING (YRFI/NRFI)
+   =========================================================== */
+#analysisContainer .yrfi-panel,
+#analysisContainer .first-inning-panel {
+  background: var(--surface-card);
+  border: 0.5px solid var(--border-hairline);
+  border-radius: var(--radius-md);
+  padding: 20px;
+  margin: 16px 0;
+}
+
+#analysisContainer .yrfi-panel .ig-k,
+#analysisContainer .first-inning-panel .ig-k {
+  font-family: var(--font-mono);
+  font-size: 24px;
+  font-weight: 500;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+#analysisContainer .inn-callouts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 12px 0;
+}
+
+#analysisContainer .inn-g-label {
+  font-family: var(--font-sans);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+/* ===========================================================
+   ENVIRONMENT — park / weather / umpire chips
+   =========================================================== */
+#analysisContainer .ctx-item {
+  background: var(--surface-muted);
+  border-radius: var(--radius-md);
+  padding: 14px 16px;
+  border: none;
+}
+
+#analysisContainer .ctx-label {
+  font-family: var(--font-sans);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-weight: 500;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+
+#analysisContainer .ctx-value {
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary);
+  line-height: 1.4;
+}
+
+#analysisContainer .ctx-sub,
+#analysisContainer .ctx-pf {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+  margin-top: 2px;
+}
+
+#analysisContainer .ctx-chip {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-card);
+  border: 0.5px solid var(--border-hairline);
+  color: var(--text-secondary);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ===========================================================
+   TOP PICK (the surviving one across both sides)
+   =========================================================== */
+#analysisContainer .top-pick-card,
+#analysisContainer .dual-picks {
+  background: var(--surface-card);
+  border: 2px solid var(--brand-primary);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  margin: 20px 0;
+  position: relative;
+}
+
+#analysisContainer .top-pick-card::before,
+#analysisContainer .dual-picks::before {
+  content: "Tonight's signal";
+  position: absolute;
+  top: -12px;
+  left: 20px;
+  background: var(--brand-primary);
+  color: var(--brand-secondary);
+  font-family: var(--font-sans);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 4px 10px;
+  border-radius: var(--radius-pill);
+  line-height: 1;
+}
+
+/* ===========================================================
+   HITTERS — mismatch list
+   =========================================================== */
+#analysisContainer .hitter-row,
+#analysisContainer .mismatch-card {
+  background: var(--surface-card);
+  border: 0.5px solid var(--border-hairline);
+  border-radius: var(--radius-md);
+  padding: 14px 18px;
+  margin: 6px 0;
+  transition: border-color var(--duration-fast) var(--easing-standard);
+}
+
+#analysisContainer .hitter-row:hover,
+#analysisContainer .mismatch-card:hover {
+  border-color: var(--border-strong);
+}
+
+#analysisContainer .hitter-row .hand,
+#analysisContainer .mismatch-card .hand {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-muted);
+  font-weight: 400;
+}
+
+/* Tier pills */
+#analysisContainer .tier-elite,
+#analysisContainer .tier-strong,
+#analysisContainer .tier-solid {
+  font-family: var(--font-sans);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: var(--radius-sm);
+}
+#analysisContainer .tier-elite,
+#analysisContainer [class*="tier-elite"] {
+  background: var(--tier-elite-fill);
+  color: var(--tier-elite-text);
+}
+#analysisContainer .tier-strong,
+#analysisContainer [class*="tier-strong"] {
+  background: var(--tier-strong-fill);
+  color: var(--tier-strong-text);
+}
+#analysisContainer .tier-solid,
+#analysisContainer [class*="tier-solid"] {
+  background: var(--tier-solid-fill);
+  color: var(--tier-solid-text);
+}
+
+/* xwOBA display */
+#analysisContainer .xwoba-value {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Pitch arsenal chips */
+#analysisContainer .pitch-chip {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  padding: 3px 8px;
+  background: var(--surface-muted);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  margin-right: 4px;
+  margin-bottom: 4px;
+  display: inline-block;
+  font-variant-numeric: tabular-nums;
+}
+#analysisContainer .pitch-chip .pct {
+  color: var(--text-muted);
+  margin-left: 4px;
+}
+
+/* ===========================================================
+   PROBABILITY CHIPS (4-tier color)
+   =========================================================== */
+#analysisContainer .prob-chip,
+#analysisContainer [class*="prob-tier"] {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  padding: 2px 7px;
+  border-radius: var(--radius-sm);
+  font-variant-numeric: tabular-nums;
+}
+#analysisContainer .prob-tier-high {
+  background: var(--data-positive-surface);
+  color: var(--data-positive);
+}
+#analysisContainer .prob-tier-mid {
+  background: var(--brand-tint);
+  color: var(--brand-primary);
+}
+#analysisContainer .prob-tier-low {
+  background: var(--data-warning-surface);
+  color: var(--data-warning);
+}
+#analysisContainer .prob-tier-vlow {
+  background: var(--data-negative-surface);
+  color: var(--data-negative);
+}
+
+/* ===========================================================
+   PITCHER PROPS — DK/FD section
+   =========================================================== */
+#analysisContainer .pp-panel,
+#analysisContainer .pitcher-props {
+  background: var(--surface-card);
+  border: 0.5px solid var(--border-hairline);
+  border-radius: var(--radius-md);
+  padding: 20px;
+  margin: 16px 0;
+}
+
+/* ===========================================================
+   AB-TIMING / BULLPEN TIER chips
+   =========================================================== */
+#analysisContainer .bp-label {
+  font-family: var(--font-sans);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 2px 7px;
+  border-radius: var(--radius-sm);
+  background: var(--brand-tint);
+  color: var(--brand-primary);
+}
+
+#analysisContainer .ab-meltdown-flag,
+#analysisContainer .ab-timing-row {
+  font-family: var(--font-sans);
+  font-size: 12px;
+  color: var(--text-secondary);
+  padding: 4px 0;
+}
+
+#analysisContainer .ab-timing-best {
+  color: var(--brand-primary);
+  font-weight: 500;
+}
+
+/* ===========================================================
+   LIVE SCORE BAR adjustments inside analysis container
+   =========================================================== */
+#analysisContainer .live-score-bar {
+  background: var(--surface-card);
+  border: 0.5px solid var(--border-hairline);
+  border-radius: var(--radius-md);
+  padding: 12px 16px;
+  margin-bottom: 16px;
+}
+
+#analysisContainer .live-badge {
+  background: var(--data-negative);
+  color: #FFF;
+  font-family: var(--font-sans);
+  letter-spacing: 0.12em;
+  font-weight: 500;
+  border-radius: var(--radius-sm);
+  padding: 3px 8px;
+  font-size: 10px;
+  animation: pulse 2s ease-in-out infinite;
+}
+#analysisContainer .live-badge.final {
+  background: var(--data-positive-surface);
+  color: var(--data-positive);
+  animation: none;
+}
+
+#analysisContainer .live-score {
+  font-family: var(--font-mono);
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+}
+
+#analysisContainer .live-inning {
+  font-family: var(--font-sans);
+  font-size: 12px;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+#analysisContainer .audit-mini {
+  border-top: 0.5px solid var(--border-hairline);
+}
+
+#analysisContainer .audit-label {
+  font-family: var(--font-sans);
+  font-size: 11px;
+  color: var(--text-muted);
+  letter-spacing: 0.04em;
+}
+
+#analysisContainer .audit-chip {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  padding: 2px 7px;
+  border-radius: var(--radius-sm);
+}
+
+#analysisContainer .audit-good {
+  background: var(--data-positive-surface);
+  color: var(--data-positive);
+}
+#analysisContainer .audit-ok {
+  background: var(--data-warning-surface);
+  color: var(--data-warning);
+}
+#analysisContainer .audit-miss {
+  background: var(--data-negative-surface);
+  color: var(--data-negative);
+}
+
+/* ===========================================================
+   GENERIC SECTION TITLES
+   =========================================================== */
+#analysisContainer h2,
+#analysisContainer h3 {
+  font-family: var(--font-serif);
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+}
+
+#analysisContainer h3 {
+  font-size: 18px;
+  font-weight: 500;
+  margin: 20px 0 12px;
+}
+
+/* Quieten the legacy "ANALYSIS" / "PROJECTION" / "PICKS" eyebrows */
+#analysisContainer .section-eyebrow,
+#analysisContainer .panel-label {
+  font-family: var(--font-sans);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+/* ===========================================================
+   BAN / TAG buttons inside analysis
+   =========================================================== */
+#analysisContainer .ban-quick-btn,
+#analysisContainer .deep-dive-btn {
+  background: transparent;
+  color: var(--text-muted);
+  border: 0.5px solid var(--border-hairline);
+  padding: 4px 10px;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  letter-spacing: 0;
+  transition: all var(--duration-fast) var(--easing-standard);
+}
+#analysisContainer .ban-quick-btn:hover,
+#analysisContainer .deep-dive-btn:hover {
+  border-color: var(--brand-primary);
+  color: var(--brand-primary);
+  background: var(--brand-tint);
+}
