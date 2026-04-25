@@ -15,9 +15,18 @@
 import { getSupabaseAdmin, isSupabaseConfigured } from './supabase-admin.js';
 
 /**
- * When Supabase isn't configured (pre-monetization mode), every request
- * is treated as an anonymous Pro user — full access, no quota enforcement.
- * This lets the tool work normally until you finish setting up Supabase.
+ * The auth gate has TWO independent flags:
+ *
+ *   1. isSupabaseConfigured() — env vars present, database reachable
+ *   2. isMonetizationLaunched() — login UI shipped, users can sign in
+ *
+ * BOTH must be true before auth is enforced on requests. This separation lets you:
+ *   - Set up Supabase (Phase 1-7) without breaking the live app
+ *   - Test the auth/database wiring via /api/health
+ *   - Keep pre-monetization mode active until you're ready to launch monetization
+ *
+ * To launch monetization later, set the env var: MONETIZATION_LAUNCHED=true
+ * Until then, every request is treated as a Pro user with unlimited quota.
  */
 const PRE_MONETIZATION_USER = {
   id: null,
@@ -29,6 +38,16 @@ const PRE_MONETIZATION_USER = {
   preMonetization: true,
 };
 
+function isMonetizationLaunched() {
+  // Explicit opt-in — defaults to false, only true when env var explicitly set
+  const v = process.env.MONETIZATION_LAUNCHED;
+  return v === 'true' || v === '1' || v === 'yes';
+}
+
+function isAuthGateActive() {
+  return isSupabaseConfigured() && isMonetizationLaunched();
+}
+
 /**
  * Verify a request's auth token and return the authenticated user with tier info.
  * Returns null for unauthenticated requests (anonymous = free tier with limits).
@@ -38,8 +57,9 @@ const PRE_MONETIZATION_USER = {
  * @returns {Promise<null | { id, email, tier, isPro, isSharp, profile }>}
  */
 export async function authenticate(req) {
-  // Pre-monetization mode: Supabase not configured, treat as Pro
-  if (!isSupabaseConfigured()) return PRE_MONETIZATION_USER;
+  // Pre-monetization mode: auth gate not active yet, treat as Pro
+  // (active = Supabase configured AND MONETIZATION_LAUNCHED env var set)
+  if (!isAuthGateActive()) return PRE_MONETIZATION_USER;
 
   const authHeader = req.headers?.authorization || req.headers?.Authorization;
   if (!authHeader || !authHeader.startsWith('Bearer ')) return null;
@@ -155,7 +175,7 @@ const DAILY_QUOTAS = {
 
 export async function checkAndIncrementQuota(user, feature) {
   // Pre-monetization mode: no quota enforcement
-  if (!isSupabaseConfigured() || user?.preMonetization) {
+  if (!isAuthGateActive() || user?.preMonetization) {
     return { used: 0, limit: Infinity };
   }
 
@@ -228,7 +248,7 @@ export async function checkAndIncrementQuota(user, feature) {
  * Used by /api/me to display "2 of 3 deep analyses today" in the UI.
  */
 export async function getDailyUsage(userId) {
-  if (!isSupabaseConfigured() || !userId) {
+  if (!isAuthGateActive() || !userId) {
     return { deep_analyses: 0 };
   }
   const supabase = await getSupabaseAdmin();

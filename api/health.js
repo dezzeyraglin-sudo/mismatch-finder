@@ -169,10 +169,22 @@ export default async function handler(req, res) {
   report.monetizationReady =
     subs.supabase.status === 'ok' &&
     subs.supabaseSchema.status === 'ok';
-    // Stripe optional — can flip on auth without payments first
 
-  if (report.monetizationReady && report.nextSteps.length === 0) {
-    report.nextSteps.push('Ready to launch monetization. Sign up flow + checkout flow next.');
+  // Auth gate is ONLY active when Supabase is configured AND launch flag is set.
+  // Until then, every API request is treated as a Pro user (pre-monetization mode).
+  const launchFlag = process.env.MONETIZATION_LAUNCHED;
+  const launchFlagSet = launchFlag === 'true' || launchFlag === '1' || launchFlag === 'yes';
+  report.authGateActive = report.monetizationReady && launchFlagSet;
+  report.mode = report.authGateActive ? 'live' : 'pre-monetization';
+
+  if (report.monetizationReady && !launchFlagSet) {
+    report.nextSteps.push(
+      'When ready to launch monetization (login UI built, Stripe wired): set MONETIZATION_LAUNCHED=true env var in Vercel'
+    );
+  }
+
+  if (report.authGateActive && report.nextSteps.length === 0) {
+    report.nextSteps.push('Auth gate is live. All requests now require valid sign-in.');
   }
 
   return res.status(200).json(report);
