@@ -3094,23 +3094,59 @@ async function analyzeGame(gamePk, forceDeep) {
   const container = document.getElementById('analysisContainer');
   const deep = forceDeep !== undefined ? forceDeep : deepModeActive;
   const cacheKey = `${gamePk}${deep ? '-deep' : ''}`;
-  const loadingMsg = deep
-    ? 'DEEP MODE: pulling per-pitch-per-hand splits for every hitter... (30-60s)'
-    : 'Analyzing mismatches... (this can take 15-30s for full lineup)';
-  container.innerHTML = `<div class="analysis-panel"><div class="loading"><span class="loading-spinner"></span>${loadingMsg}</div></div>`;
+  const subText = deep
+    ? 'Pulling per-pitch splits for every hitter. Roughly 30 to 60 seconds.'
+    : 'Building projections from arsenals, splits, park, weather, and umpire. About 15 to 30 seconds.';
+
+  // Lyrid skeleton loader matching the analysis screen layout
+  const skelLine = (w, mb='6px') => `<div class="lyrid-skel" style="height:14px;width:${w};margin-bottom:${mb}"></div>`;
+  container.innerHTML = `
+    <div style="background:var(--surface-card);border:0.5px solid var(--border-hairline);border-radius:var(--radius-lg);padding:24px;margin-top:16px">
+      <div class="lyrid-skel" style="height:11px;width:160px;margin-bottom:10px"></div>
+      <div class="lyrid-skel" style="height:28px;width:62%;margin-bottom:8px;border-radius:6px"></div>
+      <div class="lyrid-skel" style="height:14px;width:48%;margin-bottom:20px"></div>
+      <p style="font-size:13px;color:var(--text-secondary);font-style:italic;margin:0 0 24px;line-height:1.5">${subText}</p>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
+        <div style="background:var(--surface-muted);border-radius:var(--radius-md);padding:18px">
+          ${skelLine('40%')}${'<div class="lyrid-skel" style="height:26px;width:35%;margin-bottom:8px"></div>'}${skelLine('70%')}
+        </div>
+        <div style="background:var(--surface-muted);border-radius:var(--radius-md);padding:18px">
+          ${skelLine('30%')}${'<div class="lyrid-skel" style="height:26px;width:35%;margin-bottom:8px"></div>'}${skelLine('70%')}
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        ${[1,2,3].map(()=>`<div style="background:var(--surface-card);border:0.5px solid var(--border-hairline);border-radius:var(--radius-md);padding:14px 18px">${skelLine('80%')}<div class="lyrid-skel" style="height:11px;width:55%"></div></div>`).join('')}
+      </div>
+    </div>`;
   container.scrollIntoView({behavior:'smooth', block:'start'});
 
   try {
     if (!analysisCache[cacheKey]) {
       const url = `/api/analyze?gamePk=${gamePk}${deep ? '&deep=1' : ''}`;
       const res = await fetch(url);
-      if (!res.ok) throw new Error(`API ${res.status}`);
+      if (!res.ok) {
+        // Try to extract a meaningful error message from the response body
+        let detail = `Server returned ${res.status}`;
+        try {
+          const body = await res.json();
+          if (body.error) detail = body.error;
+          if (body.code === 'UPGRADE_REQUIRED_PRO') detail = 'Pro subscription required for deep mode.';
+          if (body.code === 'UPGRADE_REQUIRED_SHARP') detail = 'Sharp subscription required.';
+          if (body.code === 'QUOTA_EXCEEDED') detail = 'Daily limit reached. Upgrade to Pro for unlimited analyses.';
+        } catch {}
+        throw new Error(detail);
+      }
       analysisCache[cacheKey] = await res.json();
     }
     renderAnalysis(analysisCache[cacheKey]);
   } catch(err) {
     console.error(err);
-    container.innerHTML = `<div class="analysis-panel"><div class="empty"><div class="empty-icon">!</div><div>Analysis failed. ${err.message}</div></div></div>`;
+    container.innerHTML = `
+      <div style="background:var(--surface-card);border:0.5px solid var(--border-hairline);border-radius:var(--radius-lg);padding:48px 24px;margin-top:16px;text-align:center">
+        <p class="lyrid-eyebrow" style="margin-bottom:8px;color:var(--data-negative)">Analysis failed</p>
+        <p style="font-family:var(--font-serif);font-size:18px;font-weight:500;color:var(--text-primary);margin:0 0 8px">${err.message}</p>
+        <p style="font-size:13px;color:var(--text-secondary);margin:0">Try refreshing, or pick a different game from the slate.</p>
+      </div>`;
   }
 }
 

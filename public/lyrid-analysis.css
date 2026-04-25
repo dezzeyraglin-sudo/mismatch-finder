@@ -752,3 +752,493 @@
   color: var(--brand-primary);
   background: var(--brand-tint);
 }
+
+/* ===========================================================
+   CONTRAST FIXES — chips that were calibrated for dark backgrounds
+   These rgba() backgrounds become almost invisible on the light surface.
+   Override with Lyrid's calibrated *-surface + *-text tokens that maintain
+   readable contrast on off-white.
+   =========================================================== */
+
+/* Tag chips — applied to hitters/pitchers via the tagging system.
+   Each tag gets a semantic color family from the Lyrid data palette. */
+#analysisContainer .tag-chip,
+.tag-chip {
+  font-family: var(--font-sans);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  padding: 3px 9px;
+  border-radius: var(--radius-sm);
+  border: none;
+}
+
+/* Fantasy/target — positive (forest green family) */
+#analysisContainer .tag-chip.fantasy,
+#analysisContainer .tag-chip.target,
+.tag-chip.fantasy,
+.tag-chip.target {
+  background: var(--data-positive-surface);
+  color: var(--data-positive);
+  border: 0.5px solid var(--data-positive);
+}
+
+/* HR / HRR — warning (amber family) */
+#analysisContainer .tag-chip.hr,
+#analysisContainer .tag-chip.hrr,
+.tag-chip.hr,
+.tag-chip.hrr {
+  background: var(--data-warning-surface);
+  color: var(--data-warning);
+  border: 0.5px solid var(--data-warning);
+}
+
+/* Hit — informational (navy family) */
+#analysisContainer .tag-chip.hit,
+.tag-chip.hit {
+  background: var(--data-live-surface);
+  color: var(--data-live);
+  border: 0.5px solid var(--data-live);
+}
+
+/* TB (Total Bases) — brand primary tint to differentiate from Hit */
+#analysisContainer .tag-chip.tb,
+.tag-chip.tb {
+  background: var(--brand-tint);
+  color: var(--brand-primary);
+  border: 0.5px solid var(--brand-primary);
+}
+
+/* Fade / ban — negative (brick red family) */
+#analysisContainer .tag-chip.fade,
+#analysisContainer .tag-chip.ban,
+.tag-chip.fade,
+.tag-chip.ban {
+  background: var(--data-negative-surface);
+  color: var(--data-negative);
+  border: 0.5px solid var(--data-negative);
+}
+
+/* Monitor — neutral muted */
+#analysisContainer .tag-chip.monitor,
+.tag-chip.monitor {
+  background: var(--surface-muted);
+  color: var(--text-secondary);
+  border: 0.5px solid var(--border-strong);
+}
+
+/* Adj-chip — adjustments shown next to projections.
+   Differentiates "this works against the hitter" from "this works against the pitcher". */
+#analysisContainer .adj-chip,
+.adj-chip {
+  font-family: var(--font-sans);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  padding: 3px 8px;
+  border-radius: var(--radius-sm);
+  border: none;
+}
+
+#analysisContainer .adj-chip.hitter,
+.adj-chip.hitter {
+  background: var(--data-warning-surface);
+  color: var(--data-warning);
+  border: 0.5px solid rgba(168, 117, 50, 0.40);
+}
+
+#analysisContainer .adj-chip.pitcher,
+.adj-chip.pitcher {
+  background: var(--data-live-surface);
+  color: var(--data-live);
+  border: 0.5px solid rgba(26, 84, 144, 0.40);
+}
+
+/* Platoon chips — pitch-vs-hand favorability indicators */
+#analysisContainer .platoon-chip,
+.platoon-chip {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-muted);
+  border: 0.5px solid var(--border-hairline);
+  color: var(--text-secondary);
+}
+
+#analysisContainer .platoon-chip.favor-hitter,
+.platoon-chip.favor-hitter {
+  background: var(--data-positive-surface);
+  border-color: rgba(45, 122, 62, 0.30);
+  color: var(--data-positive);
+}
+
+#analysisContainer .platoon-chip.favor-pitcher,
+.platoon-chip.favor-pitcher {
+  background: var(--data-live-surface);
+  border-color: rgba(26, 84, 144, 0.30);
+  color: var(--data-live);
+}
+
+#analysisContainer .platoon-chip b,
+.platoon-chip b {
+  font-weight: 500;
+  color: inherit;
+}
+
+/* Prop pills — DK/FD probability indicators next to props */
+#analysisContainer .prop-pill,
+.prop-pill {
+  background: var(--surface-muted);
+  border: 0.5px solid var(--border-hairline);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-primary);
+}
+
+#analysisContainer .prop-pill .pp-key,
+.prop-pill .pp-key {
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+#analysisContainer .prop-pill.best,
+.prop-pill.best {
+  background: var(--brand-tint);
+  border-color: var(--brand-primary);
+}
+
+#analysisContainer .prop-pill.best::before,
+.prop-pill.best::before {
+  content: '★ BEST';
+  position: absolute;
+  top: -9px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--brand-primary);
+  color: var(--brand-secondary);
+  font-size: 9px;
+  font-weight: 500;
+  padding: 2px 7px;
+  border-radius: var(--radius-pill);
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+  line-height: 1;
+}
+
+#analysisContainer .prop-pill.best .pp-key,
+.prop-pill.best .pp-key {
+  color: var(--brand-primary);
+}
+
+/* Match hitter name styling — was using Archivo Black on dark; needs serif on light */
+#analysisContainer .match-hitter,
+.match-hitter {
+  font-family: var(--font-sans);
+  font-weight: 500;
+  font-size: 14px;
+  color: var(--text-primary);
+  letter-spacing: 0;
+}
+
+#analysisContainer .match-hitter .hand,
+.match-hitter .hand {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-muted);
+  font-weight: 400;
+  letter-spacing: 0;
+}
+
+/* Lean indicator on context — direction the matchup leans */
+.ctx-lean-hitter {
+  color: var(--data-warning);
+  font-weight: 500;
+}
+
+.ctx-lean-pitcher {
+  color: var(--data-live);
+  font-weight: 500;
+}
+
+/* Wind arrows on weather chip */
+.wind-arrow.hot {
+  color: var(--data-warning);
+  text-shadow: none;
+}
+
+.wind-arrow.cold {
+  color: var(--data-live);
+  text-shadow: none;
+}
+
+/* Scratch badge — red "BANNED" indicator */
+.scratch-badge {
+  background: var(--data-negative);
+  color: var(--text-on-primary);
+  font-family: var(--font-sans);
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+}
+
+/* Track-subnav (under TRACK tab) — subtle underline-style tabs */
+.track-subnav-btn {
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--text-secondary);
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0;
+  padding: 8px 14px;
+  cursor: pointer;
+  transition: color var(--duration-fast) var(--easing-standard), border-color var(--duration-fast) var(--easing-standard);
+}
+
+.track-subnav-btn:hover {
+  color: var(--text-primary);
+}
+
+.track-subnav-btn.active {
+  color: var(--brand-primary);
+  border-bottom-color: var(--brand-primary);
+}
+
+/* Stat cards on Track tab — eyebrow + big mono number + caption */
+.stat-card {
+  background: var(--surface-card);
+  border: 0.5px solid var(--border-hairline);
+  border-radius: var(--radius-md);
+  padding: 16px 18px;
+}
+
+.stat-card .val {
+  font-family: var(--font-mono);
+  font-size: 22px;
+  font-weight: 500;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+  line-height: 1.1;
+}
+
+.stat-card .lbl {
+  font-family: var(--font-sans);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+/* Stats bar layout — 4-column grid on Track */
+.stats-bar {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+/* Date pill — fix legacy "live" styling (was lime-on-dark) */
+.date-pill {
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  padding: 3px 9px;
+  border-radius: var(--radius-pill);
+  background: var(--surface-muted);
+  color: var(--text-secondary);
+}
+.date-pill.live {
+  background: var(--brand-tint);
+  color: var(--brand-primary);
+}
+.date-pill.loading {
+  background: var(--data-warning-surface);
+  color: var(--data-warning);
+}
+
+/* ===========================================================
+   TOP PICK BLOCK (.tpb-*) — used in the Tonight's Signal callout
+   These styles override the legacy dark-theme styling.
+   =========================================================== */
+
+.tpb-hitter-name {
+  font-family: var(--font-serif);
+  font-weight: 500;
+  font-size: 18px;
+  color: var(--text-primary);
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+}
+
+.tpb-hitter-hand {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-muted);
+  font-weight: 400;
+  letter-spacing: 0.04em;
+  margin-left: 6px;
+}
+
+/* Tier chips on top pick — restrained, semantic colors */
+.tpb-tier-chip {
+  font-family: var(--font-sans);
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  font-weight: 500;
+  padding: 4px 9px;
+  border-radius: var(--radius-sm);
+  flex-shrink: 0;
+  text-transform: uppercase;
+  border: none;
+}
+
+.tpb-tier-chip.elite {
+  background: var(--data-live-surface);
+  color: var(--data-live);
+  border: 0.5px solid var(--data-live);
+}
+
+.tpb-tier-chip.strong {
+  background: var(--data-positive-surface);
+  color: var(--data-positive);
+  border: 0.5px solid var(--data-positive);
+}
+
+.tpb-tier-chip.solid {
+  background: var(--data-warning-surface);
+  color: var(--data-warning);
+  border: 0.5px solid var(--data-warning);
+}
+
+/* Top pick prop row — best prop highlighted within the callout */
+.tpb-prop-row {
+  background: var(--brand-tint);
+  border: 0.5px solid var(--brand-primary);
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-sans);
+  font-size: 12px;
+  margin-top: 8px;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.tpb-prop-row .pp-key,
+.tpb-prop-row b {
+  color: var(--brand-primary);
+  font-weight: 500;
+}
+
+/* Top pick eyebrow label */
+[class*="tpb-eyebrow"],
+.tpb-label {
+  font-family: var(--font-sans);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+/* ===========================================================
+   PITCH CHIPS — pitcher arsenal display
+   =========================================================== */
+.pitch-chip {
+  background: var(--surface-muted);
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0;
+  padding: 3px 8px;
+  border-radius: var(--radius-sm);
+  border: 0.5px solid var(--border-hairline);
+}
+
+.pitch-chip .pct,
+.pitch-chip .pitch-pct {
+  color: var(--text-muted);
+  font-weight: 400;
+  margin-left: 4px;
+}
+
+/* Edge description — model insight box, was lime-tint on dark */
+.edge-desc {
+  background: var(--brand-tint);
+  border-left: 3px solid var(--brand-primary);
+  border-radius: 0;
+  padding: 10px 14px;
+  margin-top: 10px;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text-secondary);
+}
+
+.edge-desc b,
+.edge-desc strong {
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+/* Lineup tier blocks — exploitable/leaky/spot classifications */
+.lineup-tier {
+  background: var(--surface-card);
+  border-radius: var(--radius-md);
+  padding: 12px 16px;
+  margin: 8px 0;
+}
+
+.lineup-tier.exploitable {
+  border-left: 3px solid var(--data-warning);
+  background: var(--data-warning-surface);
+}
+
+.lineup-tier.leaky {
+  border-left: 3px solid var(--data-positive);
+  background: var(--data-positive-surface);
+}
+
+.lineup-tier.spot {
+  border-left: 3px solid var(--data-live);
+  background: var(--data-live-surface);
+}
+
+/* Lineup tier count badges */
+.lt-count {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  padding: 2px 7px;
+  border-radius: var(--radius-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+.lt-count.strong {
+  background: var(--data-positive-surface);
+  color: var(--data-positive);
+  border: 0.5px solid var(--data-positive);
+}
+
+.lt-count.solid {
+  background: var(--data-live-surface);
+  color: var(--data-live);
+  border: 0.5px solid var(--data-live);
+}
+
+.lt-count.weak {
+  background: var(--surface-muted);
+  color: var(--text-secondary);
+  border: 0.5px solid var(--border-hairline);
+}
