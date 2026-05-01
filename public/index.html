@@ -3835,6 +3835,8 @@ function renderAnalysis(data) {
                   ${m.seasonStats.barrelPct?`<span class="stat-chip">Barrel% <b>${m.seasonStats.barrelPct}</b></span>`:''}
                   ${m.seasonStats.hardHitPct?`<span class="stat-chip">HH% <b>${m.seasonStats.hardHitPct}</b></span>`:''}
                   ${m.seasonStats.avgEV?`<span class="stat-chip">EV <b>${m.seasonStats.avgEV}</b></span>`:''}
+                  ${m.risp && m.risp.signal !== 'no-data' && m.risp.signal !== 'insufficient' ? `<span class="risp-chip ${m.risp.signal}" title="${m.risp.detail}">RISP <b>.${Math.round(m.risp.regressedRispAvg*1000).toString().padStart(3,'0')}</b><span class="risp-ab">${m.risp.totalRispAb}AB</span></span>` : ''}
+                  ${m.risp && m.risp.signal === 'insufficient' ? `<span class="risp-chip insufficient" title="${m.risp.detail}">RISP SMALL</span>` : ''}
                   ${xwobaDisplay}
                 </div>` : ''}
               ${adjHtml}
@@ -3857,6 +3859,25 @@ function renderAnalysis(data) {
           ${lt.strongCount > 0 ? `<span class="lt-count strong">${lt.strongCount}S</span>` : ''}
           ${lt.solidCount > 0 ? `<span class="lt-count solid">${lt.solidCount}So</span>` : ''}
           <span class="lt-count size">${lt.tieredCount}/${lt.lineupSize}</span>
+        </div>
+      </div>
+    ` : '';
+
+    // Lineup CONVERSION tier banner (DEEP MODE) — RISP-based "clutch lineup" indicator.
+    // Sits alongside the arsenal-based lineup tier and tells the user how many batters
+    // in this lineup are above-avg RISP performers (drives in runs) vs below-avg (strands).
+    const lct = s.lineupConversionTier;
+    const lineupConversionHtml = (lct && lct.sampleSize >= 4) ? `
+      <div class="lineup-conv-tier ${lct.tier.toLowerCase()}">
+        <div class="lct-left">
+          <div class="lct-label">${lct.tier === 'CLUTCH' ? '★ CLUTCH LINEUP' : lct.tier === 'CAPABLE' ? '◎ CAPABLE LINEUP' : lct.tier === 'STRANDED' ? '⊘ STRANDS RUNNERS' : '◌ AVERAGE CONVERSION'}</div>
+          <div class="lct-summary">${lct.label}</div>
+        </div>
+        <div class="lct-counts">
+          ${lct.eliteCount > 0 ? `<span class="lct-count elite">${lct.eliteCount}E</span>` : ''}
+          ${lct.strongCount > 0 ? `<span class="lct-count strong">${lct.strongCount}S</span>` : ''}
+          ${lct.weakCount > 0 ? `<span class="lct-count weak">${lct.weakCount}W</span>` : ''}
+          <span class="lct-count size">${lct.sampleSize}/9</span>
         </div>
       </div>
     ` : '';
@@ -4076,6 +4097,7 @@ function renderAnalysis(data) {
           ${pitcherPropsHtml}
         </div>
         ${lineupTierHtml}
+        ${lineupConversionHtml}
         ${mmHtml}
       </div>
     `;

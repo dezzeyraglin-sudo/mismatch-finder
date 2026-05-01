@@ -1491,3 +1491,174 @@ button.tag-btn:hover,
 .deep-toggle.active:hover {
   background: var(--brand-primary-hover);
 }
+/* ===========================================================
+   RISP (Runners In Scoring Position) UI
+   Per-batter chip in deep mode showing regressed RISP avg + sample size
+   =========================================================== */
+.risp-chip {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0;
+  padding: 3px 8px 3px 10px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-muted);
+  color: var(--text-primary);
+  border: 0.5px solid var(--border-hairline);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: help;
+}
+
+.risp-chip b {
+  font-weight: 500;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.risp-chip .risp-ab {
+  font-size: 9px;
+  color: var(--text-muted);
+  font-weight: 400;
+  letter-spacing: 0.04em;
+}
+
+.risp-chip.elite-risp {
+  background: var(--data-positive-surface);
+  color: var(--data-positive);
+  border-color: var(--data-positive);
+}
+.risp-chip.elite-risp b { color: var(--data-positive); }
+
+.risp-chip.strong-risp {
+  background: var(--data-positive-surface);
+  color: var(--data-positive);
+  border-color: rgba(45, 122, 62, 0.40);
+}
+.risp-chip.strong-risp b { color: var(--data-positive); }
+
+.risp-chip.weak-risp {
+  background: var(--data-negative-surface);
+  color: var(--data-negative);
+  border-color: var(--data-negative);
+}
+.risp-chip.weak-risp b { color: var(--data-negative); }
+
+.risp-chip.below-risp {
+  background: var(--data-warning-surface);
+  color: var(--data-warning);
+  border-color: rgba(168, 117, 50, 0.40);
+}
+.risp-chip.below-risp b { color: var(--data-warning); }
+
+.risp-chip.neutral-risp {
+  background: var(--surface-muted);
+  color: var(--text-secondary);
+}
+
+.risp-chip.insufficient {
+  background: var(--surface-muted);
+  color: var(--text-muted);
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  font-style: italic;
+}
+
+/* ===========================================================
+   LINEUP CONVERSION TIER (DEEP MODE)
+   Sits alongside the arsenal-based lineup tier, tells the user how many
+   batters in this lineup are above-avg RISP performers.
+   =========================================================== */
+.lineup-conv-tier {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin: 6px 0 12px;
+  padding: 12px 16px;
+  border-radius: var(--radius-md);
+  background: var(--surface-card);
+  border: 0.5px solid var(--border-hairline);
+  border-left-width: 3px;
+}
+
+.lineup-conv-tier.clutch {
+  border-left-color: var(--data-positive);
+  background: var(--data-positive-surface);
+}
+
+.lineup-conv-tier.capable {
+  border-left-color: var(--data-live);
+  background: var(--data-live-surface);
+}
+
+.lineup-conv-tier.average {
+  border-left-color: var(--border-strong);
+  background: var(--surface-muted);
+}
+
+.lineup-conv-tier.stranded {
+  border-left-color: var(--data-negative);
+  background: var(--data-negative-surface);
+}
+
+.lct-label {
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  color: var(--text-primary);
+}
+
+.lineup-conv-tier.clutch .lct-label { color: var(--data-positive); }
+.lineup-conv-tier.capable .lct-label { color: var(--data-live); }
+.lineup-conv-tier.stranded .lct-label { color: var(--data-negative); }
+
+.lct-summary {
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--text-secondary);
+  margin-top: 3px;
+  line-height: 1.4;
+}
+
+.lct-counts {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.lct-count {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  padding: 2px 7px;
+  border-radius: var(--radius-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+.lct-count.elite {
+  background: var(--data-positive);
+  color: var(--text-on-primary);
+}
+
+.lct-count.strong {
+  background: var(--data-positive-surface);
+  color: var(--data-positive);
+  border: 0.5px solid var(--data-positive);
+}
+
+.lct-count.weak {
+  background: var(--data-negative-surface);
+  color: var(--data-negative);
+  border: 0.5px solid var(--data-negative);
+}
+
+.lct-count.size {
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 10px;
+}

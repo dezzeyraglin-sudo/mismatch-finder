@@ -72,44 +72,41 @@ export async function getTeamConversionRate(teamId) {
     // Compute LISP rate (how often a team strands runners per game)
     const lispPerGame = lob / Math.max(1, games);
 
-    // Try to extract RISP-specific batting average
-    // The MLB API may expose this as runnersInScoringPositionAverage or similar
-    // If not directly available, fall back to using LISP-per-game as the signal
+    // The MLB Stats API does NOT expose a separate RISP batting average at the team
+    // level via the standard hitting endpoint — only `leftOnBase` is available.
+    // So our signal is purely LISP-per-game-based. (Per-batter RISP avg IS available
+    // via player-level splits and is handled separately in batterRisp.js.)
     let rispAvg = null;
     if (stat.runnersInScoringPositionAverage != null) {
       rispAvg = parseFloat(stat.runnersInScoringPositionAverage);
-    } else if (stat.batting?.rispAvg != null) {
-      rispAvg = parseFloat(stat.batting.rispAvg);
     }
-
-    // Build the conversion multiplier
-    // Two signals blended: LISP rate (lower = better) and RISP avg (higher = better)
-    let lispDeviation = 0;       // 0 = league avg, negative = team strands MORE (worse), positive = strands LESS (better)
-    let rispDeviation = 0;       // 0 = league avg, positive = better RISP performance
 
     // LISP signal: how many MORE/FEWER runners stranded than league avg
     // 1 LOB per game above avg corresponds to roughly -0.20 runs per game expected
-    lispDeviation = (LEAGUE_AVG_LISP_PER_GAME - lispPerGame) / LEAGUE_AVG_LISP_PER_GAME;
+    const lispDeviation = (LEAGUE_AVG_LISP_PER_GAME - lispPerGame) / LEAGUE_AVG_LISP_PER_GAME;
 
-    // RISP signal: deviation from .252 league avg
-    // .280 RISP avg = strongly converts; .220 = poor converter
-    if (rispAvg != null && !isNaN(rispAvg)) {
-      rispDeviation = (rispAvg - LEAGUE_AVG_RISP_AVG) / LEAGUE_AVG_RISP_AVG;
-    }
-
-    // Combine signals: LISP weighted 60%, RISP 40% (LISP is the more reliable team-level signal)
-    // The combined deviation scaled by 0.10 gives roughly ±8% multiplier max
-    const combinedDev = (lispDeviation * 0.60) + (rispDeviation * 0.40);
-    const rawMult = 1.0 + (combinedDev * 0.10);
+    // Calibration: map LISP deviation directly to a multiplier with a 0.50 scaler.
+    // Examples:
+    //   Team at 5.5 LISP/g (22% better than avg) → 1.08x (capped at +8%)
+    //   Team at 6.5 LISP/g (~9% better) → 1.045x (+4.5%)
+    //   Team at 7.1 LISP/g (league avg) → 1.000x
+    //   Team at 7.8 LISP/g (~10% worse) → 0.95x (-5%)
+    //   Team at 8.5 LISP/g (~20% worse) → 0.92x (capped at -8%)
+    // The cap prevents extreme outliers from dominating; the 0.50 scaler prevents
+    // overcorrection while still producing meaningful signal (~0.3-0.6 runs swing
+    // on projected total, which is the magnitude needed to catch unders/overs).
+    const rawMult = 1.0 + (lispDeviation * 0.50);
 
     // Cap the multiplier to ±8% so even extreme outliers don't dominate the projection
     const conversionMult = Math.max(0.92, Math.min(1.08, rawMult));
 
+    // Narrative classification — tightened thresholds so meaningful signals surface
+    // ≥3% impact = surfaces in narrative; <3% stays quiet (noise floor)
     let signal = 'neutral';
-    if (conversionMult >= 1.04) signal = 'efficient';
-    else if (conversionMult >= 1.015) signal = 'slight-edge';
-    else if (conversionMult <= 0.96) signal = 'stranded';
-    else if (conversionMult <= 0.985) signal = 'slight-drag';
+    if (conversionMult >= 1.045) signal = 'efficient';
+    else if (conversionMult >= 1.025) signal = 'slight-edge';
+    else if (conversionMult <= 0.955) signal = 'stranded';
+    else if (conversionMult <= 0.975) signal = 'slight-drag';
 
     const data = {
       rispAvg: rispAvg != null ? parseFloat(rispAvg.toFixed(3)) : null,

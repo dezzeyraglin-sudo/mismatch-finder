@@ -14,6 +14,7 @@ import { estimatePropProbability, estimateTotalProbability, estimateSpreadProbab
 import { buildPitcherProps, evaluatePitcherProp } from './_lib/pitcherProps.js';
 import { computeFirstInningProbability } from './_lib/firstInning.js';
 import { getMatchupConversionRates } from './_lib/conversionRate.js';
+import { getLineupRispPerformance, applyRispAdjustment, buildLineupConversionTier } from './_lib/batterRisp.js';
 import { tryAuth, checkAndIncrementQuota, AuthError } from './_lib/auth.js';
 
 export default async function handler(req, res) {
@@ -182,6 +183,13 @@ export default async function handler(req, res) {
           return { ...h, stats: { overall: {}, pitchTypes: [] }, splits: { vsR: null, vsL: null }, deepPitchTypes: [] };
         }
       }));
+
+      // DEEP MODE ONLY: per-batter RISP performance fetch (career + season blended,
+      // regressed to mean by sample size). Used downstream for RBI prop adjustment
+      // and lineup-level conversion tier. All 9 batters fetched in parallel.
+      const rispMap = deepMode
+        ? await getLineupRispPerformance(topHitters.map(h => h.id)).catch(() => ({}))
+        : {};
 
       const analyzed = hitterData.map(h => {
         const pitchTypes = h.stats?.pitchTypes || [];
@@ -642,6 +650,14 @@ export default async function handler(req, res) {
       // Aggregate pitcher-vs-lineup tier
       const lineupTier = computeLineupTier(analyzed, arsenal);
 
+      // DEEP MODE: lineup-level RISP "Conversion Tier" — counts batters by RISP signal class.
+      // Surfaced alongside the arsenal-based lineup tier. Tells the user how many batters
+      // in this lineup are above-average RISP performers (clutch hitters who drive runs in)
+      // vs. below-average (strand runners). Useful as a secondary lineup quality signal.
+      const lineupConversionTier = deepMode
+        ? buildLineupConversionTier(rispMap, topHitters)
+        : null;
+
       // Pitcher inning narrative — rich analysis of control, meltdown pattern, shutdown inning
       const pitcherNarrative = inningSplits ? buildPitcherInningNarrative(inningSplits, s.pitcher) : null;
 
@@ -701,6 +717,12 @@ export default async function handler(req, res) {
         pitcherRole
       };
       finalTiered.forEach(h => {
+        // Attach RISP data to the hitter (deep mode only — rispMap is empty otherwise)
+        // This is exposed in the API response so the UI can render a RISP chip on each card
+        if (rispMap[h.id]) {
+          h.risp = rispMap[h.id];
+        }
+
         if (!h.propRecs) return;
         h.propRecs.forEach(p => {
           const propKey = p.key;
@@ -714,6 +736,27 @@ export default async function handler(req, res) {
             p.probability = prob.probability;
             p.probabilityBaseline = prob.baseline;
             p.probabilityModifiers = prob.modifiers;
+
+            // DEEP MODE: apply RISP adjustment to RBI / H+R+RBI / R props
+            // Capped at ±15% per the RISP_INFLUENCE_CAP constant in batterRisp.js
+            // Only adjusts when sample is meaningful (signal !== 'insufficient')
+            if (deepMode && h.risp) {
+              const labelForRisp = p.label || propKey;
+              const rispAdj = applyRispAdjustment(p.probability, h.risp, labelForRisp);
+              if (rispAdj.applied) {
+                p.probabilityPreRisp = p.probability;
+                p.probability = rispAdj.adjustedProb;
+                p.rispAdjustment = rispAdj.adjustment;
+                p.rispSignal = rispAdj.signal;
+                // Add a modifier entry so the audit trail shows the RISP adjustment
+                if (!p.probabilityModifiers) p.probabilityModifiers = [];
+                p.probabilityModifiers.push({
+                  source: 'risp',
+                  effect: rispAdj.adjustment,
+                  detail: rispAdj.detail
+                });
+              }
+            }
           }
         });
         // Also attach best prop's probability at hitter level for top-pick display
@@ -757,7 +800,8 @@ export default async function handler(req, res) {
           },
           mismatches: finalTiered,
           topPick,
-          lineupTier
+          lineupTier,
+          lineupConversionTier
         }
       };
     }));
