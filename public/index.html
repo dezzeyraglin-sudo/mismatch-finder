@@ -3814,7 +3814,7 @@ function renderAnalysis(data) {
               <div class="match-head">
                 <div class="match-hitter">
                   ${m.isTopPick ? '<span class="top-pick-star">★ TOP PICK</span>' : ''}
-                  ${m.hrChance && data.deepMode ? `<span class="hr-badge ${m.hrChance.tier}" title="HR Chance: ${m.hrChance.tier.toUpperCase()} (${m.hrChance.score})">${m.hrChance.emoji} HR ${m.hrChance.tier.toUpperCase()}</span>` : ''}
+                  ${m.hrChance && data.deepMode ? `<span class="hr-badge ${m.hrChance.tier}" title="HR ${m.hrChance.tierLabel || m.hrChance.tier.toUpperCase()} · ${m.hrChance.projectedHrPerPa ? (m.hrChance.projectedHrPerPa * 100).toFixed(1) + '% HR/PA' : 'projected'}">${m.hrChance.emoji} HR ${(m.hrChance.tierLabel || m.hrChance.tier).toUpperCase()}${m.hrChance.projectedHrPerPa ? ` <span class="hr-rate">${(m.hrChance.projectedHrPerPa * 100).toFixed(1)}%</span>` : ''}</span>` : ''}
                   ${m.hitter}<span class="hand">${m.hand || ''}</span>
                   ${hasActionableSituational ? `<button class="deep-dive-btn" onclick='openDeepDive(${deepDiveCtx})' title="Situational splits">◎ DEEP DIVE</button>` : ''}
                 </div>
@@ -3824,6 +3824,24 @@ function renderAnalysis(data) {
                   <div class="tier-badge ${m.tier}">${m.tier.toUpperCase()}</div>
                 </div>
               </div>
+              ${m.hrChance && m.hrChance.drivers && m.hrChance.drivers.length > 0 ? `
+                <div class="hr-drivers-panel">
+                  ${m.hrChance.sampleWarning ? `<div class="hr-sample-warn">⚠ ${m.hrChance.sampleWarning.label} — ${m.hrChance.sampleWarning.detail}</div>` : ''}
+                  <div class="hr-drivers-head">
+                    <span class="hr-drivers-eyebrow">HR DRIVERS</span>
+                    <span class="hr-drivers-conf ${m.hrChance.confidence}">${m.hrChance.confidence.toUpperCase()} CONF</span>
+                  </div>
+                  <div class="hr-drivers-list">
+                    ${m.hrChance.drivers.map(d => `
+                      <div class="hr-driver">
+                        <span class="hr-driver-feature">${d.feature}</span>
+                        <span class="hr-driver-detail">${d.detail}</span>
+                        <span class="hr-driver-weight ${d.weight >= 1.0 ? 'pos' : 'neg'}">${d.weight >= 1.0 ? '+' : ''}${((d.weight - 1) * 100).toFixed(0)}%</span>
+                      </div>
+                    `).join('')}
+                  </div>
+                </div>
+              ` : ''}
               ${abTimingHtml}
               <div class="match-pitches">${pitchesTxt || '<span style="opacity:0.5">no pitch-level data</span>'}</div>
               ${dualTierHtml}

@@ -13,6 +13,7 @@ import { buildGameLineRecommendations } from './_lib/gameLineBets.js';
 import { estimatePropProbability, estimateTotalProbability, estimateSpreadProbability, estimateMoneylineProbability, americanToImpliedProb, computeEdge } from './_lib/probability.js';
 import { buildPitcherProps, evaluatePitcherProp } from './_lib/pitcherProps.js';
 import { computeFirstInningProbability } from './_lib/firstInning.js';
+import { computeHrProjection } from './_lib/hrEmpirical.js';
 import { getMatchupConversionRates } from './_lib/conversionRate.js';
 import { getLineupRispPerformance, applyRispAdjustment, buildLineupConversionTier } from './_lib/batterRisp.js';
 import { fetchPitcherPropsLines, getPitcherLinesByName } from './_lib/pitcherPropsLines.js';
@@ -482,104 +483,57 @@ export default async function handler(req, res) {
             avgEV: overall.avg_exit_velocity?.value || null,
             kPct: overall.k_percent?.value || null
           },
-          // HR Chance scoring (v1 — criteria-based, calibrated from actual HR hits on 4/18, 4/19, 4/20, 4/22)
+          // HR Chance scoring (v2 — EMPIRICALLY-CALIBRATED, see _lib/hrEmpirical.js)
+          // Replaces v1's hand-tuned integer scoring with multipliers grounded in
+          // sabermetric research (barrel→HR conversion, park factors, weather effects).
+          // Output is a projected HR/PA rate that can be audited via the drivers array.
           hrChance: (() => {
             const barrel = parseFloat(overall.barrel_batted_rate?.value || 0);
             const hardHit = parseFloat(overall.hard_hit_percent?.value || 0);
+            const kPct = parseFloat(overall.k_percent?.value || 0);
             const bestMatchedXwoba = matchedPitches.reduce((max, p) => Math.max(max, parseFloat(p.hitterXwoba || 0)), 0);
-            const adjXw = adjustedMaxXwoba;
+            // Identify dominant pitch (highest xwOBA in the matched set) for driver text
+            const dominantMatch = matchedPitches.reduce(
+              (best, p) => parseFloat(p.hitterXwoba || 0) > parseFloat(best?.hitterXwoba || 0) ? p : best,
+              null
+            );
+            const dominantPitch = dominantMatch?.type || null;
+
+            // Park HR factor with weather overlay
             let parkHrMult = parkFactor ? getParkHrMult(parkFactor, effectiveBatSide) : 1.0;
+            // (weather is now factored separately by computeHrProjection's weatherMultiplier;
+            // we don't double-multiply weather into parkHrMult anymore)
 
-            // Weather overlay on park HR factor — apply wind + temp adjustment by handedness
-            const wi = results.weatherImpact;
-            if (wi && !wi.isDome) {
-              const weatherHrMult = effectiveBatSide === 'L' ? wi.hrMultLHH : wi.hrMultRHH;
-              parkHrMult *= (weatherHrMult || 1.0);
+            // Pitcher HR vulnerability — derive HR/9 from splits vs effective hand
+            let pitcherHrPer9 = null;
+            const pitSplit = effectiveBatSide === 'R' ? pitcherSplits?.vsR : pitcherSplits?.vsL;
+            if (pitSplit && pitSplit.pa >= 30 && pitSplit.hr != null) {
+              // PA → IP rough conversion: ~4.3 PA per inning, so HR/9 = HR/PA × 4.3 × 9
+              const hrPerPa = pitSplit.hr / Math.max(1, pitSplit.pa);
+              pitcherHrPer9 = hrPerPa * 4.3 * 9;
             }
 
-            // Five-pillar HR criteria, each contributes up to 20 points (100 max)
-            let score = 0;
-            const criteria = [];
+            // Sample size for the hitter — sum of vsR + vsL PAs from splits, fallback to 0
+            const seasonPa = (splits?.vsR?.pa || 0) + (splits?.vsL?.pa || 0);
 
-            // 1. Elite matchup (adj xwOBA ≥ .450)
-            if (adjXw >= 0.500) { score += 20; criteria.push('elite matchup .500+'); }
-            else if (adjXw >= 0.450) { score += 15; criteria.push('elite matchup .450+'); }
-            else if (adjXw >= 0.420) { score += 8; criteria.push('elite matchup .420+'); }
+            // Locate the platoon adjustment (already computed earlier in this batter's analysis)
+            const platoonAdjustment = adjustments.find(a => a.type === 'platoon');
 
-            // 2. Demolishes pitcher's primary pitch (best-matched xwOBA ≥ .500)
-            if (bestMatchedXwoba >= 0.600) { score += 20; criteria.push(`demolishes primary pitch (${bestMatchedXwoba.toFixed(3)})`); }
-            else if (bestMatchedXwoba >= 0.500) { score += 15; criteria.push(`crushes primary pitch (${bestMatchedXwoba.toFixed(3)})`); }
-            else if (bestMatchedXwoba >= 0.420) { score += 7; criteria.push(`strong pitch matchup`); }
-
-            // 3. Power profile (barrel rate + hard hit)
-            if (barrel >= 15) { score += 20; criteria.push(`${barrel.toFixed(1)}% barrel rate`); }
-            else if (barrel >= 10) { score += 12; criteria.push(`${barrel.toFixed(1)}% barrel rate`); }
-            else if (barrel >= 7) { score += 5; criteria.push(`${barrel.toFixed(1)}% barrel rate`); }
-
-            // 4. Bullpen coverage (FULL GAME edge)
-            if (bullpenTier === 'elite' || bullpenTier === 'strong') {
-              score += 15;
-              criteria.push('FULL GAME edge');
-            } else if (bullpenTier === 'solid') {
-              score += 5;
-            }
-
-            // 5. Park HR factor (handedness-specific)
-            if (parkHrMult >= 1.15) { score += 15; criteria.push(`power park (+${((parkHrMult-1)*100).toFixed(0)}% HR)`); }
-            else if (parkHrMult >= 1.05) { score += 8; criteria.push('slight power park'); }
-            else if (parkHrMult <= 0.88) { score -= 5; }
-
-            // Wind-specific criterion text (shows up as a badge on HR candidates)
-            if (wi && !wi.isDome && wi.windRelative) {
-              const cat = wi.windRelative.category;
-              const handSideFavors = effectiveBatSide === 'L' ? 'OUT_TO_RF' : 'OUT_TO_LF';
-              const handSideHurts = effectiveBatSide === 'L' ? 'IN_FROM_RF' : 'IN_FROM_LF';
-              if (cat === handSideFavors && (wi.windSpeedMph || 0) >= 8) {
-                score += 8;
-                criteria.push(`wind ${wi.windRelative.symbol} favors ${effectiveBatSide}HH pull`);
-              } else if (cat === handSideHurts && (wi.windSpeedMph || 0) >= 8) {
-                score -= 8;
-                criteria.push(`wind ${wi.windRelative.symbol} kills ${effectiveBatSide}HH pull`);
-              } else if (cat === 'OUT_TO_CF' && (wi.windSpeedMph || 0) >= 10) {
-                score += 5;
-                criteria.push(`wind ${wi.windRelative.symbol} out to CF`);
-              } else if (cat === 'IN_FROM_CF' && (wi.windSpeedMph || 0) >= 10) {
-                score -= 5;
-                criteria.push(`wind ${wi.windRelative.symbol} kills fly balls`);
-              }
-            }
-            if (wi && wi.tempF >= 85) {
-              score += 3;
-              criteria.push(`hot (${Math.round(wi.tempF)}°F) — carry boost`);
-            } else if (wi && wi.tempF != null && wi.tempF <= 50) {
-              score -= 3;
-            }
-
-            // Bonus: hard-hit rate ≥ 45% (true power profile)
-            if (hardHit >= 45) { score += 5; criteria.push(`${hardHit.toFixed(0)}% hard-hit`); }
-
-            // Bonus: platoon advantage for power
-            const platAdj = adjustments.find(a => a.type === 'platoon' && a.favor === 'hitter');
-            if (platAdj && parseFloat(platAdj.multiplier || 1) >= 1.10) {
-              score += 5;
-              criteria.push('platoon advantage');
-            }
-
-            // Classification tiers (calibrated against actual HRs on 4/18-22)
-            // Judge 4/18 would score ~95, Vargas ~85, Mead ~75, Rojas ~60
-            let tier = null;
-            let emoji = null;
-            if (score >= 80) { tier = 'elite'; emoji = '💣'; }
-            else if (score >= 65) { tier = 'strong'; emoji = '🎯'; }
-            else if (score >= 50) { tier = 'solid'; emoji = '⚡'; }
-
-            return tier ? {
-              tier, score, emoji, criteria,
+            return computeHrProjection({
               barrelPct: barrel,
               hardHitPct: hardHit,
-              bestMatchedXwoba: bestMatchedXwoba.toFixed(3),
-              parkHrMult: parkHrMult.toFixed(2)
-            } : null;
+              kPct,
+              seasonPa,
+              bestMatchedXwoba,
+              dominantPitch,
+              pitcherHrPer9,
+              parkHrMult,
+              parkName: parkFactor?.name,
+              weatherImpact: results.weatherImpact,
+              batSide: effectiveBatSide,
+              platoonAdjustment,
+              bullpenTier
+            });
           })()
         };
       });

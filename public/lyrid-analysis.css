@@ -2203,3 +2203,120 @@ button.tag-btn:hover,
   color: var(--text-secondary);
   margin-left: auto;
 }
+
+/* ===========================================================
+   HR PROJECTION DRIVERS PANEL
+   Empirically-calibrated HR badges show drivers and confidence.
+   =========================================================== */
+
+.hr-rate {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 500;
+  margin-left: 4px;
+  opacity: 0.85;
+  font-variant-numeric: tabular-nums;
+}
+
+.hr-drivers-panel {
+  background: var(--data-warning-surface);
+  border: 0.5px solid var(--data-warning);
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+  margin: 8px 0;
+}
+
+.hr-sample-warn {
+  font-family: var(--font-sans);
+  font-size: 10px;
+  color: var(--data-warning);
+  font-weight: 500;
+  margin-bottom: 6px;
+  padding: 3px 6px;
+  background: var(--surface-card);
+  border-left: 2px solid var(--data-warning);
+  border-radius: var(--radius-sm);
+}
+
+.hr-drivers-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.hr-drivers-eyebrow {
+  font-family: var(--font-sans);
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--data-warning);
+}
+
+.hr-drivers-conf {
+  font-family: var(--font-sans);
+  font-size: 8px;
+  font-weight: 500;
+  letter-spacing: 0.10em;
+  padding: 1px 5px;
+  border-radius: var(--radius-sm);
+}
+
+.hr-drivers-conf.high {
+  background: var(--data-positive);
+  color: var(--text-on-primary);
+}
+
+.hr-drivers-conf.medium {
+  background: var(--data-warning);
+  color: var(--text-on-primary);
+}
+
+.hr-drivers-conf.low {
+  background: var(--surface-muted);
+  color: var(--text-secondary);
+  border: 0.5px solid var(--border-strong);
+}
+
+.hr-drivers-list {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.hr-driver {
+  display: grid;
+  grid-template-columns: minmax(110px, 1.4fr) minmax(140px, 2fr) auto;
+  align-items: baseline;
+  gap: 8px;
+  font-family: var(--font-sans);
+  font-size: 11px;
+  padding: 3px 0;
+}
+
+.hr-driver-feature {
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.hr-driver-detail {
+  color: var(--text-secondary);
+  font-size: 11px;
+}
+
+.hr-driver-weight {
+  font-family: var(--font-mono);
+  font-weight: 500;
+  font-size: 11px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.hr-driver-weight.pos {
+  color: var(--data-positive);
+}
+
+.hr-driver-weight.neg {
+  color: var(--data-negative);
+}
