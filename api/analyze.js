@@ -4,7 +4,7 @@
 
 import { PARK_FACTORS_BY_TEAM, PARK_GEO, getParkGeo } from './_data/parkFactors.js';
 import { UMPIRE_FACTORS, classifyUmp, getAbsAdjustedFactors } from './_data/umpireFactors.js';
-import { getProbables, getPitcherArsenal, getBullpenProfile, getLineup, getHitterStats, getHitterSplits, getPitcherSplits, getHitterPitchTypeByHand, getGameOdds } from './_lib/data.js';
+import { getProbables, getPitcherArsenal, getBullpenProfile, getLineup, getHitterStats, getHitterSplits, getPitcherSplits, getHitterPitchTypeByHand, getGameOdds, getPitcherHomeRoadSplits, getPitcherRecentStarts } from './_lib/data.js';
 import { getBlendedInningSplits } from './_lib/pitcherInnings.js';
 import { getWeatherForecast, computeWeatherImpact } from './_lib/weather.js';
 import { getHitterSituationalByMlbam } from './_lib/brefSplits.js';
@@ -157,7 +157,7 @@ export default async function handler(req, res) {
     const sideResults = await Promise.all(sides.map(async s => {
       if (!s.pitcher || !s.hitTeamId) return null;
 
-      const [arsenal, lineup, bullpen, pitcherSplits, inningSplits, pitcherRole] = await Promise.all([
+      const [arsenal, lineup, bullpen, pitcherSplits, inningSplits, pitcherRole, homeRoadSplits, recentStarts] = await Promise.all([
         getPitcherArsenal(s.pitcher.id, season).catch(() => []),
         getLineup(s.hitTeamId, gamePk, s.side).catch(() => []),
         getBullpenProfile(s.pitTeamAbbr, season, s.pitcher.id).catch(() => ({ pitches: [], pitcherCount: 0 })),
@@ -165,7 +165,13 @@ export default async function handler(req, res) {
         // Inning splits fetched in deep mode only (heavy data pull) or when game has odds (likely big-money matchup)
         (deepMode ? getBlendedInningSplits(s.pitcher.id).catch(() => null) : Promise.resolve(null)),
         // Role detection — always runs, lightweight call
-        detectPitcherRole(s.pitcher.id).catch(() => null)
+        detectPitcherRole(s.pitcher.id).catch(() => null),
+        // Home/road splits — lightweight, always fetched. Used to surface dome-vs-outdoor
+        // and altitude effects on pitcher performance.
+        getPitcherHomeRoadSplits(s.pitcher.id, season).catch(() => ({ home: null, road: null })),
+        // Recent starts — last 3 starts with IP/K/BB/ER. Used for form trend display
+        // and to inform Outs projection (already in role data, but explicit history adds context).
+        getPitcherRecentStarts(s.pitcher.id, season, 3).catch(() => [])
       ]);
 
       const keyPitches = arsenal.slice(0, 3);
@@ -801,6 +807,8 @@ export default async function handler(req, res) {
           pitcher: s.pitcher,
           pitcherArsenal: arsenal,
           pitcherSplits,
+          pitcherHomeRoadSplits: homeRoadSplits,
+          pitcherRecentStarts: recentStarts,
           inningSplits,
           pitcherNarrative,
           pitcherRole,

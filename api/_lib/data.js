@@ -381,6 +381,91 @@ export async function getPitcherSplits(mlbam, season) {
 }
 
 // =============================================================
+// Home / Road splits for pitchers
+// =============================================================
+// MLB Stats API exposes h (home) and a (away/road) sitCodes for pitchers.
+// Returns OPS-against, K%, BB%, and PA per location. Useful for catching
+// dome-vs-outdoor and altitude effects (e.g., a pitcher who's significantly
+// worse at Coors than at home).
+//
+// Returns { home: { ... }, road: { ... } } or { home: null, road: null } on failure.
+export async function getPitcherHomeRoadSplits(mlbam, season) {
+  try {
+    const url = `https://statsapi.mlb.com/api/v1/people/${mlbam}/stats?stats=statSplits&group=pitching&season=${season}&sitCodes=h,a`;
+    const r = await fetch(url, { signal: AbortSignal.timeout(5000) });
+    if (!r.ok) return { home: null, road: null };
+    const data = await r.json();
+
+    const splits = { home: null, road: null };
+    for (const block of (data.stats || [])) {
+      for (const split of (block.splits || [])) {
+        const code = split.split?.code;
+        const s = split.stat || {};
+        const row = {
+          opsAgainst: s.ops || null,
+          eraStr: s.era || null,
+          pa: s.plateAppearances || 0,
+          ip: s.inningsPitched || null,
+          k: s.strikeOuts || 0,
+          bb: s.baseOnBalls || 0,
+          hr: s.homeRuns || 0,
+        };
+        row.kPct = row.pa > 0 ? ((row.k / row.pa) * 100).toFixed(1) : null;
+        if (code === 'h') splits.home = row;
+        else if (code === 'a') splits.road = row;
+      }
+    }
+    return splits;
+  } catch (err) {
+    return { home: null, road: null };
+  }
+}
+
+// =============================================================
+// Recent starts for pitchers (last 3-5)
+// =============================================================
+// Returns the pitcher's most recent N starts with IP, K, BB, ER, opponent.
+// Used by the pitcher props panel to show form trend (e.g., "trending short").
+//
+// Returns array of { date, opp, ip, k, bb, er, hits, hr, decision } sorted recent first.
+export async function getPitcherRecentStarts(mlbam, season, n = 3) {
+  try {
+    const url = `https://statsapi.mlb.com/api/v1/people/${mlbam}/stats?stats=gameLog&group=pitching&season=${season}`;
+    const r = await fetch(url, { signal: AbortSignal.timeout(5000) });
+    if (!r.ok) return [];
+    const data = await r.json();
+
+    const games = [];
+    for (const block of (data.stats || [])) {
+      for (const split of (block.splits || [])) {
+        const s = split.stat || {};
+        // Filter to actual starts (IP >= 1.0 typically; some openers go <1)
+        const ipStr = s.inningsPitched || '0.0';
+        const ip = parseFloat(ipStr);
+        if (ip < 0.1) continue;  // skip blowouts/relief 0-out appearances
+        games.push({
+          date: split.date,
+          opp: split.opponent?.abbreviation || split.opponent?.name || '?',
+          ip,
+          ipStr,
+          k: parseInt(s.strikeOuts) || 0,
+          bb: parseInt(s.baseOnBalls) || 0,
+          er: parseInt(s.earnedRuns) || 0,
+          hits: parseInt(s.hits) || 0,
+          hr: parseInt(s.homeRuns) || 0,
+          decision: s.note || null,  // W/L/ND/SV in some contexts
+        });
+      }
+    }
+    // Sort by date descending and take top N
+    games.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+    return games.slice(0, n);
+  } catch (err) {
+    return [];
+  }
+}
+
+// =============================================================
 // DEEP SPLITS: per-pitch-type xwOBA filtered by pitcher handedness
 // =============================================================
 // Pulls raw pitch-by-pitch from Statcast search endpoint and aggregates.

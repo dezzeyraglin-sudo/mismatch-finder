@@ -182,7 +182,10 @@ export function buildPitcherProps(pitcher, opts = {}) {
         sharpKs: sharpKResult.sharpProjectedKs,
         matchupEdge: sharpKResult.matchupEdge,
         confidence: sharpKResult.confidence,
-        detail: sharpKResult.detail
+        detail: sharpKResult.detail,
+        // Per-batter contribution breakdown — surfaced in UI as audit trail.
+        // Each entry: { hitterId, name, battingOrder, kRatePerPA, byPitch }
+        batterBreakdown: sharpKResult.batterBreakdown || []
       };
     }
   }

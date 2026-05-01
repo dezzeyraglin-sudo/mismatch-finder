@@ -4108,13 +4108,125 @@ function renderAnalysis(data) {
         `;
       }
 
+      // Per-batter K breakdown (DEEP MODE only) — sorted highest to lowest projected K rate.
+      // Audit trail for the sharp K projection: shows which batters drive the K total
+      // and which pitch type contributes most to each.
+      let batterKHtml = '';
+      if (ks && ks.batterBreakdown && ks.batterBreakdown.length > 0) {
+        // Sort high-to-low by per-PA K rate, only batters with >= medium confidence make the panel
+        const sortedBatters = [...ks.batterBreakdown]
+          .filter(b => b.confidence !== 'low' && b.kRatePerPA != null)
+          .sort((a, b) => b.kRatePerPA - a.kRatePerPA);
+
+        if (sortedBatters.length >= 3) {
+          const batterRows = sortedBatters.map(b => {
+            // Find dominant pitch — highest pitcher usage × batter K rate combined
+            let dominantPitch = null;
+            if (b.byPitch && b.byPitch.length > 0) {
+              const ranked = [...b.byPitch].sort((x, y) => {
+                const xScore = (x.batterKRate || 0) * (x.pitcherUsage || 0);
+                const yScore = (y.batterKRate || 0) * (y.pitcherUsage || 0);
+                return yScore - xScore;
+              });
+              dominantPitch = ranked[0];
+            }
+            const kPct = (b.kRatePerPA * 100).toFixed(0);
+            const dpStr = dominantPitch
+              ? `${dominantPitch.pitchType} ${(dominantPitch.batterKRate * 100).toFixed(0)}% K`
+              : '';
+            const sampleHint = b.confidence === 'high' ? '' : '<span class="pkb-small">small</span>';
+            return `
+              <div class="pkb-row">
+                <span class="pkb-slot">${b.battingOrder || ''}</span>
+                <span class="pkb-name">${b.name || '?'}</span>
+                <span class="pkb-rate">${kPct}%K</span>
+                <span class="pkb-driver">${dpStr}</span>
+                ${sampleHint}
+              </div>
+            `;
+          }).join('');
+
+          batterKHtml = `
+            <div class="pkb-panel">
+              <div class="pkb-head">
+                <span class="pkb-eyebrow">TOP K TARGETS · sorted by projected K rate</span>
+              </div>
+              <div class="pkb-rows">${batterRows}</div>
+            </div>
+          `;
+        }
+      }
+
+      // Recent form trend — last 3 starts as compact pills
+      let formTrendHtml = '';
+      const recentStarts = s.pitcherRecentStarts || [];
+      if (recentStarts.length >= 2) {
+        const pills = recentStarts.map(g => {
+          const ipKey = (parseFloat(g.ip) >= 6) ? 'good' : (parseFloat(g.ip) >= 4.5) ? 'avg' : 'short';
+          return `
+            <span class="form-pill ${ipKey}">
+              <span class="form-ip">${g.ipStr || g.ip}</span>
+              <span class="form-line">${g.k}K · ${g.bb}BB · ${g.er}ER</span>
+              <span class="form-opp">${g.opp || ''}</span>
+            </span>
+          `;
+        }).join('');
+        // Compute trend signal
+        const avgIp = recentStarts.reduce((s, g) => s + parseFloat(g.ip), 0) / recentStarts.length;
+        const avgK = recentStarts.reduce((s, g) => s + g.k, 0) / recentStarts.length;
+        let trendNote = '';
+        if (avgIp >= 6.0 && avgK >= 7) trendNote = 'Locked in — going deep with high K';
+        else if (avgIp < 4.5) trendNote = 'Trending short — recent outings cut early';
+        else if (avgK >= 8) trendNote = 'High-K form — Ks trending above projection';
+        else if (avgK <= 4) trendNote = 'K total trending below baseline';
+        formTrendHtml = `
+          <div class="form-trend">
+            <div class="form-trend-head">
+              <span class="form-trend-eyebrow">RECENT FORM · last ${recentStarts.length} starts</span>
+              ${trendNote ? `<span class="form-trend-note">${trendNote}</span>` : ''}
+            </div>
+            <div class="form-trend-pills">${pills}</div>
+          </div>
+        `;
+      }
+
+      // Home/road split callout — only surface when meaningful gap (>30-pt OPS-against differential)
+      let hrSplitHtml = '';
+      const hrSplits = s.pitcherHomeRoadSplits;
+      const isHomePitcher = (s.key === 'homeVsAway');  // away hitters vs home pitcher means pitcher is home
+      if (hrSplits && hrSplits.home && hrSplits.road) {
+        const homeOps = parseFloat(hrSplits.home.opsAgainst);
+        const roadOps = parseFloat(hrSplits.road.opsAgainst);
+        if (!isNaN(homeOps) && !isNaN(roadOps) && Math.abs(homeOps - roadOps) >= 0.030) {
+          const tonightSplit = isHomePitcher ? hrSplits.home : hrSplits.road;
+          const otherSplit = isHomePitcher ? hrSplits.road : hrSplits.home;
+          const tonightLabel = isHomePitcher ? 'HOME' : 'ROAD';
+          const otherLabel = isHomePitcher ? 'ROAD' : 'HOME';
+          const tonightVal = isHomePitcher ? homeOps : roadOps;
+          const otherVal = isHomePitcher ? roadOps : homeOps;
+          const tonightIsBetter = tonightVal < otherVal;
+          const cls = tonightIsBetter ? 'split-favorable' : 'split-unfavorable';
+          const arrowSym = tonightIsBetter ? '▼' : '▲';
+          hrSplitHtml = `
+            <div class="hr-split ${cls}">
+              <span class="hr-split-eyebrow">${tonightLabel} SPLIT</span>
+              <span class="hr-split-value">${tonightVal.toFixed(3)} OPS-against (${tonightSplit.kPct || '?'}%K · ${tonightSplit.pa}PA)</span>
+              <span class="hr-split-vs">${arrowSym} vs ${otherLabel} ${otherVal.toFixed(3)}</span>
+            </div>
+          `;
+        }
+      }
+
       pitcherPropsHtml = `
         <div class="pp-panel">
           <div class="pp-head">
             <span class="pp-title">◆ PITCHER PROPS · DK / FD</span>
             ${pp.suppressed ? '<span class="pp-sup-badge">ROLE SUPPRESSED</span>' : ''}
           </div>
+          ${formTrendHtml}
+          ${hrSplitHtml}
           ${sharpKHtml}
+          ${batterKHtml}
           <div class="pp-rows">${rows}</div>
           <div class="pp-footnote">Projections vs market line — use OVER / UNDER accordingly. Flag ${pp.suppressed ? 'SUPPRESSED items — books may not have updated role shift' : 'patterns that diverge from listed lines'}.</div>
         </div>

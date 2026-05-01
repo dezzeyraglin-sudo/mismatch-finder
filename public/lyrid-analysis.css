@@ -1974,3 +1974,232 @@ button.tag-btn:hover,
   font-size: 10px;
   font-style: italic;
 }
+
+/* ===========================================================
+   PITCHER PROPS — RICHER MATCHUP DETAIL
+   Per-batter K breakdown, recent form trend, home/road split callout
+   =========================================================== */
+
+/* Per-batter K breakdown panel — sorted by projected K rate */
+.pkb-panel {
+  background: var(--surface-muted);
+  border: 0.5px solid var(--border-hairline);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+  margin: 10px 0;
+}
+
+.pkb-head {
+  margin-bottom: 8px;
+}
+
+.pkb-eyebrow {
+  font-family: var(--font-sans);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.pkb-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.pkb-row {
+  display: grid;
+  grid-template-columns: 22px minmax(110px, 1.2fr) 50px 1fr auto;
+  align-items: baseline;
+  gap: 8px;
+  padding: 5px 0;
+  border-bottom: 0.5px solid var(--border-hairline);
+  font-family: var(--font-sans);
+  font-size: 12px;
+}
+
+.pkb-row:last-child {
+  border-bottom: none;
+}
+
+.pkb-slot {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.pkb-name {
+  font-family: var(--font-sans);
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.pkb-rate {
+  font-family: var(--font-mono);
+  font-weight: 500;
+  color: var(--brand-primary);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.pkb-driver {
+  font-family: var(--font-sans);
+  font-size: 11px;
+  color: var(--text-secondary);
+  font-style: italic;
+}
+
+.pkb-small {
+  font-family: var(--font-sans);
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  color: var(--data-warning);
+  background: var(--data-warning-surface);
+  padding: 1px 5px;
+  border-radius: var(--radius-sm);
+  border: 0.5px solid var(--data-warning);
+}
+
+/* Recent form trend pills */
+.form-trend {
+  margin-top: 8px;
+  margin-bottom: 4px;
+}
+
+.form-trend-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 6px;
+  flex-wrap: wrap;
+}
+
+.form-trend-eyebrow {
+  font-family: var(--font-sans);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.form-trend-note {
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-style: italic;
+  color: var(--text-secondary);
+}
+
+.form-trend-pills {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.form-pill {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-card);
+  border: 0.5px solid var(--border-hairline);
+  font-family: var(--font-sans);
+  min-width: 90px;
+}
+
+.form-pill.good {
+  border-left: 3px solid var(--data-positive);
+}
+
+.form-pill.avg {
+  border-left: 3px solid var(--border-strong);
+}
+
+.form-pill.short {
+  border-left: 3px solid var(--data-warning);
+}
+
+.form-ip {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.form-line {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.form-opp {
+  font-family: var(--font-sans);
+  font-size: 9px;
+  color: var(--text-muted);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/* Home/road split callout */
+.hr-split {
+  margin-top: 8px;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-card);
+  border: 0.5px solid var(--border-hairline);
+  border-left-width: 3px;
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  flex-wrap: wrap;
+}
+
+.hr-split.split-favorable {
+  border-left-color: var(--data-positive);
+  background: var(--data-positive-surface);
+}
+
+.hr-split.split-unfavorable {
+  border-left-color: var(--data-negative);
+  background: var(--data-negative-surface);
+}
+
+.hr-split-eyebrow {
+  font-family: var(--font-sans);
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.split-favorable .hr-split-eyebrow {
+  color: var(--data-positive);
+}
+
+.split-unfavorable .hr-split-eyebrow {
+  color: var(--data-negative);
+}
+
+.hr-split-value {
+  font-family: var(--font-mono);
+  font-weight: 500;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.hr-split-vs {
+  font-family: var(--font-sans);
+  font-size: 11px;
+  color: var(--text-secondary);
+  margin-left: auto;
+}
