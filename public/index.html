@@ -40,8 +40,6 @@
 <!-- Lyrid design tokens — drives all colors, spacing, typography -->
 <link rel="stylesheet" href="/lyrid-tokens.css">
 
-<!-- Lyrid analysis screen overrides — Sharp Light treatment for the main game-detail view -->
-<link rel="stylesheet" href="/lyrid-analysis.css">
 <style>
   /*
    * LYRID COMPATIBILITY LAYER
@@ -2359,6 +2357,9 @@
   .toast.show{transform:translateX(-50%) translateY(0)}
   .toast.danger{background:var(--danger)}
 </style>
+
+<!-- Lyrid analysis screen overrides — loaded LAST so they win the cascade against the inline legacy styles above -->
+<link rel="stylesheet" href="/lyrid-analysis.css">
 </head>
 <body>
 

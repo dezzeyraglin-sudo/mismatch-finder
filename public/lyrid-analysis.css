@@ -1242,3 +1242,232 @@
   color: var(--text-secondary);
   border: 0.5px solid var(--border-hairline);
 }
+
+/* ===========================================================
+   DARK-ON-DARK CHIP FIXES
+   Many small chips were styled as solid-brand-blue background with
+   near-black text. After the dark-to-light theme remap, those chips
+   read as a black blob. Fix by either:
+     a) inverting to brand-primary background with WHITE text, OR
+     b) using a tinted surface with brand-primary text
+   =========================================================== */
+
+/* Top pick "★ TOP PICK" star badge — most-prominent place this matters */
+.top-pick-star {
+  background: var(--brand-primary) !important;
+  color: var(--brand-secondary) !important;  /* gold on blue — signature Lyrid combination */
+  font-family: var(--font-sans);
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  padding: 3px 8px;
+  border-radius: var(--radius-sm);
+  animation: none;  /* drop the lime-glow keyframe animation */
+  box-shadow: none;
+}
+
+/* Match card with the "top pick" attribute — calm border-left, clean bg */
+.match.top-pick {
+  border-left-color: var(--brand-primary) !important;
+  background: linear-gradient(90deg, var(--brand-tint), transparent 30%) !important;
+}
+
+/* DT (deep target) combo badge — FULL GAME / SP ONLY / BP ONLY */
+.dt-combo-badge {
+  font-family: var(--font-sans);
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0.10em;
+  padding: 3px 8px;
+  border-radius: var(--radius-sm);
+  border: none;
+}
+
+.dt-combo-badge.full {
+  background: var(--brand-primary) !important;
+  color: var(--text-on-primary) !important;
+}
+
+.dt-combo-badge.sp-only {
+  background: var(--data-positive-surface) !important;
+  color: var(--data-positive) !important;
+  border: 0.5px solid var(--data-positive);
+}
+
+.dt-combo-badge.bp-only {
+  background: var(--data-live-surface) !important;
+  color: var(--data-live) !important;
+  border: 0.5px solid var(--data-live);
+}
+
+/* Source badge — DEEP / SHALLOW / SMALL marker on data points */
+.source-badge {
+  font-family: var(--font-sans);
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+}
+
+.source-badge.deep {
+  background: var(--brand-primary) !important;
+  color: var(--text-on-primary) !important;
+}
+
+.source-badge.shallow {
+  background: var(--surface-muted) !important;
+  color: var(--text-secondary) !important;
+}
+
+.source-badge.small {
+  background: var(--data-warning-surface) !important;
+  color: var(--data-warning) !important;
+  border: 0.5px solid var(--data-warning);
+}
+
+/* Small-sample-flag — yellow border thing on "vs LHP small sample" type indicators */
+.small-sample-flag {
+  font-family: var(--font-sans);
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  color: var(--data-warning) !important;
+  background: var(--data-warning-surface) !important;
+  padding: 2px 6px;
+  border: 0.5px solid var(--data-warning) !important;
+  border-radius: var(--radius-sm);
+}
+
+/* HR badge — Home Run chance indicator (was orange-on-dark) */
+.hr-badge {
+  background: var(--data-warning-surface) !important;
+  color: var(--data-warning) !important;
+  border: 0.5px solid var(--data-warning);
+  font-family: var(--font-sans);
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0.10em;
+  padding: 3px 8px;
+  border-radius: var(--radius-sm);
+}
+
+/* HR criteria mode chip ("✓ DEEP" or "⏳ FAST" next to HR analysis) */
+.hr-cr {
+  font-family: var(--font-sans);
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0.10em;
+  padding: 2px 7px;
+  border-radius: var(--radius-sm);
+  margin-left: 6px;
+}
+
+.hr-cr.deep {
+  background: var(--brand-primary);
+  color: var(--text-on-primary);
+}
+
+.hr-cr.fast {
+  background: var(--data-warning-surface);
+  color: var(--data-warning);
+  border: 0.5px solid var(--data-warning);
+}
+
+/* Pick status verification badges */
+.pick-status-badge {
+  font-family: var(--font-sans);
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0.10em;
+  padding: 3px 8px;
+  border-radius: var(--radius-sm);
+  display: inline-block;
+}
+
+.pick-status-badge.verified {
+  background: var(--data-positive-surface);
+  color: var(--data-positive);
+  border: 0.5px solid var(--data-positive);
+}
+
+.pick-status-badge.unverified {
+  background: var(--data-warning-surface);
+  color: var(--data-warning);
+  border: 0.5px solid var(--data-warning);
+}
+
+/* Dual-pick-mode chip (DEEP/FAST mode indicator on top picks) */
+.dual-pick-mode {
+  font-family: var(--font-sans);
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0.10em;
+  padding: 2px 7px;
+  border-radius: var(--radius-sm);
+  display: inline-block;
+}
+
+.dual-pick-mode.deep {
+  background: var(--brand-primary);
+  color: var(--text-on-primary);
+}
+
+.dual-pick-mode.fast {
+  background: var(--surface-muted);
+  color: var(--text-secondary);
+}
+
+/* Tag chip (the "+ TAG" button on hitters) — was barely visible */
+.tag-add-btn,
+button.tag-btn,
+.btn-add-tag {
+  background: var(--surface-card);
+  color: var(--brand-primary);
+  border: 0.5px solid var(--brand-primary);
+  font-family: var(--font-sans);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0;
+  padding: 4px 10px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.tag-add-btn:hover,
+button.tag-btn:hover,
+.btn-add-tag:hover {
+  background: var(--brand-tint);
+}
+
+/* DEEP DIVE / DEEP MODE banner button — primary blue with white text */
+.deep-dive-btn,
+.deep-toggle {
+  background: var(--surface-card);
+  color: var(--brand-primary);
+  border: 0.5px solid var(--brand-primary);
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0;
+  padding: 4px 10px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.deep-toggle.active {
+  background: var(--brand-primary);
+  color: var(--text-on-primary);
+}
+
+.deep-toggle:hover,
+.deep-dive-btn:hover {
+  background: var(--brand-tint);
+}
+
+.deep-toggle.active:hover {
+  background: var(--brand-primary-hover);
+}
