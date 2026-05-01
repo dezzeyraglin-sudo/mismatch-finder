@@ -4028,12 +4028,44 @@ function renderAnalysis(data) {
           </div>
         `;
       }).join('');
+
+      // Sharp K projection breakdown (DEEP MODE only) — shows lineup-vs-arsenal analysis
+      // that produced the K projection. Helps user audit the projection's sharpness.
+      let sharpKHtml = '';
+      const ks = pp.projection?.kSharp;
+      if (ks && ks.confidence !== 'low') {
+        const edgeColor = ks.matchupEdge > 5 ? 'edge-positive' : ks.matchupEdge < -5 ? 'edge-negative' : 'edge-neutral';
+        const arrow = ks.matchupEdge > 5 ? '▲' : ks.matchupEdge < -5 ? '▼' : '◌';
+        sharpKHtml = `
+          <div class="pp-sharp-k">
+            <div class="pp-sharp-head">
+              <span class="pp-sharp-eyebrow">SHARP K PROJECTION</span>
+              <span class="pp-sharp-confidence ${ks.confidence}">${ks.confidence.toUpperCase()} CONFIDENCE</span>
+            </div>
+            <div class="pp-sharp-body">
+              <div class="pp-sharp-numbers">
+                <span class="pp-sharp-label">Baseline (flat K%)</span>
+                <span class="pp-sharp-value">${ks.baselineKs.toFixed(1)} K</span>
+              </div>
+              <div class="pp-sharp-numbers">
+                <span class="pp-sharp-label">Lineup-vs-Arsenal</span>
+                <span class="pp-sharp-value sharp">${ks.sharpKs.toFixed(1)} K</span>
+              </div>
+              <div class="pp-sharp-edge ${edgeColor}">
+                ${arrow} ${ks.matchupEdge > 0 ? '+' : ''}${ks.matchupEdge.toFixed(1)}% matchup edge — ${ks.detail}
+              </div>
+            </div>
+          </div>
+        `;
+      }
+
       pitcherPropsHtml = `
         <div class="pp-panel">
           <div class="pp-head">
             <span class="pp-title">◆ PITCHER PROPS · DK / FD</span>
             ${pp.suppressed ? '<span class="pp-sup-badge">ROLE SUPPRESSED</span>' : ''}
           </div>
+          ${sharpKHtml}
           <div class="pp-rows">${rows}</div>
           <div class="pp-footnote">Projections vs market line — use OVER / UNDER accordingly. Flag ${pp.suppressed ? 'SUPPRESSED items — books may not have updated role shift' : 'patterns that diverge from listed lines'}.</div>
         </div>

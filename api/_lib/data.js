@@ -455,6 +455,7 @@ export async function getHitterPitchTypeByHand(mlbam, season, pitcherHand) {
     const idx = {
       pitch_type: headers.indexOf('pitch_type'),
       events: headers.indexOf('events'),
+      description: headers.indexOf('description'),
       estimated_woba: headers.indexOf('estimated_woba_using_speedangle'),
       woba_value: headers.indexOf('woba_value')
     };
@@ -473,13 +474,41 @@ export async function getHitterPitchTypeByHand(mlbam, season, pitcherHand) {
       if (!pt) continue;
 
       if (!byPitch[pt]) {
-        byPitch[pt] = { pitches: 0, pa: 0, xwobaSum: 0, xwobaN: 0 };
+        byPitch[pt] = {
+          pitches: 0,
+          pa: 0,
+          xwobaSum: 0,
+          xwobaN: 0,
+          // K-rate tracking: strikeouts on this pitch / PAs that ended on this pitch
+          strikeouts: 0,
+          // Whiff-rate tracking: swinging strikes / total swings on this pitch
+          swings: 0,
+          swingsAndMisses: 0
+        };
       }
       byPitch[pt].pitches++;
+
+      // Description-based whiff tracking (every pitch has a description)
+      const description = idx.description >= 0 ? (cells[idx.description] || '').trim() : '';
+      if (description) {
+        const isSwingMiss = description.includes('swinging_strike');  // covers swinging_strike and swinging_strike_blocked
+        const isFoul = description.includes('foul') && !description.includes('foul_pitchout');
+        const isInPlay = description.startsWith('hit_into_play');
+        if (isSwingMiss) {
+          byPitch[pt].swings++;
+          byPitch[pt].swingsAndMisses++;
+        } else if (isFoul || isInPlay) {
+          byPitch[pt].swings++;
+        }
+      }
 
       const events = (cells[idx.events] || '').trim();
       if (events) {
         byPitch[pt].pa++;
+        // K-rate: count strikeouts (covers strikeout and strikeout_double_play)
+        if (events.startsWith('strikeout')) {
+          byPitch[pt].strikeouts++;
+        }
         const ewRaw = idx.estimated_woba >= 0 ? (cells[idx.estimated_woba] || '').trim() : '';
         const wvRaw = idx.woba_value >= 0 ? (cells[idx.woba_value] || '').trim() : '';
         let val = null;
@@ -504,7 +533,13 @@ export async function getHitterPitchTypeByHand(mlbam, season, pitcherHand) {
       pitches: d.pitches,
       pa: d.pa,
       xwoba: d.xwobaN > 0 ? (d.xwobaSum / d.xwobaN).toFixed(3) : null,
-      xwobaSampleSize: d.xwobaN
+      xwobaSampleSize: d.xwobaN,
+      // NEW: K rate and whiff rate per pitch type — used by pitcher prop projection
+      kRate: d.pa > 0 ? parseFloat((d.strikeouts / d.pa).toFixed(3)) : null,
+      strikeouts: d.strikeouts,
+      whiffRate: d.swings > 0 ? parseFloat((d.swingsAndMisses / d.swings).toFixed(3)) : null,
+      swings: d.swings,
+      swingsAndMisses: d.swingsAndMisses
     })).filter(p => p.pitches >= 5)
       .sort((a, b) => b.pitches - a.pitches);
 

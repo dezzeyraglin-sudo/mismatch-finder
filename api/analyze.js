@@ -772,7 +772,9 @@ export default async function handler(req, res) {
       }
 
       // ===== PITCHER PROPS =====
-      // Uses the pitcher data already gathered — arsenal + inning splits + role + opposing lineup tier
+      // Uses the pitcher data already gathered — arsenal + inning splits + role + opposing lineup tier.
+      // In deep mode, also passes the lineup's per-pitch-type K rates so the K projection
+      // can be built from actual lineup-vs-arsenal vulnerability rather than a flat K%.
       const pitcherProps = buildPitcherProps(s.pitcher, {
         role: pitcherRole,
         inningSplits,
@@ -780,7 +782,9 @@ export default async function handler(req, res) {
         lineupTier,
         parkFactor,
         weatherImpact: results.weatherImpact,
-        umpire: results.umpire
+        umpire: results.umpire,
+        // DEEP MODE: pass lineup with per-pitch deep data for sharp K projection
+        opposingLineup: deepMode ? hitterData : null
       });
 
       return {

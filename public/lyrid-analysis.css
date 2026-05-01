@@ -1662,3 +1662,103 @@ button.tag-btn:hover,
   color: var(--text-muted);
   font-size: 10px;
 }
+
+/* ===========================================================
+   SHARP K PROJECTION BREAKDOWN (DEEP MODE)
+   Surfaces the lineup-vs-arsenal analysis that produced the K projection.
+   =========================================================== */
+.pp-sharp-k {
+  background: var(--surface-muted);
+  border: 0.5px solid var(--border-hairline);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+  margin: 12px 0 10px;
+}
+
+.pp-sharp-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.pp-sharp-eyebrow {
+  font-family: var(--font-sans);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.pp-sharp-confidence {
+  font-family: var(--font-sans);
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0.10em;
+  padding: 2px 7px;
+  border-radius: var(--radius-sm);
+}
+
+.pp-sharp-confidence.high {
+  background: var(--data-positive-surface);
+  color: var(--data-positive);
+  border: 0.5px solid var(--data-positive);
+}
+
+.pp-sharp-confidence.medium {
+  background: var(--data-warning-surface);
+  color: var(--data-warning);
+  border: 0.5px solid var(--data-warning);
+}
+
+.pp-sharp-body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.pp-sharp-numbers {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-family: var(--font-sans);
+  font-size: 12px;
+}
+
+.pp-sharp-label {
+  color: var(--text-secondary);
+}
+
+.pp-sharp-value {
+  font-family: var(--font-mono);
+  font-weight: 500;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.pp-sharp-value.sharp {
+  color: var(--brand-primary);
+  font-size: 14px;
+}
+
+.pp-sharp-edge {
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 500;
+  margin-top: 6px;
+  padding-top: 8px;
+  border-top: 0.5px solid var(--border-hairline);
+}
+
+.pp-sharp-edge.edge-positive {
+  color: var(--data-positive);
+}
+
+.pp-sharp-edge.edge-negative {
+  color: var(--data-negative);
+}
+
+.pp-sharp-edge.edge-neutral {
+  color: var(--text-secondary);
+}

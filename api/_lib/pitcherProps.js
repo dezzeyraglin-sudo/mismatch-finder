@@ -7,6 +7,12 @@
 //   { projection, recommendations: [...] }
 //
 // Recommendations include tier + units + probability, mirroring the hitter prop system.
+//
+// DEEP MODE: when opposingLineup is passed in, the K projection uses a per-batter
+// per-pitch-type rollup (see pitcherKProjection.js) which is structurally sharper
+// than a flat K% × PAs model.
+
+import { projectPitcherKsFromLineup } from './pitcherKProjection.js';
 
 // ================== LEAGUE BASELINES ==================
 // MLB 2024-25 averages for STARTING pitchers (not relievers)
@@ -55,7 +61,8 @@ export function buildPitcherProps(pitcher, opts = {}) {
     parkFactor,
     weatherImpact,
     umpire,
-    gameLog = []
+    gameLog = [],
+    opposingLineup = null  // DEEP MODE: lineup with deepPitchTypes for sharp K projection
   } = opts;
 
   // ======= ROLE GATE =======
@@ -94,6 +101,33 @@ export function buildPitcherProps(pitcher, opts = {}) {
     projection.reasoning.push('Rain risk — IP reduced');
   }
 
+  // Lineup quality: tougher lineup means more pitches per inning, earlier hook
+  if (lineupTier?.label === 'EXPLOITABLE' || lineupTier?.label === 'HIGHLY_EXPLOITABLE') {
+    projIp *= 0.95;
+    projection.reasoning.push('Strong lineup may shorten outing');
+  } else if (lineupTier?.label === 'SUPPRESSED' || lineupTier?.label === 'LOCKED_DOWN') {
+    projIp *= 1.04;
+    projection.reasoning.push('Weak lineup supports longer outing');
+  }
+
+  // Pitch efficiency: P/IP determines how many outs achievable before ~95-110 pitch limit
+  if (inningSplits?.season_stats?.pitchesPerInning != null) {
+    const ppi = parseFloat(inningSplits.season_stats.pitchesPerInning);
+    if (ppi < 14) {
+      projIp *= 1.03;
+      projection.reasoning.push(`Efficient (~${ppi.toFixed(1)} P/IP) supports longer outing`);
+    } else if (ppi > 18) {
+      projIp *= 0.96;
+      projection.reasoning.push(`Inefficient (~${ppi.toFixed(1)} P/IP) — pitch limit comes early`);
+    }
+  }
+
+  // Hot weather increases pitch counts (fatigue)
+  if (weatherImpact?.tempF != null && weatherImpact.tempF > 88) {
+    projIp *= 0.97;
+    projection.reasoning.push(`Hot weather (${weatherImpact.tempF}°F) shortens outing`);
+  }
+
   projection.ip = +projIp.toFixed(2);
   projection.outs = +(projIp * 3).toFixed(1);
 
@@ -126,16 +160,46 @@ export function buildPitcherProps(pitcher, opts = {}) {
   const pasPerStart = projIp * 4.3;
   let projKs = pasPerStart * kRate;
 
-  // Lineup K-vulnerability adjustment
-  if (lineupTier?.label === 'EXPLOITABLE' || lineupTier?.label === 'HIGHLY_EXPLOITABLE') {
-    projKs *= 0.93;  // strong lineup reduces Ks
-    projection.reasoning.push('Strong opposing lineup reduces K ceiling');
-  } else if (lineupTier?.label === 'SUPPRESSED' || lineupTier?.label === 'LOCKED_DOWN') {
-    projKs *= 1.07;
-    projection.reasoning.push('Weak opposing lineup boosts K projection');
+  // ===== SHARP K PROJECTION (DEEP MODE) =====
+  // When opposing lineup data with per-pitch-type K rates is available, replace the
+  // flat K% × PAs baseline with a per-batter weighted projection. This catches lineup-
+  // specific arsenal vulnerabilities that the lineupTier label flattens.
+  let sharpKResult = null;
+  if (opposingLineup && opposingLineup.length > 0 && arsenal.length > 0) {
+    sharpKResult = projectPitcherKsFromLineup({
+      lineup: opposingLineup,
+      pitcherArsenal: arsenal,
+      baselineKRate: kRate,
+      projectedPAs: pasPerStart
+    });
+    if (sharpKResult.projectedKs != null && sharpKResult.sharpProjection) {
+      projKs = sharpKResult.projectedKs;
+      if (Math.abs(sharpKResult.matchupEdge) >= 5) {
+        projection.reasoning.push(sharpKResult.detail);
+      }
+      projection.kSharp = {
+        baselineKs: sharpKResult.baselineKs,
+        sharpKs: sharpKResult.sharpProjectedKs,
+        matchupEdge: sharpKResult.matchupEdge,
+        confidence: sharpKResult.confidence,
+        detail: sharpKResult.detail
+      };
+    }
   }
 
-  // Umpire K-factor
+  // Lineup K-vulnerability adjustment — only apply if sharp projection wasn't used
+  // (the sharp projection already incorporates lineup quality at the per-batter level)
+  if (!sharpKResult || !sharpKResult.sharpProjection) {
+    if (lineupTier?.label === 'EXPLOITABLE' || lineupTier?.label === 'HIGHLY_EXPLOITABLE') {
+      projKs *= 0.93;  // strong lineup reduces Ks
+      projection.reasoning.push('Strong opposing lineup reduces K ceiling');
+    } else if (lineupTier?.label === 'SUPPRESSED' || lineupTier?.label === 'LOCKED_DOWN') {
+      projKs *= 1.07;
+      projection.reasoning.push('Weak opposing lineup boosts K projection');
+    }
+  }
+
+  // Umpire K-factor (applies regardless of sharp/baseline path)
   if (umpire?.factors?.k) projKs *= umpire.factors.k;
 
   projection.ks = +projKs.toFixed(2);
