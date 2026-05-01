@@ -4661,19 +4661,33 @@ function renderAnalysis(data) {
   }
 
   const hasAnyPick = awaySide.display !== 'none' || homeSide.display !== 'none';
+  const bothHavePicks = awaySide.display !== 'none' && homeSide.display !== 'none';
+  const onlyOneSide = hasAnyPick && !bothHavePicks;
+
   const bannerHeaderExtra = currentIsDeep
     ? `<span class="mode-indicator deep">DEEP MODE</span>`
     : `<span class="mode-indicator fast">FAST MODE</span>`;
 
+  // Title reflects whether we have one pick (Tonight's Signal — the canonical Lyrid moment)
+  // or two distinct picks across sides (rare; happens when both qualify and tie on score)
+  const tpbTitle = onlyOneSide
+    ? `<span>★ TONIGHT'S SIGNAL · STRONGEST EDGE THIS GAME</span>`
+    : `<span>★ TOP PICKS</span>`;
+
+  // Only render the side(s) that actually have a pick — empty placeholder cards are gone
+  const sideCards = [
+    awaySide.display !== 'none' ? renderSideCard(awaySide) : '',
+    homeSide.display !== 'none' ? renderSideCard(homeSide) : '',
+  ].filter(Boolean).join('');
+
   const topPicksBanner = hasAnyPick ? `
-    <div class="top-picks-banner">
+    <div class="top-picks-banner${onlyOneSide ? ' single-pick' : ''}">
       <div class="tpb-title">
-        <span>★ TOP PICKS · ONE FROM EACH SIDE</span>
+        ${tpbTitle}
         ${bannerHeaderExtra}
       </div>
-      <div class="tpb-grid">
-        ${renderSideCard(awaySide)}
-        ${renderSideCard(homeSide)}
+      <div class="tpb-grid${onlyOneSide ? ' single' : ''}">
+        ${sideCards}
       </div>
     </div>
   ` : '';

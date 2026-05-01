@@ -13,6 +13,7 @@ import { buildGameLineRecommendations } from './_lib/gameLineBets.js';
 import { estimatePropProbability, estimateTotalProbability, estimateSpreadProbability, estimateMoneylineProbability, americanToImpliedProb, computeEdge } from './_lib/probability.js';
 import { buildPitcherProps, evaluatePitcherProp } from './_lib/pitcherProps.js';
 import { computeFirstInningProbability } from './_lib/firstInning.js';
+import { getMatchupConversionRates } from './_lib/conversionRate.js';
 import { tryAuth, checkAndIncrementQuota, AuthError } from './_lib/auth.js';
 
 export default async function handler(req, res) {
@@ -812,7 +813,16 @@ export default async function handler(req, res) {
       game.homeTeam.abbreviation,
       gameDate
     ).catch(() => null);
-    const odds = await oddsPromise;
+
+    // Fetch team-level RISP / stranded-runner conversion rates in parallel with odds.
+    // These adjust the projected total based on each team's season-long efficiency at
+    // converting scoring opportunities into actual runs.
+    const conversionPromise = getMatchupConversionRates(
+      game.awayTeam.id,
+      game.homeTeam.id
+    ).catch(() => ({ away: null, home: null }));
+
+    const [odds, conversionRates] = await Promise.all([oddsPromise, conversionPromise]);
 
     const projection = buildGameProjection({
       awayVsHome: results.awayVsHome,  // away hitters vs home pitcher
@@ -820,10 +830,12 @@ export default async function handler(req, res) {
       parkFactor,
       umpire: results.umpire,
       weatherImpact: results.weatherImpact,
+      conversionRates,                  // NEW: stranded-runner / RISP signal
       odds
     });
     results.projection = projection;
     results.odds = odds;
+    results.conversionRates = conversionRates;
 
     // Game-line bet recommendations (ML/Spread/Total) — runs after projection + odds are ready
     results.gameLineBets = buildGameLineRecommendations({
@@ -888,7 +900,7 @@ export default async function handler(req, res) {
 
 // ===== GAME PROJECTION =====
 // Build expected runs per team, win probability, and compare to market O/U
-function buildGameProjection({ awayVsHome, homeVsAway, parkFactor, umpire, weatherImpact, odds }) {
+function buildGameProjection({ awayVsHome, homeVsAway, parkFactor, umpire, weatherImpact, conversionRates, odds }) {
   // MLB 2024-2025 league avg runs per team per game: ~4.45
   const BASELINE_RUNS = 4.45;
 
@@ -1002,9 +1014,16 @@ function buildGameProjection({ awayVsHome, homeVsAway, parkFactor, umpire, weath
   const awayPitcherBlend = (awayComp.pitcherMult * aw.sp) + (awayComp.bullpenMult * aw.bp);
   const homePitcherBlend = (homeComp.pitcherMult * hw.sp) + (homeComp.bullpenMult * hw.bp);
 
-  // Final projections
-  const projAwayRuns = BASELINE_RUNS * awayComp.lineupMult * awayPitcherBlend * parkRunMult * umpRunMult * weatherRunMult;
-  const projHomeRuns = BASELINE_RUNS * homeComp.lineupMult * homePitcherBlend * parkRunMult * umpRunMult * weatherRunMult;
+  // Conversion rate multipliers: how efficiently each team converts scoring chances into runs.
+  // Applied to the team's OWN run total (their offense converts their own opportunities).
+  // 1.0 = league avg; <1.0 = strands runners; >1.0 = clutch / efficient.
+  // Capped at ±8% in the source module to prevent overfitting.
+  const awayConvMult = conversionRates?.away?.conversionMult || 1.0;
+  const homeConvMult = conversionRates?.home?.conversionMult || 1.0;
+
+  // Final projections — now including conversion rate
+  const projAwayRuns = BASELINE_RUNS * awayComp.lineupMult * awayPitcherBlend * parkRunMult * umpRunMult * weatherRunMult * awayConvMult;
+  const projHomeRuns = BASELINE_RUNS * homeComp.lineupMult * homePitcherBlend * parkRunMult * umpRunMult * weatherRunMult * homeConvMult;
   const projTotal = projAwayRuns + projHomeRuns;
 
   // Win probability via Pythagorean expectation (exp = 1.83 for MLB)
@@ -1161,6 +1180,22 @@ function buildGameProjection({ awayVsHome, homeVsAway, parkFactor, umpire, weath
     projReasoning.push(weatherImpact.narrative[0] || 'Dome environment — no weather effect');
   }
 
+  // Conversion rate reasoning — only push when there's a meaningful signal
+  if (conversionRates?.away && conversionRates.away.signal !== 'neutral' && conversionRates.away.signal !== 'insufficient') {
+    if (conversionRates.away.signal === 'efficient' || conversionRates.away.signal === 'slight-edge') {
+      projReasoning.push(`Away offense converts efficiently — ${conversionRates.away.detail}`);
+    } else if (conversionRates.away.signal === 'stranded' || conversionRates.away.signal === 'slight-drag') {
+      projReasoning.push(`Away offense leaves runners on — ${conversionRates.away.detail}`);
+    }
+  }
+  if (conversionRates?.home && conversionRates.home.signal !== 'neutral' && conversionRates.home.signal !== 'insufficient') {
+    if (conversionRates.home.signal === 'efficient' || conversionRates.home.signal === 'slight-edge') {
+      projReasoning.push(`Home offense converts efficiently — ${conversionRates.home.detail}`);
+    } else if (conversionRates.home.signal === 'stranded' || conversionRates.home.signal === 'slight-drag') {
+      projReasoning.push(`Home offense leaves runners on — ${conversionRates.home.detail}`);
+    }
+  }
+
   // Why our projection differs from market (reasoning for divergence)
   const marketReasoning = [];
   if (marketComparison && marketComparison.leanStrength !== 'none') {
@@ -1254,8 +1289,11 @@ function buildGameProjection({ awayVsHome, homeVsAway, parkFactor, umpire, weath
       away: awayComp.factors,
       home: homeComp.factors,
       parkRunMult: parkRunMult.toFixed(3),
-      umpRunMult: umpRunMult.toFixed(3)
+      umpRunMult: umpRunMult.toFixed(3),
+      awayConvMult: awayConvMult.toFixed(3),
+      homeConvMult: homeConvMult.toFixed(3)
     },
+    conversionRates: conversionRates || { away: null, home: null },
     marketComparison,
     narrative
   };

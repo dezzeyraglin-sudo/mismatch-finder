@@ -1140,6 +1140,26 @@
   font-weight: 500;
 }
 
+/* ===========================================================
+   TOP PICKS BANNER LAYOUT
+   When only one side has a winning pick (the cross-side comparison
+   nulled the other), render it as a single full-width card rather
+   than half a grid with empty space.
+   =========================================================== */
+.top-picks-banner.single-pick .tpb-grid.single {
+  grid-template-columns: 1fr !important;
+}
+
+.top-picks-banner.single-pick .tpb-side {
+  max-width: none;
+}
+
+/* Center the lone pick a bit so it doesn't feel orphaned */
+.top-picks-banner.single-pick .tpb-grid.single .tpb-side {
+  margin: 0 auto;
+  width: 100%;
+}
+
 /* Top pick eyebrow label */
 [class*="tpb-eyebrow"],
 .tpb-label {
