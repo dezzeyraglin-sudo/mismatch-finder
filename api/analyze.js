@@ -15,6 +15,7 @@ import { buildPitcherProps, evaluatePitcherProp } from './_lib/pitcherProps.js';
 import { computeFirstInningProbability } from './_lib/firstInning.js';
 import { getMatchupConversionRates } from './_lib/conversionRate.js';
 import { getLineupRispPerformance, applyRispAdjustment, buildLineupConversionTier } from './_lib/batterRisp.js';
+import { fetchPitcherPropsLines, getPitcherLinesByName } from './_lib/pitcherPropsLines.js';
 import { tryAuth, checkAndIncrementQuota, AuthError } from './_lib/auth.js';
 
 export default async function handler(req, res) {
@@ -144,6 +145,13 @@ export default async function handler(req, res) {
       { hitTeamId: game.awayTeam.id, pitcher: game.homePitcher, pitTeamAbbr: game.homeTeam.abbreviation, key: 'awayVsHome', side: 'away' },
       { hitTeamId: game.homeTeam.id, pitcher: game.awayPitcher, pitTeamAbbr: game.awayTeam.abbreviation, key: 'homeVsAway', side: 'home' }
     ];
+
+    // Kick off pitcher prop lines fetch (DraftKings via The Odds API) in parallel with
+    // side processing. Single fetch per request returns lines for ALL games on the slate;
+    // cached 15 min on the server. If the fetch fails or no key is configured, sides
+    // proceed with projection-only (graceful degradation). Resolved AFTER side processing
+    // and applied post-hoc to grade projections against book lines.
+    const propsLinesPromise = fetchPitcherPropsLines().catch(() => null);
 
     // Process both sides in parallel using helpers directly (no HTTP)
     const sideResults = await Promise.all(sides.map(async s => {
@@ -811,6 +819,58 @@ export default async function handler(req, res) {
     }));
 
     sideResults.forEach(r => { if (r) results[r.key] = r.data; });
+
+    // ===== PITCHER PROP LINES (DraftKings via The Odds API) =====
+    // Resolve the lines fetch and grade each side's pitcher projection against the line.
+    // Adds .lineGrade to the K and Outs prop rows when a matching DK line is found.
+    // Falls back gracefully when no key is configured, the fetch failed, or the pitcher's
+    // line isn't published (openers, late call-ups, etc.). User can still enter manually.
+    try {
+      const { gradeProjectionVsLine } = await import('./_lib/pitcherPropsLines.js');
+      const pitcherPropsLines = await propsLinesPromise;
+      if (pitcherPropsLines) {
+        for (const r of sideResults) {
+          if (!r?.data?.pitcherProps?.recommendations) continue;
+          const pitcherName = r.data.pitcher?.name || r.data.pitcher?.fullName;
+          if (!pitcherName) continue;
+
+          const pitcherLines = getPitcherLinesByName(pitcherPropsLines, pitcherName);
+          if (!pitcherLines) continue;
+
+          // Attach the matched lines block to the pitcher props for UI display
+          r.data.pitcherProps.bookLines = {
+            book: 'DraftKings',
+            ks: pitcherLines.ks || null,
+            outs: pitcherLines.outs || null,
+            matchedName: pitcherLines.rawName || pitcherName
+          };
+
+          // Grade each prop recommendation that has a matching line
+          const projection = r.data.pitcherProps.projection || {};
+          for (const rec of r.data.pitcherProps.recommendations) {
+            const isKsRow = rec.type === 'strikeouts';
+            const isOutsRow = rec.type === 'outs';
+
+            if (isKsRow && pitcherLines.ks) {
+              const grade = gradeProjectionVsLine(projection.ks, pitcherLines.ks, 'ks');
+              if (grade) {
+                rec.lineGrade = grade;
+                rec.book = 'DraftKings';
+              }
+            } else if (isOutsRow && pitcherLines.outs) {
+              const grade = gradeProjectionVsLine(projection.outs, pitcherLines.outs, 'outs');
+              if (grade) {
+                rec.lineGrade = grade;
+                rec.book = 'DraftKings';
+              }
+            }
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('[analyze] Pitcher props line grading failed:', err.message);
+      // Non-fatal — analysis continues with projection-only props
+    }
 
     // ===== ONE TOP PICK PER GAME =====
     // Keep only the higher-scoring top pick across both sides; null out the other.

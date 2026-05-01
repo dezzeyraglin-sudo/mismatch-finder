@@ -4010,6 +4010,53 @@ function renderAnalysis(data) {
     let pitcherPropsHtml = '';
     const pp = s.pitcherProps;
     if (pp && pp.recommendations) {
+      // Helper: build line+edge chip when DraftKings line is auto-pulled and graded
+      const buildLineChip = (rec) => {
+        const lg = rec.lineGrade;
+        if (!lg) return '';
+        const tierClass = `pp-tier-${lg.tier}`;  // play / lean / slight / no-play
+        const sideLabel = lg.side === 'over' ? 'OVER' : 'UNDER';
+        const edgeStr = lg.edge > 0 ? `+${lg.edge.toFixed(1)}%` : `${lg.edge.toFixed(1)}%`;
+        const oddsStr = lg.odds > 0 ? `+${lg.odds}` : `${lg.odds}`;
+        return `
+          <div class="pp-line-grade ${tierClass}">
+            <div class="pp-line-row">
+              <span class="pp-line-book">DK</span>
+              <span class="pp-line-value">${sideLabel} ${lg.line}</span>
+              <span class="pp-line-odds">${oddsStr}</span>
+              <span class="pp-line-tier">${lg.tierLabel}</span>
+              <span class="pp-line-edge">${edgeStr} edge</span>
+            </div>
+          </div>
+        `;
+      };
+
+      // Helper: build manual-line-entry input when no auto-line is available.
+      // The user types a line, hits Enter, and the projection is graded client-side
+      // using the same Poisson-z math used server-side.
+      const buildManualEntry = (rec, sideKey) => {
+        if (rec.lineGrade) return '';  // already have a line, no need for manual
+        if (rec.suppressed) return '';   // role suppressed, hide entry to avoid noise
+        if (rec.type !== 'strikeouts' && rec.type !== 'outs') return '';
+        const inputId = `pp-manual-${sideKey}-${rec.type}-${data.gamePk}`;
+        return `
+          <div class="pp-manual-line">
+            <span class="pp-manual-label">No DK line · enter manually:</span>
+            <input
+              type="number"
+              step="0.5"
+              id="${inputId}"
+              class="pp-manual-input"
+              placeholder="line"
+              onkeydown="if(event.key==='Enter')gradeManualLine('${inputId}', '${sideKey}', '${rec.type}', ${data.gamePk}, ${rec.projection})"
+            />
+            <button class="pp-manual-btn" onclick="gradeManualLine('${inputId}', '${sideKey}', '${rec.type}', ${data.gamePk}, ${rec.projection})">grade</button>
+            <span class="pp-manual-result" id="${inputId}-result"></span>
+          </div>
+        `;
+      };
+
+      const sideKey = s.key;  // 'awayVsHome' or 'homeVsAway'
       const rows = pp.recommendations.map(r => {
         if (r.isBoolean) {
           return `
@@ -4025,6 +4072,8 @@ function renderAnalysis(data) {
             <span class="pp-label">${r.label}</span>
             <span class="pp-proj">${r.projection} <span class="pp-unit">${r.unit || ''}</span></span>
             <span class="pp-desc">${r.description}</span>
+            ${buildLineChip(r)}
+            ${buildManualEntry(r, sideKey)}
           </div>
         `;
       }).join('');
@@ -7113,6 +7162,49 @@ function quickBan(category, name) {
   Object.keys(analysisCache).forEach(k => { const c = analysisCache[k]; if (c) renderAnalysis(c); });
   renderGames();
   showToast(`Banned ${name}`);
+}
+
+// Manual pitcher prop line entry — when DK auto-pull doesn't have a line for a
+// pitcher, the user can type the line they're seeing in their book and we grade
+// the projection against it client-side. Same Poisson-z math the server uses.
+function gradeManualLine(inputId, sideKey, propType, gamePk, projection) {
+  const input = document.getElementById(inputId);
+  const result = document.getElementById(`${inputId}-result`);
+  if (!input || !result) return;
+  const line = parseFloat(input.value);
+  if (isNaN(line) || line <= 0) {
+    result.innerHTML = '<span class="pp-manual-err">enter a number</span>';
+    return;
+  }
+  // Use the same stddevs as server-side
+  const stddev = propType === 'strikeouts' ? 2.2 : 3.5;
+  const proj = parseFloat(projection);
+  if (isNaN(proj)) {
+    result.innerHTML = '<span class="pp-manual-err">no projection</span>';
+    return;
+  }
+  // Normal CDF approximation (Abramowitz & Stegun 7.1.26)
+  function erf(x) {
+    const sign = x < 0 ? -1 : 1;
+    x = Math.abs(x);
+    const t = 1.0 / (1.0 + 0.3275911 * x);
+    const y = 1.0 - (((((1.061405429 * t - 1.453152027) * t + 1.421413741) * t - 0.284496736) * t + 0.254829592) * t) * Math.exp(-x * x);
+    return sign * y;
+  }
+  const z = (proj - line) / stddev;
+  const pOver = 0.5 * (1 + erf(z / Math.SQRT2));
+  const pUnder = 1 - pOver;
+  // Without book odds, we approximate edge as deviation from a fair 50/50 line
+  // (since we don't know the user's actual odds). This is "model conviction" not pure EV.
+  const conviction = Math.max(pOver, pUnder);
+  const side = pOver > pUnder ? 'OVER' : 'UNDER';
+  const dev = Math.abs(conviction - 0.5) * 100;
+  let tier, tierClass;
+  if (dev >= 15) { tier = 'PLAY'; tierClass = 'play'; }
+  else if (dev >= 8) { tier = 'LEAN'; tierClass = 'lean'; }
+  else if (dev >= 3) { tier = 'SLIGHT'; tierClass = 'slight'; }
+  else { tier = 'NO PLAY'; tierClass = 'no-play'; }
+  result.innerHTML = `<span class="pp-manual-grade pp-tier-${tierClass}">${side} ${line} · ${(conviction*100).toFixed(0)}% · ${tier}</span>`;
 }
 
 // Helper: check if an entity is banned

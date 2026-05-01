@@ -23,6 +23,7 @@ export default async function handler(req, res) {
       supabase: { status: 'unknown', detail: '' },
       supabaseSchema: { status: 'unknown', detail: '' },
       stripe: { status: 'unknown', detail: '' },
+      oddsApi: { status: 'unknown', detail: '' },
     },
     monetizationReady: false,
     nextSteps: [],
@@ -155,6 +156,40 @@ export default async function handler(req, res) {
       };
     } catch (err) {
       report.subsystems.stripe = {
+        status: 'error',
+        detail: err.message,
+      };
+    }
+  }
+
+  // ============ 5. The Odds API (pitcher props lines) ============
+  if (!process.env.ODDS_API_KEY) {
+    report.subsystems.oddsApi = {
+      status: 'not_configured',
+      detail: 'ODDS_API_KEY not set — pitcher prop line auto-pull disabled (manual entry still works)',
+    };
+  } else {
+    try {
+      const apiKey = process.env.ODDS_API_KEY;
+      // Hit the sports list endpoint (cheapest call, validates key)
+      const res = await fetch(`https://api.the-odds-api.com/v4/sports?apiKey=${apiKey}`, {
+        signal: AbortSignal.timeout(5000),
+      });
+      if (res.ok) {
+        const remaining = res.headers.get('x-requests-remaining') || '?';
+        const used = res.headers.get('x-requests-used') || '?';
+        report.subsystems.oddsApi = {
+          status: 'ok',
+          detail: `Authenticated · ${remaining} requests remaining (${used} used this period)`,
+        };
+      } else {
+        report.subsystems.oddsApi = {
+          status: 'error',
+          detail: `API returned ${res.status} — key may be invalid or quota exhausted`,
+        };
+      }
+    } catch (err) {
+      report.subsystems.oddsApi = {
         status: 'error',
         detail: err.message,
       };

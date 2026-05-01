@@ -1762,3 +1762,215 @@ button.tag-btn:hover,
 .pp-sharp-edge.edge-neutral {
   color: var(--text-secondary);
 }
+
+/* ===========================================================
+   PITCHER PROP LINE GRADING
+   Auto-pulled DK lines + manual entry fallback. Tiered recommendation chips
+   matching the visual language used for game-line bets.
+   =========================================================== */
+
+/* Auto-pulled line + edge chip — shown beneath the projection when DK line is found */
+.pp-line-grade {
+  margin-top: 8px;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-muted);
+  border: 0.5px solid var(--border-hairline);
+  border-left-width: 3px;
+}
+
+.pp-line-grade.pp-tier-play {
+  border-left-color: var(--data-positive);
+  background: var(--data-positive-surface);
+}
+
+.pp-line-grade.pp-tier-lean {
+  border-left-color: var(--data-live);
+  background: var(--data-live-surface);
+}
+
+.pp-line-grade.pp-tier-slight {
+  border-left-color: var(--border-strong);
+  background: var(--surface-muted);
+}
+
+.pp-line-grade.pp-tier-no-play {
+  border-left-color: var(--border-hairline);
+  background: var(--surface-card);
+  opacity: 0.7;
+}
+
+.pp-line-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  font-family: var(--font-sans);
+  font-size: 11px;
+}
+
+.pp-line-book {
+  font-family: var(--font-sans);
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0.10em;
+  background: var(--brand-primary);
+  color: var(--text-on-primary);
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+}
+
+.pp-line-value {
+  font-family: var(--font-mono);
+  font-weight: 500;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.pp-line-odds {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.pp-line-tier {
+  font-family: var(--font-sans);
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0.10em;
+  padding: 2px 7px;
+  border-radius: var(--radius-sm);
+  margin-left: auto;
+}
+
+.pp-tier-play .pp-line-tier {
+  background: var(--data-positive);
+  color: var(--text-on-primary);
+}
+
+.pp-tier-lean .pp-line-tier {
+  background: var(--data-live);
+  color: var(--text-on-primary);
+}
+
+.pp-tier-slight .pp-line-tier {
+  background: var(--surface-card);
+  color: var(--text-secondary);
+  border: 0.5px solid var(--border-strong);
+}
+
+.pp-tier-no-play .pp-line-tier {
+  background: var(--surface-card);
+  color: var(--text-muted);
+  border: 0.5px solid var(--border-hairline);
+}
+
+.pp-line-edge {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.pp-tier-play .pp-line-edge { color: var(--data-positive); }
+.pp-tier-lean .pp-line-edge { color: var(--data-live); }
+
+/* Manual-entry input — when no auto-line is available */
+.pp-manual-line {
+  margin-top: 8px;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-card);
+  border: 0.5px dashed var(--border-hairline);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-family: var(--font-sans);
+  font-size: 11px;
+}
+
+.pp-manual-label {
+  color: var(--text-muted);
+  font-style: italic;
+  font-size: 10px;
+}
+
+.pp-manual-input {
+  width: 60px;
+  padding: 3px 8px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  border-radius: var(--radius-sm);
+  border: 0.5px solid var(--border-hairline);
+  background: var(--surface-muted);
+  color: var(--text-primary);
+}
+
+.pp-manual-input:focus {
+  outline: none;
+  border-color: var(--brand-primary);
+  background: var(--surface-card);
+}
+
+.pp-manual-btn {
+  padding: 3px 10px;
+  font-family: var(--font-sans);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  border-radius: var(--radius-sm);
+  border: 0.5px solid var(--brand-primary);
+  background: var(--surface-card);
+  color: var(--brand-primary);
+  cursor: pointer;
+}
+
+.pp-manual-btn:hover {
+  background: var(--brand-tint);
+}
+
+.pp-manual-result {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+
+.pp-manual-grade {
+  font-family: var(--font-sans);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  padding: 2px 7px;
+  border-radius: var(--radius-sm);
+}
+
+.pp-manual-grade.pp-tier-play {
+  background: var(--data-positive);
+  color: var(--text-on-primary);
+}
+
+.pp-manual-grade.pp-tier-lean {
+  background: var(--data-live);
+  color: var(--text-on-primary);
+}
+
+.pp-manual-grade.pp-tier-slight {
+  background: var(--surface-muted);
+  color: var(--text-primary);
+  border: 0.5px solid var(--border-strong);
+}
+
+.pp-manual-grade.pp-tier-no-play {
+  background: var(--surface-card);
+  color: var(--text-muted);
+  border: 0.5px solid var(--border-hairline);
+}
+
+.pp-manual-err {
+  color: var(--data-negative);
+  font-size: 10px;
+  font-style: italic;
+}
