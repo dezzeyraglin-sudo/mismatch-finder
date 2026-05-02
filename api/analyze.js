@@ -13,7 +13,7 @@ import { buildGameLineRecommendations } from './_lib/gameLineBets.js';
 import { estimatePropProbability, estimateTotalProbability, estimateSpreadProbability, estimateMoneylineProbability, americanToImpliedProb, computeEdge } from './_lib/probability.js';
 import { buildPitcherProps, evaluatePitcherProp } from './_lib/pitcherProps.js';
 import { computeFirstInningProbability } from './_lib/firstInning.js';
-import { computeHrProjection } from './_lib/hrEmpirical.js';
+import { computeHrProjection, computeHrAudit } from './_lib/hrEmpirical.js';
 import { getMatchupConversionRates } from './_lib/conversionRate.js';
 import { getLineupRispPerformance, applyRispAdjustment, buildLineupConversionTier } from './_lib/batterRisp.js';
 import { fetchPitcherPropsLines, getPitcherLinesByName } from './_lib/pitcherPropsLines.js';
@@ -489,8 +489,11 @@ export default async function handler(req, res) {
           // HR Chance scoring (v2 — EMPIRICALLY-CALIBRATED, see _lib/hrEmpirical.js)
           // Replaces v1's hand-tuned integer scoring with multipliers grounded in
           // sabermetric research (barrel→HR conversion, park factors, weather effects).
-          // Output is a projected HR/PA rate that can be audited via the drivers array.
-          hrChance: (() => {
+          //
+          // Two outputs from one computation:
+          //   - `hrChance` — null below SOLID threshold (governs whether badge fires)
+          //   - `hrAudit`  — always populated (diagnostic; helps audit model behavior)
+          ...(function computeHr() {
             const barrel = parseFloat(overall.barrel_batted_rate?.value || 0);
             const hardHit = parseFloat(overall.hard_hit_percent?.value || 0);
             const kPct = parseFloat(overall.k_percent?.value || 0);
@@ -502,27 +505,27 @@ export default async function handler(req, res) {
             );
             const dominantPitch = dominantMatch?.type || null;
 
-            // Park HR factor with weather overlay
-            let parkHrMult = parkFactor ? getParkHrMult(parkFactor, effectiveBatSide) : 1.0;
-            // (weather is now factored separately by computeHrProjection's weatherMultiplier;
-            // we don't double-multiply weather into parkHrMult anymore)
+            // Park HR factor (handedness-aware). Weather is factored separately
+            // inside the empirical module via weatherMultiplier — don't double-apply.
+            const parkHrMult = parkFactor ? getParkHrMult(parkFactor, effectiveBatSide) : 1.0;
 
             // Pitcher HR vulnerability — derive HR/9 from splits vs effective hand
             let pitcherHrPer9 = null;
             const pitSplit = effectiveBatSide === 'R' ? pitcherSplits?.vsR : pitcherSplits?.vsL;
             if (pitSplit && pitSplit.pa >= 30 && pitSplit.hr != null) {
-              // PA → IP rough conversion: ~4.3 PA per inning, so HR/9 = HR/PA × 4.3 × 9
               const hrPerPa = pitSplit.hr / Math.max(1, pitSplit.pa);
-              pitcherHrPer9 = hrPerPa * 4.3 * 9;
+              pitcherHrPer9 = hrPerPa * 4.3 * 9;  // ~4.3 PA per inning, so HR/9 = HR/PA × 4.3 × 9
             }
 
             // Sample size for the hitter — sum of vsR + vsL PAs from this hitter's splits
             const seasonPa = (h.splits?.vsR?.pa || 0) + (h.splits?.vsL?.pa || 0);
 
-            // Locate the platoon adjustment (already computed earlier in this batter's analysis)
+            // Platoon adjustment already computed earlier in this batter's analysis
             const platoonAdjustment = adjustments.find(a => a.type === 'platoon');
 
-            return computeHrProjection({
+            // Single computation, both outputs. computeHrAudit always returns the
+            // projection; we derive hrChance by gating on the SOLID threshold.
+            const audit = computeHrAudit({
               barrelPct: barrel,
               hardHitPct: hardHit,
               kPct,
@@ -537,6 +540,11 @@ export default async function handler(req, res) {
               platoonAdjustment,
               bullpenTier
             });
+
+            return {
+              hrChance: audit.tier ? audit : null,  // null below SOLID — preserves existing badge gating
+              hrAudit: audit  // always populated — used by per-side digest for diagnostic
+            };
           })()
         };
       });
@@ -758,6 +766,25 @@ export default async function handler(req, res) {
         opposingLineup: deepMode ? hitterData : null
       });
 
+      // Top 3 HR projections regardless of tier — used for diagnostic display so
+      // the user can see what the model is *almost* badging. Pulls from the same
+      // empirical computation that gates the actual badge — never affects the badge.
+      const hrAuditTop = analyzed
+        .filter(h => h.hrAudit && h.hrAudit.projectedHrPerPa != null)
+        .map(h => ({
+          name: h.hitter,
+          hand: h.hand,
+          projectedHrPerPa: h.hrAudit.projectedHrPerPa,
+          tier: h.hrAudit.tier,  // may be null when below SOLID
+          tierLabel: h.hrAudit.tierLabel,
+          multiplier: h.hrAudit.multiplier,
+          drivers: h.hrAudit.drivers || [],
+          confidence: h.hrAudit.confidence,
+          sampleWarning: h.hrAudit.sampleWarning
+        }))
+        .sort((a, b) => b.projectedHrPerPa - a.projectedHrPerPa)
+        .slice(0, 3);
+
       return {
         key: s.key,
         data: {
@@ -778,7 +805,8 @@ export default async function handler(req, res) {
           mismatches: finalTiered,
           topPick,
           lineupTier,
-          lineupConversionTier
+          lineupConversionTier,
+          hrAuditTop  // top 3 HR audit projections, regardless of tier
         }
       };
     }));

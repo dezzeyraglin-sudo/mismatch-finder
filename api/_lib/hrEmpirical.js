@@ -275,7 +275,14 @@ function bullpenMultiplier(bullpenTier) {
  *   sampleWarning
  * } | null}
  */
-export function computeHrProjection(ctx) {
+/**
+ * Internal: compute projection + drivers + multiplier WITHOUT the tier gate.
+ * This always returns a result, regardless of whether the projection is high
+ * enough to warrant a badge. Used by both:
+ *   - computeHrProjection (which then applies the tier gate, returns null below)
+ *   - computeHrAudit (which returns the raw projection always — diagnostic use)
+ */
+function computeRawProjection(ctx) {
   const {
     barrelPct, hardHitPct, kPct, seasonPa = 0,
     bestMatchedXwoba, dominantPitch,
@@ -310,17 +317,11 @@ export function computeHrProjection(ctx) {
   // Final projected HR/PA
   const projectedHrPerPa = LEAGUE_HR_PER_PA * multiplier;
 
-  // Tier mapping — calibrated against actual league HR/PA distribution
-  // Top 5% of hitters in elite spots project around 9-12% per PA
-  // Top 15% project 6-9%, top 30% project 4-6%, rest below 4%
-  let tier, tierLabel, emoji;
+  // Tier classification (returned even if below threshold; caller decides what to do)
+  let tier = null, tierLabel = null, emoji = null;
   if (projectedHrPerPa >= 0.09) { tier = 'elite'; tierLabel = 'ELITE'; emoji = '💣'; }
   else if (projectedHrPerPa >= 0.06) { tier = 'strong'; tierLabel = 'STRONG'; emoji = '🎯'; }
   else if (projectedHrPerPa >= 0.04) { tier = 'solid'; tierLabel = 'SOLID'; emoji = '⚡'; }
-  else { tier = null; tierLabel = null; emoji = null; }
-
-  // No badge if below the SOLID threshold
-  if (!tier) return null;
 
   // Sort drivers by absolute deviation from 1.0 (highest impact first)
   drivers.sort((a, b) => Math.abs(b.weight - 1) - Math.abs(a.weight - 1));
@@ -330,7 +331,7 @@ export function computeHrProjection(ctx) {
     ? { label: 'INSUFFICIENT DATA', detail: `Only ${seasonPa} PA — projection is on thin data` }
     : null;
 
-  // Confidence label (high if good drivers + meaningful sample, medium otherwise)
+  // Confidence label
   let confidence;
   if (sampleWarning) confidence = 'low';
   else if (drivers.length >= 3 && multiplier >= 2.0) confidence = 'high';
@@ -343,15 +344,34 @@ export function computeHrProjection(ctx) {
     tierLabel,
     emoji,
     confidence,
-    drivers: drivers.slice(0, 4),  // top 4 max — keep UI readable
+    drivers: drivers.slice(0, 4),
     multiplier: parseFloat(multiplier.toFixed(2)),
     sampleWarning,
-    // Legacy fields kept for backward compatibility with existing UI:
-    score: Math.round(multiplier * 30),  // synthetic "score" mapped from multiplier (~1.0=30, ~3.0=90)
+    // Legacy fields for UI backward compatibility:
+    score: Math.round(multiplier * 30),
     barrelPct,
     hardHitPct,
     bestMatchedXwoba: bestMatchedXwoba ? parseFloat(bestMatchedXwoba).toFixed(3) : null,
     parkHrMult: parkHrMult ? parkHrMult.toFixed(2) : null,
-    criteria: drivers.map(d => d.detail),  // legacy field
+    criteria: drivers.map(d => d.detail),
   };
+}
+
+export function computeHrProjection(ctx) {
+  const result = computeRawProjection(ctx);
+  // Existing public contract: return null when below SOLID threshold (no badge fires)
+  if (!result.tier) return null;
+  return result;
+}
+
+/**
+ * Audit version: returns the projection regardless of tier.
+ * Used for diagnostic display so we can see what the model is *almost* badging.
+ * Same drivers, same multiplier, same projection — just no null gate.
+ *
+ * Returns the projection result with `tier === null` when below SOLID threshold,
+ * but with all the projection data intact for diagnostic display.
+ */
+export function computeHrAudit(ctx) {
+  return computeRawProjection(ctx);
 }

@@ -3309,3 +3309,178 @@ button.tag-btn:hover,
 #settings-panel input[type="file"] {
   display: none !important;
 }
+
+/* ===========================================================
+   HR PROJECTION AUDIT PANEL
+   Diagnostic display showing top 3 HR projections regardless of tier.
+   Calm gray styling — this is for confirming model behavior, not user UX.
+   Will be replaced/quieted once gold-prominence treatment ships.
+   =========================================================== */
+
+.hr-audit-panel {
+  background: var(--surface-muted);
+  border: 0.5px solid var(--border-hairline);
+  border-left: 2px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  padding: 10px 12px;
+  margin: 12px 0;
+  font-family: var(--font-sans);
+}
+
+.hr-audit-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.hr-audit-eyebrow {
+  font-family: var(--font-sans);
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.hr-audit-baseline {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+  font-style: italic;
+}
+
+.hr-audit-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.hr-audit-row {
+  display: grid;
+  grid-template-columns: 18px minmax(110px, 1.5fr) 50px 48px auto minmax(100px, 2fr) auto;
+  align-items: baseline;
+  gap: 8px;
+  padding: 4px 0;
+  border-bottom: 0.5px solid var(--border-hairline);
+  font-size: 11px;
+}
+
+.hr-audit-row:last-child {
+  border-bottom: none;
+}
+
+.hr-audit-rank {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.hr-audit-name {
+  font-family: var(--font-sans);
+  font-weight: 500;
+  color: var(--text-primary);
+  font-size: 12px;
+}
+
+.hr-audit-hand {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--text-muted);
+  margin-left: 4px;
+  letter-spacing: 0.05em;
+}
+
+.hr-audit-rate {
+  font-family: var(--font-mono);
+  font-weight: 500;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  font-size: 12px;
+}
+
+.hr-audit-mult {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.hr-audit-tier {
+  font-family: var(--font-sans);
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0.10em;
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+}
+
+.hr-audit-tier.tier-elite {
+  background: var(--data-warning-surface);
+  color: var(--data-warning);
+  border: 0.5px solid var(--data-warning);
+}
+
+.hr-audit-tier.tier-strong {
+  background: var(--data-positive-surface);
+  color: var(--data-positive);
+  border: 0.5px solid var(--data-positive);
+}
+
+.hr-audit-tier.tier-solid {
+  background: var(--surface-muted);
+  color: var(--text-primary);
+  border: 0.5px solid var(--border-strong);
+}
+
+.hr-audit-below {
+  font-family: var(--font-sans);
+  font-size: 10px;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.hr-audit-drivers {
+  font-family: var(--font-sans);
+  font-size: 10px;
+  color: var(--text-secondary);
+  font-style: italic;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.hr-audit-warn {
+  font-family: var(--font-sans);
+  font-size: 8.5px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  color: var(--data-warning);
+  background: var(--data-warning-surface);
+  padding: 1px 5px;
+  border-radius: var(--radius-sm);
+  border: 0.5px solid var(--data-warning);
+  white-space: nowrap;
+}
+
+@media (max-width: 600px) {
+  .hr-audit-row {
+    grid-template-columns: 16px 1fr 44px 40px;
+    gap: 6px;
+  }
+  .hr-audit-tier,
+  .hr-audit-below,
+  .hr-audit-drivers,
+  .hr-audit-warn {
+    grid-column: 2 / -1;
+    margin-left: 0;
+    margin-top: 2px;
+  }
+}

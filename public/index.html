@@ -3900,6 +3900,46 @@ function renderAnalysis(data) {
       </div>
     ` : '';
 
+    // HR Audit panel (DEEP MODE only, diagnostic) — surfaces top 3 HR projections
+    // regardless of tier. Lets the user verify the model is working correctly even
+    // when no batter clears the SOLID badge threshold. Calm gray styling — this is
+    // diagnostic info, not user-facing UX. Will be removed/quieted once the
+    // gold-prominence treatment ships in a future session.
+    const hrAuditTop = s.hrAuditTop || [];
+    const hrAuditHtml = (data.deepMode && hrAuditTop.length > 0) ? `
+      <div class="hr-audit-panel">
+        <div class="hr-audit-head">
+          <span class="hr-audit-eyebrow">HR PROJECTION AUDIT · top 3 (diagnostic)</span>
+          <span class="hr-audit-baseline">league avg · 3.0% HR/PA</span>
+        </div>
+        <div class="hr-audit-rows">
+          ${hrAuditTop.map((b, i) => {
+            const pct = (b.projectedHrPerPa * 100).toFixed(1);
+            const tierTag = b.tierLabel
+              ? `<span class="hr-audit-tier tier-${b.tier}">${b.tierLabel}</span>`
+              : `<span class="hr-audit-below">— below threshold</span>`;
+            const driverText = (b.drivers && b.drivers.length > 0)
+              ? b.drivers.slice(0, 2).map(d => d.feature).join(' · ')
+              : 'no significant drivers';
+            const sampleHint = b.sampleWarning
+              ? `<span class="hr-audit-warn" title="${b.sampleWarning.detail}">small sample</span>`
+              : '';
+            return `
+              <div class="hr-audit-row">
+                <span class="hr-audit-rank">${i + 1}</span>
+                <span class="hr-audit-name">${b.name}<span class="hr-audit-hand">${b.hand || ''}</span></span>
+                <span class="hr-audit-rate">${pct}%</span>
+                <span class="hr-audit-mult">×${b.multiplier?.toFixed(2) || '1.00'}</span>
+                ${tierTag}
+                <span class="hr-audit-drivers">${driverText}</span>
+                ${sampleHint}
+              </div>
+            `;
+          }).join('')}
+        </div>
+      </div>
+    ` : '';
+
     // Pitcher tag UI
     const pitcherId = s.pitcher.id || s.pitcher.name;
     const pitcherTag = state.researchTags[pitcherId];
@@ -4309,6 +4349,7 @@ function renderAnalysis(data) {
         </div>
         ${lineupTierHtml}
         ${lineupConversionHtml}
+        ${hrAuditHtml}
         ${mmHtml}
       </div>
     `;
