@@ -3484,3 +3484,415 @@ button.tag-btn:hover,
     margin-top: 2px;
   }
 }
+
+/* ===========================================================
+   NAV BADGE — newly-graded count indicator on History tab
+   Subtle gold pill on the History nav button when bets auto-graded.
+   Clears when user actually visits History.
+   =========================================================== */
+
+.lyrid-nav-btn .nav-badge,
+.tab .nav-badge {
+  display: inline-block;
+  background: var(--brand-secondary);
+  color: var(--brand-primary);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  font-variant-numeric: tabular-nums;
+  padding: 1px 6px;
+  border-radius: var(--radius-pill, 999px);
+  margin-left: 6px;
+  vertical-align: 1px;
+  line-height: 1.2;
+  min-width: 14px;
+  text-align: center;
+}
+
+/* ===========================================================
+   ROLLUP VIEW — Unified calibration dashboard
+   Aggregates all graded bet types into one clean Lyrid layout.
+   =========================================================== */
+
+.rollup-view {
+  padding: 0;
+}
+
+/* Top-of-view headline — overall accuracy across all bet types */
+.rollup-headline {
+  background: var(--surface-card);
+  border: 0.5px solid var(--brand-primary);
+  border-left: 3px solid var(--brand-primary);
+  border-radius: var(--radius-md);
+  padding: 20px 22px;
+  margin-bottom: 22px;
+}
+
+.rollup-headline-label {
+  font-family: var(--font-sans);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--brand-primary);
+  margin-bottom: 8px;
+}
+
+.rollup-headline-value {
+  font-family: var(--font-mono);
+  font-size: 36px;
+  font-weight: 500;
+  color: var(--text-primary);
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+.rollup-headline-sub {
+  font-family: var(--font-sans);
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-top: 8px;
+  font-style: italic;
+}
+
+/* Section titles within the rollup */
+.rollup-section-title {
+  font-family: var(--font-sans) !important;
+  font-size: 11px !important;
+  font-weight: 500 !important;
+  letter-spacing: 0.10em !important;
+  text-transform: uppercase;
+  color: var(--text-muted) !important;
+  margin: 24px 0 10px !important;
+  padding-bottom: 6px;
+  border-bottom: 0.5px solid var(--border-hairline);
+}
+
+/* Stat cell grid */
+.rollup-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+@media (max-width: 720px) {
+  .rollup-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .rollup-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.rollup-cell {
+  background: var(--surface-card);
+  border: 0.5px solid var(--border-hairline);
+  border-radius: var(--radius-md);
+  padding: 14px;
+}
+
+.rollup-cell-label {
+  font-family: var(--font-sans);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+
+.rollup-cell-value {
+  font-family: var(--font-mono);
+  font-size: 22px;
+  font-weight: 500;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+  line-height: 1.1;
+}
+
+.rollup-cell-sub {
+  font-family: var(--font-sans);
+  font-size: 11px;
+  color: var(--text-secondary);
+  margin-top: 4px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Per-prop-type breakdown table */
+.rollup-prop-table {
+  background: var(--surface-card);
+  border: 0.5px solid var(--border-hairline);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  margin-bottom: 14px;
+}
+
+.rollup-prop-row {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr 1fr 0.6fr;
+  gap: 8px;
+  padding: 10px 14px;
+  align-items: baseline;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  border-bottom: 0.5px solid var(--border-hairline);
+}
+
+.rollup-prop-row:last-child {
+  border-bottom: none;
+}
+
+.rollup-prop-row.rollup-prop-header {
+  background: var(--surface-muted);
+  font-family: var(--font-sans);
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  padding: 8px 14px;
+}
+
+.rollup-prop-key {
+  font-family: var(--font-mono);
+  font-weight: 500;
+  color: var(--text-primary);
+  font-size: 12px;
+}
+
+.rollup-prop-record {
+  font-family: var(--font-mono);
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+  font-size: 12px;
+}
+
+.rollup-prop-rate {
+  font-family: var(--font-mono);
+  font-weight: 500;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+  font-size: 13px;
+}
+
+.rollup-prop-rate.rate-good {
+  color: var(--data-positive);
+}
+
+.rollup-prop-rate.rate-bad {
+  color: var(--data-negative);
+}
+
+.rollup-prop-vol {
+  font-family: var(--font-mono);
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+  font-size: 11px;
+  text-align: right;
+}
+
+.rollup-footnote {
+  font-family: var(--font-sans);
+  font-size: 11px;
+  color: var(--text-muted);
+  font-style: italic;
+  margin-top: 18px;
+  padding: 12px 14px;
+  background: var(--surface-muted);
+  border-radius: var(--radius-md);
+  line-height: 1.5;
+}
+
+/* ===========================================================
+   CSV IMPORT UI — Settings tab bulk import for hitter prop bets
+   =========================================================== */
+
+#settings-panel .csv-spec {
+  background: var(--surface-card);
+  border: 0.5px solid var(--border-hairline);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  margin-top: 6px;
+  margin-bottom: 12px;
+}
+
+#settings-panel .csv-spec-row {
+  display: grid;
+  grid-template-columns: minmax(70px, 0.8fr) minmax(140px, 1.4fr) minmax(140px, 1.6fr);
+  gap: 12px;
+  padding: 7px 12px;
+  border-bottom: 0.5px solid var(--border-hairline);
+  font-family: var(--font-sans);
+  font-size: 11.5px;
+  align-items: baseline;
+}
+
+#settings-panel .csv-spec-row:last-child {
+  border-bottom: none;
+}
+
+#settings-panel .csv-spec-row.csv-spec-header {
+  background: var(--surface-muted);
+  font-size: 9.5px;
+  font-weight: 500;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  padding: 7px 12px;
+}
+
+#settings-panel .csv-spec-col {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--brand-primary);
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+
+#settings-panel .csv-spec-eg {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+#settings-panel .csv-spec-note {
+  font-family: var(--font-sans);
+  font-size: 11px;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+#settings-panel .csv-spec-tip {
+  font-family: var(--font-sans);
+  font-size: 11.5px;
+  color: var(--text-secondary);
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  background: var(--surface-muted);
+  border-radius: var(--radius-md);
+  border-left: 2px solid var(--brand-primary);
+  line-height: 1.55;
+}
+
+#settings-panel .csv-spec-tip code {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  background: var(--surface-card);
+  border: 0.5px solid var(--border-hairline);
+  padding: 1px 5px;
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+#settings-panel .csv-result-summary {
+  background: var(--surface-card);
+  border: 0.5px solid var(--brand-primary);
+  border-left: 3px solid var(--brand-primary);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+  margin-bottom: 8px;
+}
+
+#settings-panel .csv-result-headline {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--text-primary);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+#settings-panel .csv-result-detail {
+  font-family: var(--font-sans);
+  font-size: 11.5px;
+  color: var(--text-secondary);
+  margin-top: 4px;
+  font-style: italic;
+}
+
+#settings-panel .csv-result-info {
+  font-family: var(--font-sans);
+  font-size: 12px;
+  color: var(--text-secondary);
+  padding: 10px 12px;
+  background: var(--surface-muted);
+  border-radius: var(--radius-md);
+  border-left: 2px solid var(--brand-primary);
+  font-style: italic;
+}
+
+#settings-panel .csv-result-err {
+  background: var(--data-negative-surface);
+  border: 0.5px solid var(--data-negative);
+  border-left: 3px solid var(--data-negative);
+  border-radius: var(--radius-md);
+  padding: 10px 14px;
+  margin-top: 6px;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  color: var(--text-primary);
+}
+
+#settings-panel .csv-result-err b {
+  color: var(--data-negative);
+  font-weight: 500;
+}
+
+#settings-panel .csv-result-err ul {
+  margin: 6px 0 0 0;
+  padding-left: 18px;
+  font-size: 11.5px;
+  color: var(--text-secondary);
+}
+
+#settings-panel .csv-result-err li {
+  margin: 2px 0;
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+
+#settings-panel .csv-result-err code {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  background: var(--surface-card);
+  padding: 1px 5px;
+  border-radius: var(--radius-sm);
+}
+
+#settings-panel .csv-result-warn {
+  background: var(--data-warning-surface);
+  border: 0.5px solid var(--data-warning);
+  border-left: 3px solid var(--data-warning);
+  border-radius: var(--radius-md);
+  padding: 10px 14px;
+  margin-top: 6px;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  color: var(--text-primary);
+}
+
+#settings-panel .csv-result-warn b {
+  color: var(--data-warning);
+  font-weight: 500;
+}
+
+#settings-panel .csv-result-warn ul {
+  margin: 6px 0 0 0;
+  padding-left: 18px;
+  font-size: 11.5px;
+  color: var(--text-secondary);
+}
+
+#settings-panel .csv-result-warn li {
+  margin: 2px 0;
+  font-family: var(--font-mono);
+  font-size: 11px;
+}

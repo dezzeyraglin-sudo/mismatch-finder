@@ -2519,6 +2519,79 @@
     <button class="btn danger" onclick="confirmReset()">RESET</button>
   </div>
 
+  <hr class="divider">
+
+  <!-- ============================================================
+       BULK IMPORT BETS — paste-or-upload CSV of historical bets.
+       Resolves player → MLBAM ID and date → gamePk via MLB Stats API.
+       Routes to bestBetHistory; auto-grades on import.
+       ============================================================ -->
+  <h2>IMPORT BETS · CSV <span class="count">hitter props</span></h2>
+  <div class="hint-box">
+    <b>BULK IMPORT.</b> Paste or upload a CSV of bets you placed elsewhere (DraftKings, FanDuel, paper notes). Tool resolves player + game, then auto-grades. Skips duplicates that already exist in your history.
+  </div>
+
+  <div id="csvImportSpec" style="margin-top:14px">
+    <label>EXPECTED FORMAT</label>
+    <div class="csv-spec">
+      <div class="csv-spec-row csv-spec-header">
+        <span>COLUMN</span>
+        <span>EXAMPLE</span>
+        <span>NOTES</span>
+      </div>
+      <div class="csv-spec-row">
+        <span class="csv-spec-col">date</span>
+        <span class="csv-spec-eg">2025-04-22 or 4/22/2025</span>
+        <span class="csv-spec-note">required · ISO or US format</span>
+      </div>
+      <div class="csv-spec-row">
+        <span class="csv-spec-col">player</span>
+        <span class="csv-spec-eg">Aaron Judge</span>
+        <span class="csv-spec-note">required · last name fallback OK</span>
+      </div>
+      <div class="csv-spec-row">
+        <span class="csv-spec-col">prop</span>
+        <span class="csv-spec-eg">HR · TB · H · RBI · R · WALKS · SB</span>
+        <span class="csv-spec-note">required · see below</span>
+      </div>
+      <div class="csv-spec-row">
+        <span class="csv-spec-col">line</span>
+        <span class="csv-spec-eg">0.5 or 1.5</span>
+        <span class="csv-spec-note">optional · prop-implied default</span>
+      </div>
+      <div class="csv-spec-row">
+        <span class="csv-spec-col">odds</span>
+        <span class="csv-spec-eg">+250 or -120</span>
+        <span class="csv-spec-note">optional</span>
+      </div>
+      <div class="csv-spec-row">
+        <span class="csv-spec-col">units</span>
+        <span class="csv-spec-eg">1 or 0.5</span>
+        <span class="csv-spec-note">optional · default 1</span>
+      </div>
+      <div class="csv-spec-row">
+        <span class="csv-spec-col">result</span>
+        <span class="csv-spec-eg">win · loss · push · (blank)</span>
+        <span class="csv-spec-note">optional · auto-graded if blank</span>
+      </div>
+    </div>
+    <div class="csv-spec-tip">
+      Prop vocabulary: <code>HR</code> (home run), <code>TB</code> (total bases 1.5+), <code>H</code> (1+ hits), <code>HRR</code> (H+R+RBI 1.5+), <code>R</code> (1+ runs), <code>RBI</code> (1+ RBI), <code>SINGLES</code>, <code>WALKS</code> (BB+HBP), <code>SB</code> (1+ steals). DraftKings names like "To Hit a Home Run" or "Total Bases" are auto-mapped.
+    </div>
+  </div>
+
+  <label>PASTE CSV OR UPLOAD FILE</label>
+  <textarea id="csvImportInput" rows="6" placeholder="date,player,prop,line,odds,units,result&#10;2025-04-22,Aaron Judge,HR,0.5,+250,1,win&#10;2025-04-22,Yandy Diaz,TB,1.5,+150,1,&#10;..." style="font-family:var(--font-mono) !important;font-size:12px !important"></textarea>
+
+  <div class="controls" style="margin-top:10px">
+    <button class="btn" onclick="downloadCsvTemplate()">⬇ DOWNLOAD TEMPLATE</button>
+    <button class="btn" onclick="document.getElementById('csvImportFile').click()">⬆ UPLOAD CSV</button>
+    <input type="file" id="csvImportFile" accept=".csv,text/csv" style="display:none" onchange="loadCsvFromFile(event)">
+    <button class="btn primary" onclick="processCsvImport()">IMPORT BETS</button>
+  </div>
+
+  <div id="csvImportResult" style="margin-top:10px"></div>
+
   <!-- Hidden Secret Filter — only revealed when user knows the keystroke sequence or has it already unlocked -->
   <div id="secretFilterSection" style="display:none;margin-top:24px;padding-top:16px;border-top:1px dashed rgba(255,122,61,0.3)">
     <h2 style="color:var(--heat)">⚡ PERSONAL OVERRIDE <span id="sfStatus" class="count"></span></h2>
@@ -2885,7 +2958,11 @@ window.switchTab = function(tabName) {
   if (panel) panel.classList.add('active');
 
   if (tabName === 'track') renderTrack();
-  if (tabName === 'history') renderHistory();
+  if (tabName === 'history') {
+    renderHistory();
+    // Clear the newly-graded badge when user views History
+    if (typeof _clearHistoryBadgeIfShown === 'function') _clearHistoryBadgeIfShown();
+  }
   if (tabName === 'settings') renderSettings();
   if (tabName === 'research') renderResearch();
 };
@@ -5973,11 +6050,373 @@ async function manualAddHitterToHistory() {
 }
 
 
-async function gradeAllBestBets() {
+// ====================================================================
+// CSV BULK IMPORT — paste-or-upload CSV of historical hitter prop bets.
+// Resolves player → MLBAM ID and date → gamePk via MLB Stats API.
+// Routes to bestBetHistory; auto-grades on import.
+// ====================================================================
+
+// Vocabulary mapping: maps user-friendly prop names (and DraftKings/FanDuel
+// natural-language variants) to our internal propKey values used by gradeLine.
+const _CSV_PROP_VOCAB = {
+  // Internal keys (canonical)
+  'hr': 'HR',                       'h': 'H',                'tb': 'TB',
+  'rbi': 'RBI',                     'r': 'R',                'singles': 'SINGLES',
+  'hrr': 'HRR',                     'walks': 'WALKS',        'sb': 'SB',
+  'pp_fs_6': 'PP_FS_6',             'pp_fs_8': 'PP_FS_8',
+  'ud_fs_5': 'UD_FS_5',             'ud_fs_7': 'UD_FS_7',
+  // DraftKings/FanDuel natural-language synonyms
+  'home run': 'HR',                                'home runs': 'HR',
+  'to hit a home run': 'HR',                       'to hit hr': 'HR',
+  'total bases': 'TB',                             'total bases 1.5': 'TB',
+  'hits': 'H',                                     'to record a hit': 'H',
+  '1+ hits': 'H',                                  '1+ hit': 'H',
+  'runs': 'R',                                     'to score a run': 'R',
+  'rbis': 'RBI',                                   'to record an rbi': 'RBI',
+  'walk': 'WALKS',                                 'walks (bb+hbp)': 'WALKS',
+  'stolen base': 'SB',                             'stolen bases': 'SB',
+  'sb 0.5': 'SB',                                  'walks 0.5': 'WALKS',
+  'h+r+rbi': 'HRR',                                'hits+runs+rbis': 'HRR',
+  'h+r+rbi 1.5': 'HRR'
+};
+
+// Prop label map for display (keep aligned with manualAddHitterToHistory)
+const _CSV_PROP_LABELS = {
+  H:'HITS 0.5', HR:'HR 0.5', TB:'TB 1.5', RBI:'RBI 0.5', R:'RUNS 0.5',
+  SINGLES:'SINGLES 0.5', HRR:'H+R+RBI 1.5', PP_FS_6:'PP FS 6',
+  PP_FS_8:'PP FS 8', UD_FS_5:'UD FS 5', UD_FS_7:'UD FS 7',
+  WALKS:'BB+HBP 0.5', SB:'SB 0.5'
+};
+
+// Normalize a prop string into a canonical propKey, or null if unrecognized
+function _csvNormalizeProp(raw) {
+  if (!raw) return null;
+  const cleaned = String(raw).trim().toLowerCase().replace(/\s+/g, ' ');
+  if (_CSV_PROP_VOCAB[cleaned]) return _CSV_PROP_VOCAB[cleaned];
+  // Try uppercase exact match against canonical keys
+  const upper = String(raw).trim().toUpperCase();
+  if (_CSV_PROP_LABELS[upper]) return upper;
+  return null;
+}
+
+// Normalize date string into ISO YYYY-MM-DD, or null if unparseable
+function _csvNormalizeDate(raw) {
+  if (!raw) return null;
+  const s = String(raw).trim();
+  // ISO format: 2025-04-22
+  const isoMatch = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+  if (isoMatch) {
+    const y = isoMatch[1], m = String(isoMatch[2]).padStart(2,'0'), d = String(isoMatch[3]).padStart(2,'0');
+    return `${y}-${m}-${d}`;
+  }
+  // US format: 4/22/2025 or 04/22/2025
+  const usMatch = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (usMatch) {
+    const m = String(usMatch[1]).padStart(2,'0'), d = String(usMatch[2]).padStart(2,'0'), y = usMatch[3];
+    return `${y}-${m}-${d}`;
+  }
+  // US format short: 4/22 (assume current year)
+  const shortMatch = s.match(/^(\d{1,2})\/(\d{1,2})$/);
+  if (shortMatch) {
+    const y = new Date().getFullYear();
+    const m = String(shortMatch[1]).padStart(2,'0'), d = String(shortMatch[2]).padStart(2,'0');
+    return `${y}-${m}-${d}`;
+  }
+  return null;
+}
+
+// Parse a single CSV row, accounting for quoted fields with commas inside
+function _csvParseRow(line) {
+  const cells = [];
+  let cur = '', inQuote = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (ch === '"') {
+      if (inQuote && line[i+1] === '"') { cur += '"'; i++; }  // escaped quote
+      else { inQuote = !inQuote; }
+    } else if (ch === ',' && !inQuote) {
+      cells.push(cur.trim());
+      cur = '';
+    } else {
+      cur += ch;
+    }
+  }
+  cells.push(cur.trim());
+  return cells;
+}
+
+// Parse the full CSV text — header + rows. Returns { headers, rows }
+function _csvParse(text) {
+  const lines = text.split(/\r?\n/).filter(l => l.trim());
+  if (lines.length === 0) return { headers: [], rows: [] };
+  const headers = _csvParseRow(lines[0]).map(h => h.toLowerCase().trim());
+  const rows = lines.slice(1).map(line => {
+    const cells = _csvParseRow(line);
+    const obj = {};
+    headers.forEach((h, i) => { obj[h] = cells[i] || ''; });
+    return obj;
+  });
+  return { headers, rows };
+}
+
+// Resolve a player name to MLBAM ID via MLB Stats API search.
+// Two-stage: exact name match → last-name fallback.
+async function _csvResolvePlayer(name) {
+  if (!name) return null;
+  try {
+    const r = await fetch(
+      `https://statsapi.mlb.com/api/v1/people/search?names=${encodeURIComponent(name.trim())}&sportIds=1`,
+      { signal: AbortSignal.timeout(6000) }
+    );
+    if (!r.ok) return null;
+    const d = await r.json();
+    const candidates = d.people || [];
+    if (candidates.length === 0) return null;
+    // Prefer active (has currentTeam), then exact case-insensitive match on fullName
+    const active = candidates.filter(p => p.currentTeam);
+    const pool = active.length > 0 ? active : candidates;
+    const lower = name.trim().toLowerCase();
+    const exact = pool.find(p => p.fullName?.toLowerCase() === lower);
+    if (exact) return exact;
+    // Fallback: any with matching last name + first initial
+    const parts = lower.split(/\s+/);
+    if (parts.length >= 2) {
+      const lastName = parts[parts.length - 1];
+      const firstInitial = parts[0][0];
+      const match = pool.find(p => {
+        const pn = (p.fullName || '').toLowerCase().split(/\s+/);
+        return pn[pn.length - 1] === lastName && pn[0]?.[0] === firstInitial;
+      });
+      if (match) return match;
+    }
+    // Last resort: take the first active candidate
+    return pool[0];
+  } catch (err) {
+    console.warn('[csvImport] player resolve failed:', err.message);
+    return null;
+  }
+}
+
+// Resolve gamePk for a player on a given date. Looks up the schedule and finds
+// the game involving the player's team. Returns null if no game found.
+async function _csvResolveGamePk(date, teamId) {
+  if (!date || !teamId) return null;
+  try {
+    const r = await fetch(
+      `https://statsapi.mlb.com/api/v1/schedule?sportId=1&date=${date}&teamId=${teamId}`,
+      { signal: AbortSignal.timeout(6000) }
+    );
+    if (!r.ok) return null;
+    const d = await r.json();
+    const games = d.dates?.[0]?.games || [];
+    if (games.length === 0) return null;
+    // First game on that date for that team. Doubleheader case = ambiguous,
+    // we take game 1 (caller may need to manually fix doubleheader cases).
+    return games[0].gamePk;
+  } catch (err) {
+    console.warn('[csvImport] gamePk resolve failed:', err.message);
+    return null;
+  }
+}
+
+// Download a CSV template file with example rows
+function downloadCsvTemplate() {
+  const content = [
+    'date,player,prop,line,odds,units,result',
+    '2025-04-22,Aaron Judge,HR,0.5,+250,1,win',
+    '2025-04-22,Yandy Diaz,TB,1.5,+150,1,',
+    '2025-04-23,Juan Soto,H,0.5,-120,1,win',
+    '2025-04-23,Jose Ramirez,HRR,1.5,+110,1,loss'
+  ].join('\n');
+  const blob = new Blob([content], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'lyrid-bet-import-template.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('Template downloaded');
+}
+
+// Load CSV file into the textarea
+function loadCsvFromFile(event) {
+  const file = event.target.files?.[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const ta = document.getElementById('csvImportInput');
+    if (ta) ta.value = e.target.result;
+    showToast(`Loaded ${file.name}`);
+  };
+  reader.onerror = () => showToast('File read failed', true);
+  reader.readAsText(file);
+}
+
+// Main import orchestrator. Parses CSV, resolves each row, inserts into
+// bestBetHistory, runs auto-grade, returns a detailed summary.
+async function processCsvImport() {
+  const input = document.getElementById('csvImportInput')?.value?.trim();
+  const resultDiv = document.getElementById('csvImportResult');
+  if (!input) {
+    if (resultDiv) resultDiv.innerHTML = '<div class="csv-result-err">Paste CSV or upload a file first.</div>';
+    return;
+  }
+
+  if (resultDiv) resultDiv.innerHTML = '<div class="csv-result-info">Parsing and resolving rows…</div>';
+
+  const { headers, rows } = _csvParse(input);
+
+  // Validate required headers present
+  const required = ['date', 'player', 'prop'];
+  const missing = required.filter(h => !headers.includes(h));
+  if (missing.length > 0) {
+    if (resultDiv) resultDiv.innerHTML = `<div class="csv-result-err">Missing required columns: <code>${missing.join(', ')}</code>. Download the template for the correct format.</div>`;
+    return;
+  }
+
+  if (rows.length === 0) {
+    if (resultDiv) resultDiv.innerHTML = '<div class="csv-result-err">No data rows found. CSV needs a header row plus at least one data row.</div>';
+    return;
+  }
+
+  // Process each row in sequence (not parallel — easier rate-limiting on MLB API)
+  const summary = { imported: 0, duplicates: 0, unmatched: [], errors: [], totalAttempted: rows.length };
+  const newEntries = [];
+
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i];
+    const rowNum = i + 2;  // 1-indexed + header row
+
+    // Update progress indicator every few rows so user knows it's running
+    if (resultDiv && (i % 3 === 0 || i === rows.length - 1)) {
+      resultDiv.innerHTML = `<div class="csv-result-info">Processing row ${i + 1} of ${rows.length}…</div>`;
+    }
+
+    // Validate + normalize required fields
+    const date = _csvNormalizeDate(row.date);
+    if (!date) {
+      summary.errors.push(`Row ${rowNum}: invalid date "${row.date}"`);
+      continue;
+    }
+    const playerRaw = (row.player || '').trim();
+    if (!playerRaw) {
+      summary.errors.push(`Row ${rowNum}: missing player`);
+      continue;
+    }
+    const propKey = _csvNormalizeProp(row.prop);
+    if (!propKey) {
+      summary.errors.push(`Row ${rowNum}: unrecognized prop "${row.prop}"`);
+      continue;
+    }
+
+    // Resolve player
+    const player = await _csvResolvePlayer(playerRaw);
+    if (!player) {
+      summary.unmatched.push(`Row ${rowNum}: could not resolve player "${playerRaw}"`);
+      continue;
+    }
+
+    // Resolve gamePk (best-effort — may be null for off-days or trade-day mismatches)
+    const teamId = player.currentTeam?.id;
+    let gamePk = null;
+    if (teamId) {
+      gamePk = await _csvResolveGamePk(date, teamId);
+    }
+
+    // Build entry. If gamePk is null, the bet is logged but the auto-grader
+    // can't fetch a box score for it — user can manually grade later.
+    const entryId = `${date}_${gamePk || 'manual'}_${player.id}_${propKey}`;
+
+    // Duplicate detection — skip if already in bestBetHistory
+    if (state.bestBetHistory[date]?.[entryId]) {
+      summary.duplicates++;
+      continue;
+    }
+
+    // Normalize result if user provided one
+    let result = (row.result || '').trim().toLowerCase();
+    if (result === 'w' || result === 'win') result = 'win';
+    else if (result === 'l' || result === 'loss') result = 'loss';
+    else if (result === 'p' || result === 'push') result = 'push';
+    else if (result === 'dnp' || result === 'didnotplay') result = 'didnotplay';
+    else result = null;  // blank or unknown — leave for auto-grade
+
+    // Numeric parsing for odds and units
+    const oddsRaw = (row.odds || '').replace(/^\+/, '').trim();
+    const odds = oddsRaw && !isNaN(parseInt(oddsRaw)) ? parseInt(oddsRaw) : null;
+    const units = row.units && !isNaN(parseFloat(row.units)) ? parseFloat(row.units) : 1;
+
+    if (!state.bestBetHistory[date]) state.bestBetHistory[date] = {};
+    state.bestBetHistory[date][entryId] = {
+      entryId,
+      date,
+      gamePk: gamePk || null,
+      hitterId: player.id,
+      hitterName: player.fullName,
+      hand: player.batSide?.code,
+      team: player.currentTeam?.abbreviation || '',
+      manualAdd: true,
+      csvImport: true,                              // flag for audit trail
+      propKey,
+      propLabel: _CSV_PROP_LABELS[propKey] || propKey,
+      platform: 'BOTH',
+      tier: 'imported',                             // distinct tier — these aren't model-recommended
+      isTopPick: false,
+      isDeepVerified: false,
+      odds,
+      units,
+      loggedAt: Date.now(),
+      result,
+      graded: result !== null,                      // if user provided a result, mark graded
+      line: null
+    };
+    summary.imported++;
+    newEntries.push(entryId);
+  }
+
+  saveState();
+
+  // Auto-grade the freshly imported bets (silent — no toast spam)
+  if (summary.imported > 0) {
+    try {
+      if (typeof gradeAllBestBets === 'function') {
+        await gradeAllBestBets({ silent: true });
+      }
+    } catch (err) {
+      console.warn('[csvImport] auto-grade failed:', err.message);
+    }
+  }
+
+  // Render summary
+  if (resultDiv) {
+    const errSection = summary.errors.length > 0
+      ? `<div class="csv-result-err"><b>${summary.errors.length} parse errors:</b><ul>${summary.errors.slice(0, 8).map(e => `<li>${e}</li>`).join('')}${summary.errors.length > 8 ? `<li>…and ${summary.errors.length - 8} more</li>` : ''}</ul></div>`
+      : '';
+    const unmatchedSection = summary.unmatched.length > 0
+      ? `<div class="csv-result-warn"><b>${summary.unmatched.length} unmatched players:</b><ul>${summary.unmatched.slice(0, 8).map(e => `<li>${e}</li>`).join('')}${summary.unmatched.length > 8 ? `<li>…and ${summary.unmatched.length - 8} more</li>` : ''}</ul></div>`
+      : '';
+    resultDiv.innerHTML = `
+      <div class="csv-result-summary">
+        <div class="csv-result-headline">${summary.imported} imported · ${summary.duplicates} duplicates skipped · ${summary.unmatched.length} unmatched · ${summary.errors.length} errors</div>
+        <div class="csv-result-detail">Of ${summary.totalAttempted} rows attempted. Imported bets auto-graded for any final games.</div>
+      </div>
+      ${errSection}
+      ${unmatchedSection}
+    `;
+  }
+
+  // Refresh history if visible
+  if (typeof renderHistory === 'function') renderHistory();
+  showToast(`Imported ${summary.imported} of ${summary.totalAttempted} bets`);
+}
+
+
+async function gradeAllBestBets(opts = {}) {
+  const silent = opts.silent === true;
   const today = getTodayStr();
   let gradedCount = 0, attemptedCount = 0;
   const dates = Object.keys(state.bestBetHistory).filter(d => d <= today).sort();
-  showToast(`Grading...`);
+  if (!silent) showToast(`Grading...`);
 
   for (const date of dates) {
     const entries = Object.entries(state.bestBetHistory[date]);
@@ -6021,8 +6460,11 @@ async function gradeAllBestBets() {
   }
 
   saveState();
-  showToast(`Graded ${gradedCount} of ${attemptedCount} pending`);
-  renderHistory();
+  if (!silent) {
+    showToast(`Graded ${gradedCount} of ${attemptedCount} pending`);
+    renderHistory();
+  }
+  return gradedCount;
 }
 
 // ==================== GAME-LINE BETS LOGGING, GRADING, STATS ====================
@@ -6058,11 +6500,15 @@ function logGameLineBet(ctx) {
   showToast(`★ Logged: ${ctx.tier} ${ctx.pick} (${ctx.units || 0}u)`);
 }
 
-async function gradeGameLineBets() {
+async function gradeGameLineBets(opts = {}) {
+  const silent = opts.silent === true;
   const today = getTodayStr();
   const entries = Object.entries(state.gameLineBets).filter(([k, b]) => b.date <= today && !b.graded);
-  if (entries.length === 0) { showToast('No pending game-line bets to grade'); return; }
-  showToast('Grading game bets...');
+  if (entries.length === 0) {
+    if (!silent) showToast('No pending game-line bets to grade');
+    return 0;
+  }
+  if (!silent) showToast('Grading game bets...');
   let graded = 0;
 
   // Group by gamePk to minimize requests
@@ -6103,8 +6549,11 @@ async function gradeGameLineBets() {
   }
 
   saveState();
-  showToast(`Graded ${graded} game-line bet${graded !== 1 ? 's' : ''}`);
-  renderHistory();
+  if (!silent) {
+    showToast(`Graded ${graded} game-line bet${graded !== 1 ? 's' : ''}`);
+    renderHistory();
+  }
+  return graded;
 }
 
 function evaluateGameLineBet(bet, awayRuns, homeRuns) {
@@ -6470,11 +6919,15 @@ function logFirstInningBet(ctx) {
   showToast(`★ Logged: ${ctx.tier} ${ctx.pick} (${ctx.units || 0}u)`);
 }
 
-async function gradeFirstInningBets() {
+async function gradeFirstInningBets(opts = {}) {
+  const silent = opts.silent === true;
   const today = getTodayStr();
   const entries = Object.entries(state.firstInningBets).filter(([k, b]) => b.date <= today && !b.graded);
-  if (entries.length === 0) { showToast('No pending YRFI/NRFI bets to grade'); return; }
-  showToast('Grading YRFI/NRFI bets...');
+  if (entries.length === 0) {
+    if (!silent) showToast('No pending YRFI/NRFI bets to grade');
+    return 0;
+  }
+  if (!silent) showToast('Grading YRFI/NRFI bets...');
   let graded = 0;
 
   const byGame = {};
@@ -6521,8 +6974,11 @@ async function gradeFirstInningBets() {
   }
 
   saveState();
-  showToast(`Graded ${graded} YRFI/NRFI bet${graded !== 1 ? 's' : ''}`);
+  if (!silent) {
+    showToast(`Graded ${graded} YRFI/NRFI bet${graded !== 1 ? 's' : ''}`);
   renderHistory();
+  }
+  return graded;
 }
 
 function computeFirstInningBetStats(entries) {
@@ -6540,7 +6996,7 @@ function computeBestBetStats(entries) {
 }
 
 // =============== HISTORY TAB ===============
-let historyView = 'bestbets';  // 'bestbets' | 'gamebets' | 'yrfi' | 'picks'
+let historyView = 'bestbets';  // 'bestbets' | 'gamebets' | 'yrfi' | 'calibration' | 'rollup' | 'picks'
 
 function switchHistoryView(view) {
   historyView = view;
@@ -6561,6 +7017,7 @@ function renderHistory() {
       <button class="history-subnav-btn ${historyView==='gamebets'?'active':''}" data-hist-view="gamebets" onclick="switchHistoryView('gamebets')">◈ GAME BETS</button>
       <button class="history-subnav-btn ${historyView==='yrfi'?'active':''}" data-hist-view="yrfi" onclick="switchHistoryView('yrfi')">◉ YRFI/NRFI</button>
       <button class="history-subnav-btn ${historyView==='calibration'?'active':''}" data-hist-view="calibration" onclick="switchHistoryView('calibration')">◎ CALIBRATION</button>
+      <button class="history-subnav-btn ${historyView==='rollup'?'active':''}" data-hist-view="rollup" onclick="switchHistoryView('rollup')">∑ ROLLUP</button>
       <button class="history-subnav-btn ${historyView==='picks'?'active':''}" data-hist-view="picks" onclick="switchHistoryView('picks')">$ MY BETS</button>
       ${historyView === 'gamebets' ? `<button class="btn sm" onclick="gradeGameLineBets()" style="margin-left:auto">⚡ GRADE ALL</button>` : historyView === 'yrfi' ? `<button class="btn sm" onclick="gradeFirstInningBets()" style="margin-left:auto">⚡ GRADE ALL</button>` : historyView === 'calibration' ? `<button class="btn sm" onclick="gradeProjectionAudit()" style="margin-left:auto">⚡ GRADE ALL</button>` : `<button class="btn sm" onclick="manualAddHitterToHistory()" style="margin-left:auto">+ ADD HITTER</button>
       <button class="btn sm" onclick="gradeAllBestBets()" style="margin-left:6px">⚡ GRADE ALL</button>`}
@@ -6902,6 +7359,147 @@ function renderHistory() {
           </div>
         `;
       }).join('')}
+    `;
+    return;
+  }
+
+  if (historyView === 'rollup') {
+    // ROLLUP — unified calibration view across every graded bet type.
+    // Aggregates: best bets (hitter props), game-line bets (ML/spread/total),
+    // YRFI/NRFI bets. Per-type win rate + per-tier breakdown for direct comparison.
+    // This is the dashboard the 2-week checkpoint reads from.
+    const allBestBets = [];
+    Object.values(state.bestBetHistory || {}).forEach(byDate => {
+      Object.values(byDate || {}).forEach(b => allBestBets.push(b));
+    });
+    const allGameBets = Object.values(state.gameLineBets || {});
+    const allYrfiBets = Object.values(state.firstInningBets || {});
+
+    // Helper: compute summary stats for any graded-bet collection
+    const summarize = (entries, key = 'result') => {
+      const wins = entries.filter(e => e[key] === 'win').length;
+      const losses = entries.filter(e => e[key] === 'loss').length;
+      const pushes = entries.filter(e => e[key] === 'push').length;
+      const dnp = entries.filter(e => e[key] === 'didnotplay').length;
+      const pending = entries.filter(e => !e[key]).length;
+      const graded = wins + losses + pushes;
+      const winRate = (wins + losses) > 0 ? (wins / (wins + losses)) : null;
+      return { wins, losses, pushes, dnp, pending, graded, winRate, total: entries.length };
+    };
+
+    // Stat block formatter
+    const fmtRate = r => r == null ? '—' : `${(r * 100).toFixed(1)}%`;
+    const fmtRecord = s => s.pushes ? `${s.wins}-${s.losses}-${s.pushes}` : `${s.wins}-${s.losses}`;
+
+    // Each prop type
+    const bestStats = summarize(allBestBets);
+    const gameStats = summarize(allGameBets);
+    const yrfiStats = summarize(allYrfiBets);
+
+    // By tier within hitter best bets (the prop type with tier signal)
+    const eliteBests = summarize(allBestBets.filter(e => e.tier === 'elite'));
+    const strongBests = summarize(allBestBets.filter(e => e.tier === 'strong'));
+
+    // By prop type within hitter best bets
+    const byPropKey = {};
+    allBestBets.forEach(e => {
+      if (!e.propKey) return;
+      if (!byPropKey[e.propKey]) byPropKey[e.propKey] = [];
+      byPropKey[e.propKey].push(e);
+    });
+    const propRows = Object.entries(byPropKey)
+      .map(([k, entries]) => ({ propKey: k, ...summarize(entries) }))
+      .filter(r => r.graded > 0)
+      .sort((a, b) => b.graded - a.graded);
+
+    // Aggregate across all types
+    const allEntries = [
+      ...allBestBets.map(b => ({ ...b, _type: 'hitter' })),
+      ...allGameBets.map(b => ({ ...b, _type: 'gameline' })),
+      ...allYrfiBets.map(b => ({ ...b, _type: 'yrfi' })),
+    ];
+    const overall = summarize(allEntries);
+
+    // Empty case
+    if (overall.total === 0) {
+      container.innerHTML = subnavHtml + `
+        <div class="empty">
+          <div class="empty-icon">∑</div>
+          <div>No graded bets yet to roll up.</div>
+          <div style="font-size:11px;color:var(--dim);margin-top:8px">
+            Log bets across BEST BETS / GAME BETS / YRFI tabs. Once games finish and grading runs, this rollup will show your accuracy by prop type and tier.
+          </div>
+        </div>`;
+      return;
+    }
+
+    container.innerHTML = subnavHtml + `
+      <div class="rollup-view">
+        <div class="rollup-headline">
+          <div class="rollup-headline-label">OVERALL ACCURACY · all graded bets</div>
+          <div class="rollup-headline-value">${fmtRate(overall.winRate)}</div>
+          <div class="rollup-headline-sub">${fmtRecord(overall)} across ${overall.graded} graded · ${overall.pending} pending</div>
+        </div>
+
+        <h3 class="rollup-section-title">BY BET TYPE</h3>
+        <div class="rollup-grid">
+          <div class="rollup-cell">
+            <div class="rollup-cell-label">HITTER BEST BETS</div>
+            <div class="rollup-cell-value">${fmtRate(bestStats.winRate)}</div>
+            <div class="rollup-cell-sub">${fmtRecord(bestStats)} · ${bestStats.graded} graded</div>
+          </div>
+          <div class="rollup-cell">
+            <div class="rollup-cell-label">GAME-LINE BETS</div>
+            <div class="rollup-cell-value">${fmtRate(gameStats.winRate)}</div>
+            <div class="rollup-cell-sub">${fmtRecord(gameStats)} · ${gameStats.graded} graded</div>
+          </div>
+          <div class="rollup-cell">
+            <div class="rollup-cell-label">YRFI / NRFI</div>
+            <div class="rollup-cell-value">${fmtRate(yrfiStats.winRate)}</div>
+            <div class="rollup-cell-sub">${fmtRecord(yrfiStats)} · ${yrfiStats.graded} graded</div>
+          </div>
+        </div>
+
+        ${(eliteBests.graded + strongBests.graded) > 0 ? `
+          <h3 class="rollup-section-title">HITTER BEST BETS · BY TIER</h3>
+          <div class="rollup-grid">
+            <div class="rollup-cell">
+              <div class="rollup-cell-label">ELITE</div>
+              <div class="rollup-cell-value">${fmtRate(eliteBests.winRate)}</div>
+              <div class="rollup-cell-sub">${fmtRecord(eliteBests)} · ${eliteBests.graded} graded</div>
+            </div>
+            <div class="rollup-cell">
+              <div class="rollup-cell-label">STRONG</div>
+              <div class="rollup-cell-value">${fmtRate(strongBests.winRate)}</div>
+              <div class="rollup-cell-sub">${fmtRecord(strongBests)} · ${strongBests.graded} graded</div>
+            </div>
+          </div>
+        ` : ''}
+
+        ${propRows.length > 0 ? `
+          <h3 class="rollup-section-title">HITTER PROPS · BY PROP TYPE</h3>
+          <div class="rollup-prop-table">
+            <div class="rollup-prop-row rollup-prop-header">
+              <span>PROP</span>
+              <span>RECORD</span>
+              <span>WIN RATE</span>
+              <span>VOLUME</span>
+            </div>
+            ${propRows.map(r => `
+              <div class="rollup-prop-row">
+                <span class="rollup-prop-key">${r.propKey}</span>
+                <span class="rollup-prop-record">${fmtRecord(r)}</span>
+                <span class="rollup-prop-rate ${r.winRate != null && r.winRate >= 0.55 ? 'rate-good' : r.winRate != null && r.winRate < 0.45 ? 'rate-bad' : ''}">${fmtRate(r.winRate)}</span>
+                <span class="rollup-prop-vol">${r.graded}</span>
+              </div>
+            `).join('')}
+          </div>
+        ` : ''}
+
+        <div class="rollup-footnote">
+          Auto-graded bets are scored against actual game outcomes. Calibration improves with volume — aim for 30+ graded bets per category before drawing conclusions.
+        </div>
+      </div>
     `;
     return;
   }
@@ -7508,6 +8106,93 @@ document.querySelectorAll('.modal-bg').forEach(bg => {
   });
 });
 
+// ============================================================
+// AUTO-GRADE ON APP OPEN
+// ============================================================
+// Once per app session, silently grade all bets whose games have finished but
+// haven't been graded yet. Throttled by sessionStorage to avoid spamming MLB API
+// on every refresh. Updates a session-level "newly graded" badge on History tab.
+//
+// Architecturally this just calls the existing manual grading functions
+// (gradeAllBestBets, gradeGameLineBets, gradeFirstInningBets) and tracks the
+// delta in graded count before/after. No new grading logic — this is wiring.
+
+let _newlyGradedThisSession = 0;
+
+function _countGradedBets() {
+  let n = 0;
+  // Best bets
+  Object.values(state.bestBetHistory || {}).forEach(byDate => {
+    Object.values(byDate || {}).forEach(b => {
+      if (b.graded || b.result === 'win' || b.result === 'loss' || b.result === 'didnotplay') n++;
+    });
+  });
+  // Game-line bets
+  Object.values(state.gameLineBets || {}).forEach(b => {
+    if (b.graded || b.result === 'win' || b.result === 'loss' || b.result === 'push') n++;
+  });
+  // YRFI bets
+  Object.values(state.firstInningBets || {}).forEach(b => {
+    if (b.graded || b.result === 'win' || b.result === 'loss' || b.result === 'push') n++;
+  });
+  return n;
+}
+
+function _updateHistoryBadge() {
+  // Update both Lyrid and legacy nav buttons. Badge shows newly-graded count
+  // for the current session; clears when the user actually visits History tab.
+  const count = _newlyGradedThisSession;
+  document.querySelectorAll('[data-tab="history"]').forEach(btn => {
+    // Remove any existing badge
+    btn.querySelectorAll('.nav-badge').forEach(el => el.remove());
+    if (count > 0) {
+      const badge = document.createElement('span');
+      badge.className = 'nav-badge';
+      badge.textContent = count;
+      btn.appendChild(badge);
+    }
+  });
+}
+
+function _clearHistoryBadgeIfShown() {
+  if (_newlyGradedThisSession > 0) {
+    _newlyGradedThisSession = 0;
+    _updateHistoryBadge();
+  }
+}
+
+async function autoGradeOnAppOpen() {
+  // Throttle: don't run more than once per 5-minute window. Uses sessionStorage
+  // so a fresh app load runs once, but a tab refresh within 5 min skips.
+  const lastRun = parseInt(sessionStorage.getItem('autoGradeLastRun') || '0');
+  const now = Date.now();
+  if (now - lastRun < 5 * 60 * 1000) return;
+  sessionStorage.setItem('autoGradeLastRun', String(now));
+
+  // Snapshot graded count before so we can compute delta
+  const beforeCount = _countGradedBets();
+
+  // Run all three grading flows silently (the functions already exist and
+  // each one fetches box scores, walks ungraded bets, and writes results into state).
+  // Wrap each in try/catch so one failure doesn't cancel the others.
+  try { if (typeof gradeAllBestBets === 'function') await gradeAllBestBets({ silent: true }); }
+  catch(err) { console.warn('[autoGrade] best bets failed:', err.message); }
+
+  try { if (typeof gradeGameLineBets === 'function') await gradeGameLineBets({ silent: true }); }
+  catch(err) { console.warn('[autoGrade] game line bets failed:', err.message); }
+
+  try { if (typeof gradeFirstInningBets === 'function') await gradeFirstInningBets({ silent: true }); }
+  catch(err) { console.warn('[autoGrade] yrfi bets failed:', err.message); }
+
+  // Compute newly-graded delta
+  const afterCount = _countGradedBets();
+  const newlyGraded = Math.max(0, afterCount - beforeCount);
+  if (newlyGraded > 0) {
+    _newlyGradedThisSession += newlyGraded;
+    _updateHistoryBadge();
+  }
+}
+
 // INIT
 (function init() {
   loadState();
@@ -7533,6 +8218,13 @@ document.querySelectorAll('.modal-bg').forEach(bg => {
       try { loadLiveSlate(); } catch (err) { console.warn('[init] auto-fetch failed:', err); }
     }, 50);
   }
+
+  // Background: auto-grade any ungraded bets whose games have finished.
+  // Runs after a 1.5s delay so the slate fetch + initial paint complete first.
+  // Throttled to once per 5 min via sessionStorage. Updates a History tab badge.
+  setTimeout(() => {
+    autoGradeOnAppOpen().catch(err => console.warn('[init] autoGrade failed:', err));
+  }, 1500);
 })();
 </script>
 </body>
