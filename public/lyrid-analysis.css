@@ -2320,3 +2320,686 @@ button.tag-btn:hover,
 .hr-driver-weight.neg {
   color: var(--data-negative);
 }
+
+/* ===========================================================
+   HISTORY TAB REBUILD — Lyrid styling for the bet-tracking dashboards
+   Overrides the legacy dark-theme primitives for all 5 history views:
+   BEST BETS, GAME BETS, YRFI/NRFI, CALIBRATION, MY BETS
+   =========================================================== */
+
+/* ---------- History subnav row ---------- */
+/* Underline-active style matching the Track tab subnav for consistency */
+.history-subnav {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 18px;
+  padding-bottom: 0;
+  border-bottom: 0.5px solid var(--border-hairline);
+  align-items: stretch;
+  flex-wrap: wrap;
+}
+
+.history-subnav-btn {
+  background: transparent !important;
+  border: none !important;
+  border-bottom: 2px solid transparent !important;
+  color: var(--text-secondary) !important;
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  padding: 8px 14px;
+  border-radius: 0;
+  cursor: pointer;
+  transition: color var(--duration-fast) var(--easing-standard), border-color var(--duration-fast) var(--easing-standard);
+  position: relative;
+  top: 1px;  /* visual alignment with bottom border */
+}
+
+.history-subnav-btn:hover {
+  color: var(--text-primary) !important;
+  background: transparent !important;
+}
+
+.history-subnav-btn.active {
+  color: var(--brand-primary) !important;
+  border-bottom-color: var(--brand-primary) !important;
+  background: transparent !important;
+}
+
+/* Action buttons (GRADE ALL, ADD HITTER) inside the subnav row */
+.history-subnav .btn.sm,
+.history-subnav button.btn {
+  background: var(--surface-card);
+  color: var(--brand-primary);
+  border: 0.5px solid var(--brand-primary);
+  font-family: var(--font-sans);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  padding: 5px 10px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  margin-bottom: 4px;
+  margin-top: 4px;
+  align-self: center;
+}
+
+.history-subnav .btn.sm:hover,
+.history-subnav button.btn:hover {
+  background: var(--brand-tint);
+}
+
+/* ---------- Stats dashboard ---------- */
+/* Replace dark-panel grid with calm hairline cards using eyebrow + mono number + caption pattern */
+.bestbet-stats {
+  margin-bottom: 24px;
+}
+
+.bbs-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 10px;
+}
+
+@media (max-width: 720px) {
+  .bbs-grid { grid-template-columns: repeat(3, 1fr); }
+}
+
+@media (max-width: 420px) {
+  .bbs-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+.bbs-cell {
+  background: var(--surface-card) !important;
+  border: 0.5px solid var(--border-hairline) !important;
+  border-radius: var(--radius-md) !important;
+  padding: 14px 12px !important;
+  text-align: left !important;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.bbs-label {
+  font-family: var(--font-sans) !important;
+  font-size: 10px !important;
+  font-weight: 500 !important;
+  letter-spacing: 0.10em !important;
+  text-transform: uppercase;
+  color: var(--text-muted) !important;
+  margin-bottom: 4px !important;
+}
+
+.bbs-value {
+  font-family: var(--font-mono) !important;
+  font-size: 22px !important;
+  font-weight: 500 !important;
+  color: var(--text-primary) !important;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+  line-height: 1.1;
+}
+
+.bbs-value.profit-pos {
+  color: var(--data-positive) !important;
+}
+
+.bbs-value.profit-neg {
+  color: var(--data-negative) !important;
+}
+
+.bbs-sub {
+  font-family: var(--font-sans) !important;
+  font-size: 11px !important;
+  color: var(--text-secondary) !important;
+  margin-top: 2px !important;
+  font-variant-numeric: tabular-nums;
+  font-weight: 400;
+}
+
+/* ---------- Bet entries ---------- */
+/* Date group header — eyebrow style matching the Lyrid spec */
+.bb-date-group {
+  margin-bottom: 18px;
+}
+
+.bb-date-head {
+  font-family: var(--font-sans) !important;
+  font-size: 11px !important;
+  font-weight: 500 !important;
+  letter-spacing: 0.10em !important;
+  text-transform: uppercase;
+  color: var(--text-muted) !important;
+  padding: 0 0 8px 0 !important;
+  margin-bottom: 0 !important;
+  border-bottom: 0.5px solid var(--border-hairline);
+}
+
+/* Entry row — replace dark-with-tint pattern with clean white card + hairline */
+.bb-entry,
+.bb-entry.glb-history-entry {
+  background: var(--surface-card) !important;
+  border: 0.5px solid var(--border-hairline) !important;
+  border-bottom: 0.5px solid var(--border-hairline) !important;
+  border-left: 3px solid var(--border-hairline) !important;
+  border-radius: var(--radius-md) !important;
+  padding: 12px 14px !important;
+  margin-bottom: 6px;
+}
+
+.bb-entry:last-child {
+  margin-bottom: 0;
+}
+
+/* Result-state border accents (replacing the dark-theme glow pattern).
+   The parent .bb-entry doesn't get the result class — we read it from the child
+   .bb-entry-result chip via :has() which is supported in modern Safari/Chrome. */
+.bb-entry:has(.bb-entry-result.res-win),
+.bb-entry:has(.bb-entry-result.win),
+.bb-entry.win,
+.bb-entry[data-result="win"] {
+  border-left-color: var(--data-positive) !important;
+  background: var(--surface-card) !important;
+}
+
+.bb-entry:has(.bb-entry-result.res-loss),
+.bb-entry:has(.bb-entry-result.loss),
+.bb-entry.loss,
+.bb-entry[data-result="loss"] {
+  border-left-color: var(--data-negative) !important;
+  background: var(--surface-card) !important;
+}
+
+.bb-entry:has(.bb-entry-result.res-push),
+.bb-entry:has(.bb-entry-result.push),
+.bb-entry:has(.bb-entry-result.didnotplay),
+.bb-entry.didnotplay,
+.bb-entry.push {
+  border-left-color: var(--data-warning) !important;
+  background: var(--surface-card) !important;
+  opacity: 1 !important;
+}
+
+.bb-entry:has(.bb-entry-result.res-pending),
+.bb-entry:has(.bb-entry-result.pending),
+.bb-entry.pending {
+  border-left-color: var(--border-hairline) !important;
+}
+
+/* Entry head — flex row of metadata */
+.bb-entry-head {
+  display: flex;
+  justify-content: flex-start !important;
+  gap: 10px !important;
+  align-items: center !important;
+  flex-wrap: wrap;
+}
+
+/* Tier chip — restrained semantic surface + hairline + dark text */
+.bb-entry-tier,
+.glb-tier-strong,
+.glb-tier-moderate,
+.glb-tier-slight {
+  font-family: var(--font-sans) !important;
+  font-size: 9px !important;
+  font-weight: 500 !important;
+  letter-spacing: 0.10em !important;
+  padding: 2px 7px !important;
+  border-radius: var(--radius-sm) !important;
+  text-transform: uppercase;
+}
+
+.glb-tier-strong,
+.bb-entry-tier.glb-tier-strong {
+  background: var(--data-positive-surface) !important;
+  color: var(--data-positive) !important;
+  border: 0.5px solid var(--data-positive);
+}
+
+.glb-tier-moderate,
+.bb-entry-tier.glb-tier-moderate {
+  background: var(--data-live-surface) !important;
+  color: var(--data-live) !important;
+  border: 0.5px solid var(--data-live);
+}
+
+.glb-tier-slight,
+.bb-entry-tier.glb-tier-slight {
+  background: var(--data-warning-surface) !important;
+  color: var(--data-warning) !important;
+  border: 0.5px solid var(--data-warning);
+}
+
+/* Type chip (TOTAL/ML/RUN LINE/etc) — calm muted surface */
+.bb-entry-type {
+  font-family: var(--font-sans) !important;
+  font-size: 10px !important;
+  font-weight: 500 !important;
+  letter-spacing: 0.06em !important;
+  color: var(--text-muted) !important;
+  padding: 2px 7px;
+  background: var(--surface-muted);
+  border-radius: var(--radius-sm);
+}
+
+/* Pick description — primary text, takes available space */
+.bb-entry-pick {
+  font-family: var(--font-sans) !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  color: var(--text-primary) !important;
+  flex: 1;
+}
+
+/* Price odds — mono, secondary color */
+.bb-entry-price {
+  font-family: var(--font-mono) !important;
+  font-size: 11px !important;
+  color: var(--text-secondary) !important;
+  font-variant-numeric: tabular-nums;
+  font-weight: 400;
+}
+
+/* Units staked — restrained mono */
+.bb-entry-units {
+  font-family: var(--font-mono) !important;
+  font-size: 11px !important;
+  font-weight: 500 !important;
+  color: var(--brand-primary) !important;
+  font-variant-numeric: tabular-nums;
+  padding: 1px 6px;
+  background: var(--brand-tint);
+  border-radius: var(--radius-sm);
+}
+
+/* Result chip — restrained semantic surface (replace bright filled pattern) */
+.bb-entry-result {
+  font-family: var(--font-sans) !important;
+  font-size: 10px !important;
+  font-weight: 500 !important;
+  letter-spacing: 0.10em !important;
+  padding: 3px 9px !important;
+  border-radius: var(--radius-sm) !important;
+  flex-shrink: 0;
+}
+
+.bb-entry-result.res-win,
+.bb-entry-result.win {
+  background: var(--data-positive) !important;
+  color: var(--text-on-primary) !important;
+  border: none !important;
+}
+
+.bb-entry-result.res-loss,
+.bb-entry-result.loss {
+  background: var(--data-negative) !important;
+  color: var(--text-on-primary) !important;
+  border: none !important;
+}
+
+.bb-entry-result.res-push,
+.bb-entry-result.push,
+.bb-entry-result.didnotplay {
+  background: var(--data-warning-surface) !important;
+  color: var(--data-warning) !important;
+  border: 0.5px solid var(--data-warning) !important;
+}
+
+.bb-entry-result.res-pending,
+.bb-entry-result.pending {
+  background: var(--surface-muted) !important;
+  color: var(--text-muted) !important;
+  border: 0.5px solid var(--border-hairline) !important;
+}
+
+/* Entry meta line (game, score, etc.) — secondary mono */
+.bb-entry-meta {
+  font-family: var(--font-mono) !important;
+  font-size: 11px !important;
+  color: var(--text-secondary) !important;
+  margin-top: 6px !important;
+  font-variant-numeric: tabular-nums;
+  font-weight: 400;
+}
+
+/* Entry name (used on best-bets entries) */
+.bb-entry-name {
+  font-family: var(--font-sans) !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  color: var(--text-primary) !important;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Tier dot indicator on best-bets entries */
+.bb-tier-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.bb-tier-dot.elite {
+  background: var(--brand-secondary);  /* gold for elite */
+  box-shadow: 0 0 0 1px var(--brand-primary);
+}
+
+.bb-tier-dot.strong {
+  background: var(--data-positive);
+}
+
+/* Prop description (pp tier + reason on best bets) */
+.bb-entry-prop {
+  font-family: var(--font-sans) !important;
+  font-size: 11px !important;
+  color: var(--text-secondary) !important;
+  margin-top: 4px !important;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.bb-prop-label {
+  font-family: var(--font-mono) !important;
+  color: var(--text-primary) !important;
+  font-weight: 500 !important;
+  letter-spacing: 0;
+  font-size: 11px !important;
+  background: var(--surface-muted);
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+}
+
+.bb-prop-reason {
+  font-style: italic;
+  color: var(--text-secondary) !important;
+  font-family: var(--font-sans);
+}
+
+/* Line text (line + odds shown beneath name on best bets) */
+.bb-line {
+  font-family: var(--font-mono) !important;
+  font-size: 11px !important;
+  color: var(--text-secondary) !important;
+  margin-top: 6px !important;
+  font-variant-numeric: tabular-nums;
+  font-weight: 400;
+}
+
+/* Action button row at bottom of entry */
+.bb-entry-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 0.5px dashed var(--border-hairline);
+}
+
+/* Small action buttons (W/L/Pending/etc grading buttons) — Lyrid outline style */
+.bb-entry-actions .result-btn,
+.result-btn.sm {
+  font-family: var(--font-sans);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  padding: 3px 9px;
+  border-radius: var(--radius-sm);
+  border: 0.5px solid var(--border-hairline);
+  background: var(--surface-card);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--easing-standard);
+}
+
+.bb-entry-actions .result-btn:hover,
+.result-btn.sm:hover {
+  border-color: var(--brand-primary);
+  color: var(--brand-primary);
+  background: var(--brand-tint);
+}
+
+.result-btn.win-btn:hover {
+  border-color: var(--data-positive);
+  color: var(--data-positive);
+  background: var(--data-positive-surface);
+}
+
+.result-btn.loss-btn:hover {
+  border-color: var(--data-negative);
+  color: var(--data-negative);
+  background: var(--data-negative-surface);
+}
+
+/* ---------- Empty states ---------- */
+/* Scoped to History and Track contexts so we don't break inline empties
+   in analysis screens or game cards. */
+#historyList .empty,
+#trackList .empty {
+  text-align: center;
+  padding: 56px 24px !important;
+  background: var(--surface-card) !important;
+  border: 0.5px solid var(--border-hairline) !important;
+  border-radius: var(--radius-lg) !important;
+  margin-top: 8px;
+}
+
+#historyList .empty .empty-icon,
+#trackList .empty .empty-icon {
+  font-size: 32px !important;
+  color: var(--text-muted) !important;
+  margin-bottom: 16px !important;
+  display: block;
+  font-family: var(--font-sans);
+  font-weight: 300;
+  opacity: 0.6;
+}
+
+#historyList .empty > div:not(.empty-icon):first-of-type,
+#trackList .empty > div:not(.empty-icon):first-of-type {
+  font-family: var(--font-serif);
+  font-size: 18px !important;
+  font-weight: 500 !important;
+  color: var(--text-primary) !important;
+  margin-bottom: 10px;
+  letter-spacing: -0.01em;
+}
+
+#historyList .empty > div[style*="font-size"],
+#trackList .empty > div[style*="font-size"] {
+  font-family: var(--font-sans) !important;
+  font-size: 13px !important;
+  color: var(--text-secondary) !important;
+  line-height: 1.5;
+  max-width: 440px;
+  margin: 0 auto !important;
+  font-weight: 400;
+}
+
+/* ===========================================================
+   CALIBRATION VIEW — Lyrid styling for the model audit dashboard
+   =========================================================== */
+
+.calibration-view {
+  padding: 0;
+}
+
+/* Headline card — top-of-tab "model accuracy" summary */
+.cal-headline {
+  background: var(--surface-card) !important;
+  border: 0.5px solid var(--brand-primary) !important;
+  border-left: 3px solid var(--brand-primary) !important;
+  border-radius: var(--radius-md) !important;
+  padding: 18px 20px !important;
+  margin-bottom: 18px !important;
+}
+
+.cal-headline-label {
+  font-family: var(--font-sans) !important;
+  font-size: 10px !important;
+  font-weight: 500 !important;
+  letter-spacing: 0.12em !important;
+  text-transform: uppercase;
+  color: var(--brand-primary) !important;
+  margin-bottom: 8px !important;
+}
+
+.cal-headline-value {
+  font-family: var(--font-mono) !important;
+  font-size: 28px !important;
+  font-weight: 500 !important;
+  color: var(--text-primary) !important;
+  letter-spacing: -0.01em !important;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+.cal-headline-sub {
+  font-family: var(--font-sans) !important;
+  font-size: 12px !important;
+  color: var(--text-secondary) !important;
+  margin-top: 6px !important;
+  font-style: italic;
+}
+
+/* Cell grid */
+.cal-row {
+  display: grid !important;
+  grid-template-columns: 1fr 1fr !important;
+  gap: 10px !important;
+  margin-bottom: 10px !important;
+}
+
+.cal-cell {
+  background: var(--surface-card) !important;
+  border: 0.5px solid var(--border-hairline) !important;
+  border-radius: var(--radius-md) !important;
+  padding: 14px !important;
+}
+
+.cal-cell-label {
+  font-family: var(--font-sans) !important;
+  font-size: 10px !important;
+  font-weight: 500 !important;
+  letter-spacing: 0.10em !important;
+  text-transform: uppercase;
+  color: var(--text-muted) !important;
+  margin-bottom: 6px !important;
+}
+
+.cal-cell-value {
+  font-family: var(--font-mono) !important;
+  font-size: 20px !important;
+  font-weight: 500 !important;
+  color: var(--text-primary) !important;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+
+.cal-cell-sub {
+  font-family: var(--font-sans) !important;
+  font-size: 11px !important;
+  color: var(--text-secondary) !important;
+  margin-top: 4px !important;
+}
+
+/* Compare panel — projection vs market comparison */
+.cal-compare {
+  background: var(--surface-card) !important;
+  border: 0.5px solid var(--border-hairline) !important;
+  border-radius: var(--radius-md) !important;
+  padding: 14px 16px !important;
+  margin-bottom: 18px !important;
+}
+
+.cal-compare-head {
+  font-family: var(--font-sans) !important;
+  font-size: 10px !important;
+  font-weight: 500 !important;
+  letter-spacing: 0.12em !important;
+  text-transform: uppercase;
+  color: var(--text-muted) !important;
+  margin-bottom: 10px !important;
+}
+
+.cal-compare-row {
+  font-family: var(--font-sans);
+  font-size: 13px;
+  padding: 6px 0 !important;
+  border-bottom: 0.5px solid var(--border-hairline) !important;
+}
+
+.cal-compare-label {
+  color: var(--text-secondary) !important;
+  font-size: 12px !important;
+}
+
+.cal-compare-val {
+  font-family: var(--font-mono) !important;
+  font-weight: 500 !important;
+  color: var(--text-primary) !important;
+  font-variant-numeric: tabular-nums;
+}
+
+.cal-compare-val.good {
+  color: var(--data-positive) !important;
+}
+
+/* Per-game audit entry rows */
+.cal-entry {
+  background: var(--surface-card) !important;
+  border: 0.5px solid var(--border-hairline) !important;
+  border-radius: var(--radius-md) !important;
+  padding: 10px 14px !important;
+  margin-bottom: 6px !important;
+}
+
+.cal-entry-date {
+  font-family: var(--font-mono) !important;
+  font-size: 10px !important;
+  color: var(--text-muted) !important;
+  font-variant-numeric: tabular-nums;
+}
+
+.cal-entry-matchup {
+  font-family: var(--font-sans) !important;
+  font-weight: 500 !important;
+  font-size: 13px !important;
+  color: var(--text-primary) !important;
+}
+
+.cal-entry-proj, .cal-entry-actual {
+  font-family: var(--font-mono) !important;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-secondary) !important;
+}
+
+.cal-entry-err {
+  font-family: var(--font-sans) !important;
+  font-size: 10px !important;
+  font-weight: 500 !important;
+  letter-spacing: 0.06em !important;
+  padding: 2px 8px !important;
+  border-radius: var(--radius-sm) !important;
+}
+
+.cal-entry-err.audit-good {
+  color: var(--data-positive) !important;
+  background: var(--data-positive-surface) !important;
+  border: 0.5px solid var(--data-positive) !important;
+}
+
+.cal-entry-err.audit-ok {
+  color: var(--data-warning) !important;
+  background: var(--data-warning-surface) !important;
+  border: 0.5px solid var(--data-warning) !important;
+}
+
+.cal-entry-err.audit-miss {
+  color: var(--data-negative) !important;
+  background: var(--data-negative-surface) !important;
+  border: 0.5px solid var(--data-negative) !important;
+}
