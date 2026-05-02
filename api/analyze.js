@@ -513,8 +513,8 @@ export default async function handler(req, res) {
               pitcherHrPer9 = hrPerPa * 4.3 * 9;
             }
 
-            // Sample size for the hitter — sum of vsR + vsL PAs from splits, fallback to 0
-            const seasonPa = (splits?.vsR?.pa || 0) + (splits?.vsL?.pa || 0);
+            // Sample size for the hitter — sum of vsR + vsL PAs from this hitter's splits
+            const seasonPa = (h.splits?.vsR?.pa || 0) + (h.splits?.vsL?.pa || 0);
 
             // Locate the platoon adjustment (already computed earlier in this batter's analysis)
             const platoonAdjustment = adjustments.find(a => a.type === 'platoon');
