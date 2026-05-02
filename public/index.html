@@ -2878,6 +2878,7 @@ function loadState() {
   state.hrAudit.byTier = state.hrAudit.byTier || { elite:{hits:0,misses:0}, strong:{hits:0,misses:0}, solid:{hits:0,misses:0} };
   state.gameLineBets = state.gameLineBets || {};
   state.firstInningBets = state.firstInningBets || {};
+  state.pitcherPropBets = state.pitcherPropBets || {};
   state.projectionAudit = state.projectionAudit || {};
   // Secret filter — personal override, adjusts scoring. Only owner knows the config.
   state.secretFilter = state.secretFilter || {
@@ -6919,6 +6920,204 @@ function logFirstInningBet(ctx) {
   showToast(`★ Logged: ${ctx.tier} ${ctx.pick} (${ctx.units || 0}u)`);
 }
 
+// ====================================================================
+// PITCHER PROP BET LOGGING + GRADING
+//
+// Bet store: state.pitcherPropBets — keyed by `${date}_${gamePk}_${pitcherId}_${propType}`.
+// Supports the 5 core prop types: K (strikeouts), OUTS (pitching outs), ER (earned runs),
+// BB (walks), WIN. Bonus markets (No-Hitter, Quality Start) added in Session 3.
+//
+// Each bet records: pitcher, game context, prop type, line, side (over/under), units, odds,
+// AND the model's projection at time of bet (so we can compare predicted vs actual later).
+// That predicted-vs-actual data is what the 2-week checkpoint conversations need.
+// ====================================================================
+
+/**
+ * Log a pitcher prop bet.
+ *
+ * @param {Object} ctx
+ *   @param {string} ctx.date — game date (YYYY-MM-DD)
+ *   @param {number} ctx.gamePk — MLB gamePk for the game
+ *   @param {number} ctx.pitcherId — MLBAM ID of the pitcher
+ *   @param {string} ctx.pitcherName — display name
+ *   @param {string} ctx.away, ctx.home — team abbreviations for context
+ *   @param {string} ctx.propType — 'K' | 'OUTS' | 'ER' | 'BB' | 'WIN' | 'QS' | 'NH'
+ *   @param {number} ctx.line — book line (e.g., 6.5 for Ks, 17.5 for Outs). Null for binary props (WIN/QS/NH).
+ *   @param {string} ctx.side — 'over' | 'under' | 'yes' | 'no'
+ *   @param {number} ctx.odds — American odds, e.g., -115 or +120
+ *   @param {number} ctx.units — staked
+ *   @param {Object} [ctx.projection] — model projection at time of bet, e.g., { ks: 7.4, outs: 18.2 }
+ *   @param {string} [ctx.lineGradeTier] — model's recommended tier (PLAY/LEAN/SLIGHT/NO PLAY) at time of log
+ *   @param {number} [ctx.modelEdge] — model's projected edge percentage at time of log
+ */
+function logPitcherPropBet(ctx) {
+  if (!ctx || !ctx.gamePk || !ctx.pitcherId || !ctx.propType) {
+    showToast('Missing required bet info', true);
+    return;
+  }
+  const date = ctx.date || getTodayStr();
+  const key = `${date}_${ctx.gamePk}_${ctx.pitcherId}_${ctx.propType}`;
+
+  if (state.pitcherPropBets[key]) {
+    showToast('Already logged for this prop');
+    return;
+  }
+
+  state.pitcherPropBets[key] = {
+    key,
+    date,
+    gamePk: ctx.gamePk,
+    pitcherId: ctx.pitcherId,
+    pitcherName: ctx.pitcherName || '',
+    away: ctx.away || '',
+    home: ctx.home || '',
+    propType: ctx.propType,             // 'K' | 'OUTS' | 'ER' | 'BB' | 'WIN' | 'QS' | 'NH'
+    line: ctx.line == null ? null : parseFloat(ctx.line),
+    side: ctx.side || null,             // 'over' | 'under' | 'yes' | 'no'
+    odds: ctx.odds == null ? null : parseInt(ctx.odds),
+    units: ctx.units == null ? 1 : parseFloat(ctx.units),
+    // Model snapshot at time of bet (for predicted-vs-actual analysis later)
+    projection: ctx.projection || null,
+    lineGradeTier: ctx.lineGradeTier || null,
+    modelEdge: ctx.modelEdge == null ? null : parseFloat(ctx.modelEdge),
+    loggedAt: Date.now(),
+    // Result fields populated by gradePitcherPropBets
+    result: null,                       // 'win' | 'loss' | 'push' | 'didnotplay' | null
+    graded: false,
+    finalLine: null                     // box score line at grade time (for audit)
+  };
+  saveState();
+  const label = _pitcherPropBetLabel(ctx.propType, ctx.line, ctx.side);
+  showToast(`★ Logged ${ctx.pitcherName} ${label} (${ctx.units || 1}u)`);
+}
+
+/**
+ * Build a short human label for a logged pitcher prop bet.
+ * Used in toasts and List rendering.
+ */
+function _pitcherPropBetLabel(propType, line, side) {
+  const sideStr = side === 'over' ? 'O' : side === 'under' ? 'U' : side === 'yes' ? 'YES' : side === 'no' ? 'NO' : '';
+  switch (propType) {
+    case 'K':    return `${sideStr}${line} K`;
+    case 'OUTS': return `${sideStr}${line} Outs`;
+    case 'ER':   return `${sideStr}${line} ER`;
+    case 'BB':   return `${sideStr}${line} BB`;
+    case 'WIN':  return `WIN ${sideStr}`;
+    case 'QS':   return `QS ${sideStr}`;
+    case 'NH':   return `NO-HITTER ${sideStr}`;
+    default:     return propType;
+  }
+}
+
+/**
+ * Grade all ungraded pitcher prop bets whose games are final.
+ * Mirrors the silent-grader pattern of the other three bet-type graders so
+ * autoGradeOnAppOpen can call it consistently.
+ *
+ * @param {Object} [opts]
+ *   @param {boolean} [opts.silent] — suppress toasts when run from auto-grade
+ * @returns {Promise<number>} count of newly graded bets
+ */
+async function gradePitcherPropBets(opts = {}) {
+  const silent = opts.silent === true;
+  const today = getTodayStr();
+  const entries = Object.entries(state.pitcherPropBets || {})
+    .filter(([k, b]) => b.date <= today && !b.graded);
+
+  if (entries.length === 0) {
+    if (!silent) showToast('No ungraded pitcher prop bets');
+    return 0;
+  }
+
+  if (!silent) showToast(`Grading ${entries.length} pitcher prop bet${entries.length === 1 ? '' : 's'}...`);
+  let gradedCount = 0;
+
+  for (const [key, bet] of entries) {
+    if (!bet.gamePk || !bet.pitcherId) continue;
+
+    try {
+      const res = await fetch(`/api/pitcher-line?gamePk=${bet.gamePk}&mlbam=${bet.pitcherId}`);
+      const data = await res.json();
+
+      if (!data.found) {
+        // Pitcher not in box score — likely scratched. Mark as DNP.
+        bet.result = 'didnotplay';
+        bet.graded = true;
+        gradedCount++;
+        continue;
+      }
+      if (!data.isFinal) continue;  // game not finished yet — leave for next run
+      if (!data.didPitch) {
+        bet.result = 'didnotplay';
+        bet.finalLine = data.line;
+        bet.graded = true;
+        gradedCount++;
+        continue;
+      }
+
+      // Game is final, pitcher pitched — grade based on prop type and side
+      bet.finalLine = data.line;
+      bet.result = _gradePitcherPropBet(bet, data.line);
+      bet.graded = true;
+      gradedCount++;
+    } catch (err) {
+      console.warn('[gradePitcherPropBets] failed for', key, err.message);
+      // Don't mark as graded — leave for retry on next run
+    }
+  }
+
+  saveState();
+  if (!silent) {
+    showToast(`Graded ${gradedCount} pitcher prop bet${gradedCount === 1 ? '' : 's'}`);
+    if (typeof renderHistory === 'function') renderHistory();
+  }
+  return gradedCount;
+}
+
+/**
+ * Grade a single pitcher prop bet against the actual box score line.
+ * Returns 'win' | 'loss' | 'push' (push only when bet line === actual stat exactly,
+ * which can happen if the user logged a whole-number line like 6.0 K and pitcher hit 6).
+ */
+function _gradePitcherPropBet(bet, line) {
+  const propType = bet.propType;
+  const side = bet.side;
+
+  // Binary props — WIN, QS, NH — side === 'yes' wins if outcome happened
+  if (propType === 'WIN') {
+    const won = line.decision === 'W' || (line.decision || '').startsWith('W');
+    return (side === 'yes' ? won : !won) ? 'win' : 'loss';
+  }
+  if (propType === 'QS') {
+    const qs = line.isQualityStart;
+    return (side === 'yes' ? qs : !qs) ? 'win' : 'loss';
+  }
+  if (propType === 'NH') {
+    const nh = line.isNoHitter;
+    return (side === 'yes' ? nh : !nh) ? 'win' : 'loss';
+  }
+
+  // Numeric props — K, OUTS, ER, BB
+  // Map prop type to actual stat from box score line
+  const actualByProp = {
+    K: line.K,
+    OUTS: line.IPouts,
+    ER: line.ER,
+    BB: line.BB
+  };
+  const actual = actualByProp[propType];
+  if (actual == null || bet.line == null) {
+    return 'loss';  // can't grade — defensive default to loss (rare path)
+  }
+
+  // Push: actual exactly equals line (only possible for whole-number lines)
+  if (actual === bet.line) return 'push';
+
+  if (side === 'over') return actual > bet.line ? 'win' : 'loss';
+  if (side === 'under') return actual < bet.line ? 'win' : 'loss';
+  return 'loss';  // unknown side — defensive default
+}
+
 async function gradeFirstInningBets(opts = {}) {
   const silent = opts.silent === true;
   const today = getTodayStr();
@@ -8135,6 +8334,10 @@ function _countGradedBets() {
   Object.values(state.firstInningBets || {}).forEach(b => {
     if (b.graded || b.result === 'win' || b.result === 'loss' || b.result === 'push') n++;
   });
+  // Pitcher prop bets
+  Object.values(state.pitcherPropBets || {}).forEach(b => {
+    if (b.graded || b.result === 'win' || b.result === 'loss' || b.result === 'push' || b.result === 'didnotplay') n++;
+  });
   return n;
 }
 
@@ -8183,6 +8386,9 @@ async function autoGradeOnAppOpen() {
 
   try { if (typeof gradeFirstInningBets === 'function') await gradeFirstInningBets({ silent: true }); }
   catch(err) { console.warn('[autoGrade] yrfi bets failed:', err.message); }
+
+  try { if (typeof gradePitcherPropBets === 'function') await gradePitcherPropBets({ silent: true }); }
+  catch(err) { console.warn('[autoGrade] pitcher prop bets failed:', err.message); }
 
   // Compute newly-graded delta
   const afterCount = _countGradedBets();
