@@ -3003,3 +3003,309 @@ button.tag-btn:hover,
   background: var(--data-negative-surface) !important;
   border: 0.5px solid var(--data-negative) !important;
 }
+
+/* ===========================================================
+   SETTINGS TAB REBUILD — Lyrid styling for the settings panel
+   Scoped to #settings-panel to avoid affecting other tabs.
+   Covers: ban lists, notes, data management, personal override.
+   =========================================================== */
+
+/* Panel container baseline */
+#settings-panel {
+  font-family: var(--font-sans);
+  color: var(--text-primary);
+  padding: 4px 0;
+}
+
+/* ---------- Section headers (h2) ---------- */
+/* Replace Archivo Black with the Lyrid serif heading at calmer weight */
+#settings-panel h2 {
+  font-family: var(--font-serif) !important;
+  font-size: 22px !important;
+  font-weight: 500 !important;
+  letter-spacing: -0.01em !important;
+  color: var(--text-primary) !important;
+  margin: 28px 0 12px !important;
+  padding-bottom: 8px;
+  border-bottom: 0.5px solid var(--border-hairline);
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 10px;
+  text-transform: none !important;
+}
+
+#settings-panel h2:first-child {
+  margin-top: 4px !important;
+}
+
+#settings-panel h2 .count {
+  font-family: var(--font-mono) !important;
+  font-size: 12px !important;
+  font-weight: 400 !important;
+  color: var(--text-muted) !important;
+  letter-spacing: 0 !important;
+}
+
+/* ---------- Subsection headers (h3) ---------- */
+/* Replace ▸ + caps with calm eyebrow */
+#settings-panel h3 {
+  font-family: var(--font-sans) !important;
+  font-size: 11px !important;
+  font-weight: 500 !important;
+  letter-spacing: 0.10em !important;
+  text-transform: uppercase;
+  color: var(--text-muted) !important;
+  margin: 20px 0 8px !important;
+}
+
+/* ---------- Hint boxes ---------- */
+/* Restrained left-border + brand tint */
+#settings-panel .hint-box {
+  background: var(--surface-card) !important;
+  border: 0.5px solid var(--border-hairline) !important;
+  border-left: 3px solid var(--brand-primary) !important;
+  border-radius: var(--radius-md) !important;
+  padding: 12px 14px !important;
+  margin-bottom: 16px !important;
+  font-family: var(--font-sans);
+  font-size: 12px !important;
+  color: var(--text-secondary) !important;
+  line-height: 1.55 !important;
+}
+
+#settings-panel .hint-box b {
+  color: var(--brand-primary) !important;
+  font-weight: 500;
+}
+
+/* ---------- Form labels ---------- */
+#settings-panel label {
+  font-family: var(--font-sans) !important;
+  font-size: 10px !important;
+  font-weight: 500 !important;
+  letter-spacing: 0.10em !important;
+  text-transform: uppercase;
+  color: var(--text-muted) !important;
+  display: block !important;
+  margin: 14px 0 4px !important;
+}
+
+/* ---------- Inputs / textarea / select ---------- */
+#settings-panel input[type="text"],
+#settings-panel input[type="number"],
+#settings-panel input[type="date"],
+#settings-panel select,
+#settings-panel textarea {
+  background: var(--surface-card) !important;
+  color: var(--text-primary) !important;
+  border: 0.5px solid var(--border-hairline) !important;
+  padding: 9px 12px !important;
+  border-radius: var(--radius-md) !important;
+  font-family: var(--font-mono) !important;
+  font-size: 13px !important;
+  width: 100%;
+  transition: border-color var(--duration-fast) var(--easing-standard), background var(--duration-fast) var(--easing-standard);
+}
+
+#settings-panel input[type="text"]:focus,
+#settings-panel input[type="number"]:focus,
+#settings-panel input[type="date"]:focus,
+#settings-panel select:focus,
+#settings-panel textarea:focus {
+  outline: none;
+  border-color: var(--brand-primary) !important;
+  background: var(--surface-card) !important;
+}
+
+#settings-panel textarea {
+  resize: vertical;
+  min-height: 80px !important;
+  line-height: 1.5 !important;
+  font-family: var(--font-sans) !important;
+}
+
+/* ---------- Controls row ---------- */
+#settings-panel .controls {
+  display: flex !important;
+  gap: 8px !important;
+  margin-bottom: 12px !important;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+/* ---------- Buttons ---------- */
+/* Default outline button — calm secondary action */
+#settings-panel .btn {
+  background: var(--surface-card) !important;
+  color: var(--text-primary) !important;
+  border: 0.5px solid var(--border-strong) !important;
+  font-family: var(--font-sans) !important;
+  font-size: 11px !important;
+  font-weight: 500 !important;
+  letter-spacing: 0.06em !important;
+  padding: 8px 14px !important;
+  border-radius: var(--radius-md) !important;
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--easing-standard);
+}
+
+#settings-panel .btn:hover {
+  background: var(--surface-muted) !important;
+  border-color: var(--brand-primary) !important;
+  color: var(--brand-primary) !important;
+}
+
+/* Primary button — filled brand */
+#settings-panel .btn.primary {
+  background: var(--brand-primary) !important;
+  color: var(--text-on-primary) !important;
+  border-color: var(--brand-primary) !important;
+}
+
+#settings-panel .btn.primary:hover:not(:disabled) {
+  background: var(--brand-primary-hover, #143049) !important;
+  border-color: var(--brand-primary-hover, #143049) !important;
+  color: var(--text-on-primary) !important;
+}
+
+/* Danger button — restrained red outline */
+#settings-panel .btn.danger {
+  background: var(--surface-card) !important;
+  color: var(--data-negative) !important;
+  border: 0.5px solid var(--data-negative) !important;
+}
+
+#settings-panel .btn.danger:hover {
+  background: var(--data-negative-surface) !important;
+  color: var(--data-negative) !important;
+  border-color: var(--data-negative) !important;
+}
+
+/* ---------- Banned chips ---------- */
+/* Replace red pill with muted surface + small danger X */
+#settings-panel .banned-list {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 6px !important;
+  margin-top: 10px !important;
+  margin-bottom: 6px;
+}
+
+#settings-panel .banned-chip {
+  background: var(--surface-muted) !important;
+  border: 0.5px solid var(--border-hairline) !important;
+  color: var(--text-primary) !important;
+  padding: 5px 6px 5px 12px !important;
+  border-radius: var(--radius-pill, 100px) !important;
+  font-family: var(--font-sans) !important;
+  font-size: 12px !important;
+  font-weight: 400 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+}
+
+#settings-panel .banned-chip .x-btn {
+  background: transparent !important;
+  border: none !important;
+  color: var(--text-muted) !important;
+  cursor: pointer !important;
+  font-size: 14px !important;
+  font-weight: 400;
+  padding: 0 6px !important;
+  opacity: 0.6;
+  transition: color var(--duration-fast), opacity var(--duration-fast);
+  line-height: 1;
+}
+
+#settings-panel .banned-chip .x-btn:hover {
+  opacity: 1 !important;
+  color: var(--data-negative) !important;
+}
+
+/* "No banned X" inline empty state */
+#settings-panel .banned-list ~ * + div[style*="No banned"],
+#settings-panel #bannedList > div[style*="color"],
+#settings-panel #bannedHittersList > div[style*="color"],
+#settings-panel #bannedTeamsList > div[style*="color"] {
+  font-family: var(--font-sans) !important;
+  font-size: 12px !important;
+  color: var(--text-muted) !important;
+  font-style: italic;
+  margin-top: 8px !important;
+}
+
+/* ---------- Divider ---------- */
+#settings-panel .divider,
+#settings-panel hr.divider {
+  border: none !important;
+  height: 1px !important;
+  background: var(--border-hairline) !important;
+  margin: 28px 0 !important;
+}
+
+/* ---------- Personal Override (special section) ---------- */
+/* Reserved gold accent — the only place outside Sharp tier badge that uses it */
+#settings-panel #secretFilterSection {
+  margin-top: 28px !important;
+  padding: 20px 22px !important;
+  border-top: none !important;
+  background: var(--surface-card);
+  border: 0.5px solid var(--brand-secondary, #E8C547);
+  border-left: 3px solid var(--brand-secondary, #E8C547);
+  border-radius: var(--radius-md);
+}
+
+#settings-panel #secretFilterSection h2 {
+  color: var(--brand-secondary, #E8C547) !important;
+  border-bottom: 0.5px solid rgba(232, 197, 71, 0.25) !important;
+  padding-bottom: 8px !important;
+  margin-top: 0 !important;
+}
+
+#settings-panel #secretFilterSection .hint-box {
+  border-color: rgba(232, 197, 71, 0.25) !important;
+  border-left-color: var(--brand-secondary, #E8C547) !important;
+  background: rgba(232, 197, 71, 0.04) !important;
+}
+
+#settings-panel #secretFilterSection .hint-box b {
+  color: var(--brand-secondary, #E8C547) !important;
+}
+
+/* Override section enable checkbox row */
+#settings-panel #secretFilterSection label[style*="flex"] {
+  font-family: var(--font-sans) !important;
+  font-size: 12px !important;
+  text-transform: none !important;
+  letter-spacing: 0 !important;
+  color: var(--text-primary) !important;
+  font-weight: 400 !important;
+  margin: 12px 0 16px !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+}
+
+/* Status indicator at bottom of override section */
+#settings-panel #secretFilterSection > div[style*="font-size:10px"],
+#settings-panel #secretFilterSection > div:last-child {
+  font-family: var(--font-mono) !important;
+  font-size: 10px !important;
+  color: var(--text-muted) !important;
+  margin-top: 14px !important;
+  padding-top: 12px;
+  border-top: 0.5px dashed rgba(232, 197, 71, 0.3);
+}
+
+#settings-panel #secretFilterSection #sfActiveIndicator {
+  color: var(--brand-secondary, #E8C547);
+  font-weight: 500;
+}
+
+/* Hidden file input — keep hidden */
+#settings-panel input[type="file"] {
+  display: none !important;
+}
