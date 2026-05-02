@@ -11,7 +11,7 @@ const CUSTOM_URL = (season) =>
 // Fetch today's slate with probable pitchers + handedness
 export async function getProbables(date) {
   const url = `https://statsapi.mlb.com/api/v1/schedule?sportId=1&date=${date}&hydrate=probablePitcher,venue`;
-  const response = await fetch(url);
+  const response = await fetch(url, { signal: AbortSignal.timeout(8000) });
   if (!response.ok) throw new Error(`MLB API ${response.status}`);
 
   const data = await response.json();
@@ -62,7 +62,7 @@ export async function getProbables(date) {
   if (pitcherIds.size > 0) {
     try {
       const ids = [...pitcherIds].join(',');
-      const pr = await fetch(`https://statsapi.mlb.com/api/v1/people?personIds=${ids}`);
+      const pr = await fetch(`https://statsapi.mlb.com/api/v1/people?personIds=${ids}`, { signal: AbortSignal.timeout(5000) });
       if (pr.ok) {
         const pdata = await pr.json();
         const handMap = {};
@@ -197,7 +197,7 @@ export async function getLineup(teamId, gamePk, side) {
 
   if (gamePk) {
     try {
-      const boxRes = await fetch(`https://statsapi.mlb.com/api/v1/game/${gamePk}/boxscore`);
+      const boxRes = await fetch(`https://statsapi.mlb.com/api/v1/game/${gamePk}/boxscore`, { signal: AbortSignal.timeout(6000) });
       if (boxRes.ok) {
         const box = await boxRes.json();
         const teamSide = side === 'home' ? 'home' : 'away';
@@ -226,7 +226,7 @@ export async function getLineup(teamId, gamePk, side) {
   }
 
   if (hitters.length === 0 && teamId) {
-    const r = await fetch(`https://statsapi.mlb.com/api/v1/teams/${teamId}/roster?rosterType=active&hydrate=person`);
+    const r = await fetch(`https://statsapi.mlb.com/api/v1/teams/${teamId}/roster?rosterType=active&hydrate=person`, { signal: AbortSignal.timeout(5000) });
     if (!r.ok) throw new Error(`Roster API ${r.status}`);
     const data = await r.json();
 
@@ -247,7 +247,7 @@ export async function getLineup(teamId, gamePk, side) {
   if (hitters.length > 0) {
     try {
       const ids = hitters.map(h => h.id).join(',');
-      const pr = await fetch(`https://statsapi.mlb.com/api/v1/people?personIds=${ids}`);
+      const pr = await fetch(`https://statsapi.mlb.com/api/v1/people?personIds=${ids}`, { signal: AbortSignal.timeout(5000) });
       if (pr.ok) {
         const pdata = await pr.json();
         const handMap = {};
@@ -306,7 +306,7 @@ export async function getHitterStats(mlbam, season) {
 export async function getHitterSplits(mlbam, season) {
   try {
     const url = `https://statsapi.mlb.com/api/v1/people/${mlbam}/stats?stats=statSplits&group=hitting&season=${season}&sitCodes=vr,vl`;
-    const r = await fetch(url);
+    const r = await fetch(url, { signal: AbortSignal.timeout(4000) });
     if (!r.ok) return { vsR: null, vsL: null };
     const data = await r.json();
 
@@ -347,7 +347,7 @@ export async function getHitterSplits(mlbam, season) {
 export async function getPitcherSplits(mlbam, season) {
   try {
     const url = `https://statsapi.mlb.com/api/v1/people/${mlbam}/stats?stats=statSplits&group=pitching&season=${season}&sitCodes=vr,vl`;
-    const r = await fetch(url);
+    const r = await fetch(url, { signal: AbortSignal.timeout(4000) });
     if (!r.ok) return { vsR: null, vsL: null };
     const data = await r.json();
 

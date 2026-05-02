@@ -46,7 +46,10 @@ export async function fetchSavantCSV(url) {
     return cached.data;
   }
 
-  const res = await fetch(url, { headers: { 'User-Agent': UA } });
+  const res = await fetch(url, {
+    headers: { 'User-Agent': UA },
+    signal: AbortSignal.timeout(15000)  // Savant CSVs can be 1-3 MB; allow 15s
+  });
   if (!res.ok) throw new Error(`Savant ${res.status}`);
   const text = await res.text();
 

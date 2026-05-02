@@ -201,9 +201,12 @@ export default async function handler(req, res) {
 
       // DEEP MODE ONLY: per-batter RISP performance fetch (career + season blended,
       // regressed to mean by sample size). Used downstream for RBI prop adjustment
-      // and lineup-level conversion tier. All 9 batters fetched in parallel.
+      // and lineup-level conversion tier.
+      // PERF: limit to top 6 batters in lineup (high-leverage spots see more PAs and
+      // dominate the conversion-tier signal). Cuts API volume from 9 → 6 per side,
+      // helps avoid MLB Stats API throttling under load.
       const rispMap = deepMode
-        ? await getLineupRispPerformance(topHitters.map(h => h.id)).catch(() => ({}))
+        ? await getLineupRispPerformance(topHitters.slice(0, 6).map(h => h.id)).catch(() => ({}))
         : {};
 
       const analyzed = hitterData.map(h => {
