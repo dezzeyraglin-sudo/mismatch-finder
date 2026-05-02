@@ -4192,6 +4192,70 @@ function renderAnalysis(data) {
         `;
       };
 
+      // Helper: build the inline LOG BET form for a pitcher prop row.
+      // Hidden by default; revealed when user taps the "+ LOG" button on the row.
+      // Pre-fills the line if a DK line was auto-pulled. Captures: side, line, odds,
+      // units. On submit, calls logPitcherPropBet with full context including the
+      // model projection at time of bet (snapshotted for predicted-vs-actual analysis).
+      //
+      // propType maps from rec.type to our internal vocabulary (K/OUTS/ER/BB/HITS_ALLOWED/WIN).
+      // Suppressed rows skip the log button (the bet probably shouldn't be made).
+      const PP_TYPE_MAP = {
+        strikeouts: 'K', outs: 'OUTS', earned_runs: 'ER',
+        walks: 'BB', hits_allowed: 'HITS_ALLOWED', record_win: 'WIN'
+      };
+      const buildLogEntry = (rec, sideKey) => {
+        if (rec.suppressed) return '';
+        const propType = PP_TYPE_MAP[rec.type];
+        if (!propType) return '';
+        const formId = `pp-log-${sideKey}-${rec.type}-${data.gamePk}`;
+        const isBinary = (propType === 'WIN');  // QS/NH are Session 3
+        const presetLine = rec.lineGrade?.line != null ? rec.lineGrade.line : '';
+        // Snapshot model state at time of render — this becomes the bet's projection
+        // record if the user logs. Used for predicted-vs-actual analysis later.
+        const modelCtx = {
+          projection: rec.projection,
+          lineGradeTier: rec.lineGrade?.tierLabel || null,
+          modelEdge: rec.lineGrade?.edge != null ? rec.lineGrade.edge : null
+        };
+        const ctxJson = JSON.stringify({
+          formId,
+          gamePk: data.gamePk,
+          date: data.gameDateET,
+          pitcherId: s.pitcher.id,
+          pitcherName: s.pitcher.name,
+          away: data.awayTeam.abbreviation,
+          home: data.homeTeam.abbreviation,
+          propType,
+          modelCtx
+        }).replace(/'/g, '&#39;');
+
+        const sideButtons = isBinary
+          ? `<button class="pp-log-side active" data-side="yes" onclick="ppLogSelectSide(this, 'yes')">YES</button>
+             <button class="pp-log-side" data-side="no" onclick="ppLogSelectSide(this, 'no')">NO</button>`
+          : `<button class="pp-log-side active" data-side="over" onclick="ppLogSelectSide(this, 'over')">OVER</button>
+             <button class="pp-log-side" data-side="under" onclick="ppLogSelectSide(this, 'under')">UNDER</button>`;
+
+        const lineInput = isBinary
+          ? ''
+          : `<input type="number" step="0.5" class="pp-log-input pp-log-line" placeholder="line" value="${presetLine}" />`;
+
+        return `
+          <button class="pp-log-toggle" onclick="ppLogToggleForm('${formId}')">+ LOG</button>
+          <div class="pp-log-form" id="${formId}" style="display:none">
+            <div class="pp-log-row">
+              <div class="pp-log-side-group" data-current-side="${isBinary ? 'yes' : 'over'}">
+                ${sideButtons}
+              </div>
+              ${lineInput}
+              <input type="number" class="pp-log-input pp-log-odds" placeholder="odds (e.g. -110)" />
+              <input type="number" step="0.5" class="pp-log-input pp-log-units" placeholder="units" value="1" />
+              <button class="pp-log-submit" onclick='ppLogSubmit(${ctxJson})'>LOG</button>
+            </div>
+          </div>
+        `;
+      };
+
       const sideKey = s.key;  // 'awayVsHome' or 'homeVsAway'
       const rows = pp.recommendations.map(r => {
         if (r.isBoolean) {
@@ -4200,6 +4264,7 @@ function renderAnalysis(data) {
               <span class="pp-label">${r.label}</span>
               <span class="pp-proj">${(r.projection * 100).toFixed(0)}%</span>
               <span class="pp-desc">${r.description}</span>
+              ${buildLogEntry(r, sideKey)}
             </div>
           `;
         }
@@ -4210,6 +4275,7 @@ function renderAnalysis(data) {
             <span class="pp-desc">${r.description}</span>
             ${buildLineChip(r)}
             ${buildManualEntry(r, sideKey)}
+            ${buildLogEntry(r, sideKey)}
           </div>
         `;
       }).join('');
@@ -7002,6 +7068,7 @@ function _pitcherPropBetLabel(propType, line, side) {
     case 'OUTS': return `${sideStr}${line} Outs`;
     case 'ER':   return `${sideStr}${line} ER`;
     case 'BB':   return `${sideStr}${line} BB`;
+    case 'HITS_ALLOWED': return `${sideStr}${line} H`;
     case 'WIN':  return `WIN ${sideStr}`;
     case 'QS':   return `QS ${sideStr}`;
     case 'NH':   return `NO-HITTER ${sideStr}`;
@@ -7097,13 +7164,14 @@ function _gradePitcherPropBet(bet, line) {
     return (side === 'yes' ? nh : !nh) ? 'win' : 'loss';
   }
 
-  // Numeric props — K, OUTS, ER, BB
+  // Numeric props — K, OUTS, ER, BB, HITS_ALLOWED
   // Map prop type to actual stat from box score line
   const actualByProp = {
     K: line.K,
     OUTS: line.IPouts,
     ER: line.ER,
-    BB: line.BB
+    BB: line.BB,
+    HITS_ALLOWED: line.H
   };
   const actual = actualByProp[propType];
   if (actual == null || bet.line == null) {
@@ -7195,7 +7263,7 @@ function computeBestBetStats(entries) {
 }
 
 // =============== HISTORY TAB ===============
-let historyView = 'bestbets';  // 'bestbets' | 'gamebets' | 'yrfi' | 'calibration' | 'rollup' | 'picks'
+let historyView = 'bestbets';  // 'bestbets' | 'gamebets' | 'yrfi' | 'pitcherbets' | 'calibration' | 'rollup' | 'picks'
 
 function switchHistoryView(view) {
   historyView = view;
@@ -7215,10 +7283,11 @@ function renderHistory() {
       <button class="history-subnav-btn ${historyView==='bestbets'?'active':''}" data-hist-view="bestbets" onclick="switchHistoryView('bestbets')">◆ BEST BETS</button>
       <button class="history-subnav-btn ${historyView==='gamebets'?'active':''}" data-hist-view="gamebets" onclick="switchHistoryView('gamebets')">◈ GAME BETS</button>
       <button class="history-subnav-btn ${historyView==='yrfi'?'active':''}" data-hist-view="yrfi" onclick="switchHistoryView('yrfi')">◉ YRFI/NRFI</button>
+      <button class="history-subnav-btn ${historyView==='pitcherbets'?'active':''}" data-hist-view="pitcherbets" onclick="switchHistoryView('pitcherbets')">◐ PITCHER BETS</button>
       <button class="history-subnav-btn ${historyView==='calibration'?'active':''}" data-hist-view="calibration" onclick="switchHistoryView('calibration')">◎ CALIBRATION</button>
       <button class="history-subnav-btn ${historyView==='rollup'?'active':''}" data-hist-view="rollup" onclick="switchHistoryView('rollup')">∑ ROLLUP</button>
       <button class="history-subnav-btn ${historyView==='picks'?'active':''}" data-hist-view="picks" onclick="switchHistoryView('picks')">$ MY BETS</button>
-      ${historyView === 'gamebets' ? `<button class="btn sm" onclick="gradeGameLineBets()" style="margin-left:auto">⚡ GRADE ALL</button>` : historyView === 'yrfi' ? `<button class="btn sm" onclick="gradeFirstInningBets()" style="margin-left:auto">⚡ GRADE ALL</button>` : historyView === 'calibration' ? `<button class="btn sm" onclick="gradeProjectionAudit()" style="margin-left:auto">⚡ GRADE ALL</button>` : `<button class="btn sm" onclick="manualAddHitterToHistory()" style="margin-left:auto">+ ADD HITTER</button>
+      ${historyView === 'gamebets' ? `<button class="btn sm" onclick="gradeGameLineBets()" style="margin-left:auto">⚡ GRADE ALL</button>` : historyView === 'yrfi' ? `<button class="btn sm" onclick="gradeFirstInningBets()" style="margin-left:auto">⚡ GRADE ALL</button>` : historyView === 'pitcherbets' ? `<button class="btn sm" onclick="gradePitcherPropBets()" style="margin-left:auto">⚡ GRADE ALL</button>` : historyView === 'calibration' ? `<button class="btn sm" onclick="gradeProjectionAudit()" style="margin-left:auto">⚡ GRADE ALL</button>` : `<button class="btn sm" onclick="manualAddHitterToHistory()" style="margin-left:auto">+ ADD HITTER</button>
       <button class="btn sm" onclick="gradeAllBestBets()" style="margin-left:6px">⚡ GRADE ALL</button>`}
     </div>
   `;
@@ -7418,6 +7487,145 @@ function renderHistory() {
                     <span class="bb-entry-result ${resultClass}">${resultLabel}</span>
                   </div>
                   <div class="bb-entry-meta">${b.away} @ ${b.home}${probText}${scoreText}</div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        `;
+      }).join('')}
+    `;
+    return;
+  }
+
+  // PITCHER BETS view — render the pitcher prop bet tracker
+  // Shows logged Strikeouts / Outs / ER / BB / Win bets with results.
+  // Stats panels: overall record, units P/L, by-prop-type breakdown.
+  if (historyView === 'pitcherbets') {
+    const allBets = Object.values(state.pitcherPropBets || {});
+    if (allBets.length === 0) {
+      container.innerHTML = subnavHtml + `
+        <div class="empty">
+          <div class="empty-icon">◐</div>
+          <div>No pitcher prop bets logged yet.</div>
+          <div style="font-size:11px;color:var(--dim);margin-top:8px;max-width:440px">
+            Open a game in deep mode, scroll to the Pitcher Props panel, tap "+ LOG" on any K / Outs / ER / BB / Win row, and capture the bet.
+          </div>
+        </div>`;
+      return;
+    }
+
+    // Helper: compute summary stats for a list of pitcher prop bets
+    const summarize = (entries) => {
+      const wins = entries.filter(e => e.result === 'win').length;
+      const losses = entries.filter(e => e.result === 'loss').length;
+      const pushes = entries.filter(e => e.result === 'push').length;
+      const dnp = entries.filter(e => e.result === 'didnotplay').length;
+      const pending = entries.filter(e => !e.result).length;
+      const graded = wins + losses + pushes;
+      const winPct = (wins + losses) > 0 ? Math.round((wins / (wins + losses)) * 100) : 0;
+      // Profit: assume +100 default if no odds. Win pays (odds), loss costs (units).
+      let profit = 0;
+      entries.forEach(e => {
+        if (e.result === 'win') {
+          const odds = e.odds || -110;  // assume -110 if no odds recorded
+          const payout = odds > 0 ? (e.units * odds / 100) : (e.units * 100 / Math.abs(odds));
+          profit += payout;
+        } else if (e.result === 'loss') {
+          profit -= (e.units || 1);
+        }
+      });
+      return { wins, losses, pushes, dnp, pending, graded, winPct, profitUnits: parseFloat(profit.toFixed(2)) };
+    };
+
+    const stats = summarize(allBets);
+    const byProp = {
+      K: summarize(allBets.filter(e => e.propType === 'K')),
+      OUTS: summarize(allBets.filter(e => e.propType === 'OUTS')),
+      ER: summarize(allBets.filter(e => e.propType === 'ER')),
+      BB: summarize(allBets.filter(e => e.propType === 'BB')),
+      WIN: summarize(allBets.filter(e => e.propType === 'WIN'))
+    };
+
+    const byDate = {};
+    allBets.forEach(b => { (byDate[b.date] = byDate[b.date] || []).push(b); });
+    const sortedDates = Object.keys(byDate).sort().reverse();
+
+    const profitSign = stats.profitUnits >= 0 ? '+' : '';
+    const profitCls = stats.profitUnits >= 0 ? 'profit-pos' : 'profit-neg';
+
+    // Helper to render a per-prop-type stat cell — only if there are bets of that type
+    const propCell = (label, s) => {
+      if (s.graded === 0 && s.pending === 0) return '';
+      return `
+        <div class="bbs-cell">
+          <div class="bbs-label">${label}</div>
+          <div class="bbs-value">${s.wins}-${s.losses}</div>
+          <div class="bbs-sub">${s.winPct}%${s.pending > 0 ? ` · ${s.pending} pending` : ''}</div>
+        </div>
+      `;
+    };
+
+    container.innerHTML = subnavHtml + `
+      <div class="bestbet-stats">
+        <div class="bbs-grid">
+          <div class="bbs-cell">
+            <div class="bbs-label">RECORD</div>
+            <div class="bbs-value">${stats.wins}-${stats.losses}${stats.pushes ? `-${stats.pushes}` : ''}</div>
+            <div class="bbs-sub">${stats.winPct}% · ${stats.pending} pending${stats.dnp ? ` · ${stats.dnp} DNP` : ''}</div>
+          </div>
+          <div class="bbs-cell">
+            <div class="bbs-label">UNITS P/L</div>
+            <div class="bbs-value ${profitCls}">${profitSign}${stats.profitUnits}u</div>
+            <div class="bbs-sub">across ${stats.graded} graded</div>
+          </div>
+          ${propCell('STRIKEOUTS', byProp.K)}
+          ${propCell('OUTS', byProp.OUTS)}
+          ${propCell('EARNED RUNS', byProp.ER)}
+          ${propCell('WALKS', byProp.BB)}
+          ${propCell('WIN', byProp.WIN)}
+        </div>
+      </div>
+      ${sortedDates.map(d => {
+        const bets = byDate[d].sort((a, b) => b.loggedAt - a.loggedAt);
+        return `
+          <div class="bb-date-group">
+            <div class="bb-date-head">${d}</div>
+            ${bets.map(b => {
+              const resultClass = b.result === 'win' ? 'res-win'
+                                : b.result === 'loss' ? 'res-loss'
+                                : b.result === 'push' ? 'res-push'
+                                : b.result === 'didnotplay' ? 'res-dnp'
+                                : 'res-pending';
+              const resultLabel = b.result === 'win' ? 'W'
+                                : b.result === 'loss' ? 'L'
+                                : b.result === 'push' ? 'PUSH'
+                                : b.result === 'didnotplay' ? 'DNP'
+                                : 'PENDING';
+              const propLabel = _pitcherPropBetLabel(b.propType, b.line, b.side);
+              const oddsText = b.odds != null ? ` · ${b.odds > 0 ? '+' : ''}${b.odds}` : '';
+              const tierBadge = b.lineGradeTier ? `<span class="bb-entry-tier glb-tier-${b.lineGradeTier.toLowerCase()}">${b.lineGradeTier}</span>` : '';
+              // Show actual stat next to the bet line for graded entries (audit trail)
+              let actualText = '';
+              if (b.graded && b.finalLine) {
+                const actualByProp = { K: 'K', OUTS: 'IPouts', ER: 'ER', BB: 'BB', HITS_ALLOWED: 'H' };
+                const statKey = actualByProp[b.propType];
+                if (statKey && b.finalLine[statKey] != null) {
+                  actualText = ` · actual: ${b.finalLine[statKey]}${b.propType === 'OUTS' ? ` outs (${b.finalLine.IP} IP)` : ''}`;
+                }
+                if (b.propType === 'WIN') {
+                  actualText = ` · decision: ${b.finalLine.decision || '—'}`;
+                }
+              }
+              return `
+                <div class="bb-entry glb-history-entry">
+                  <div class="bb-entry-head">
+                    ${tierBadge}
+                    <span class="bb-entry-type">PITCHER</span>
+                    <span class="bb-entry-pick">${b.pitcherName} · ${propLabel}</span>
+                    ${b.units ? `<span class="bb-entry-units">${b.units}u</span>` : ''}
+                    <span class="bb-entry-result ${resultClass}">${resultLabel}</span>
+                  </div>
+                  <div class="bb-entry-meta">${b.away} @ ${b.home}${oddsText}${actualText}</div>
                 </div>
               `;
             }).join('')}
@@ -8173,6 +8381,110 @@ function gradeManualLine(inputId, sideKey, propType, gamePk, projection) {
   else if (dev >= 3) { tier = 'SLIGHT'; tierClass = 'slight'; }
   else { tier = 'NO PLAY'; tierClass = 'no-play'; }
   result.innerHTML = `<span class="pp-manual-grade pp-tier-${tierClass}">${side} ${line} · ${(conviction*100).toFixed(0)}% · ${tier}</span>`;
+}
+
+// ====================================================================
+// PITCHER PROP BET LOGGING — UI handlers (Session 2)
+// Wire the inline log forms in the pitcher props panel into logPitcherPropBet.
+// ====================================================================
+
+/**
+ * Toggle the visibility of an inline log form.
+ * Called from the "+ LOG" button on each pitcher prop row.
+ */
+function ppLogToggleForm(formId) {
+  const form = document.getElementById(formId);
+  if (!form) return;
+  form.style.display = form.style.display === 'none' ? '' : 'none';
+}
+
+/**
+ * Update which side button is active in a side-toggle group.
+ * Stores the chosen side on the parent group's data attribute for submit.
+ */
+function ppLogSelectSide(button, side) {
+  const group = button.parentElement;
+  if (!group) return;
+  group.querySelectorAll('.pp-log-side').forEach(b => b.classList.remove('active'));
+  button.classList.add('active');
+  group.dataset.currentSide = side;
+}
+
+/**
+ * Submit handler for the pitcher prop log form. Reads the form inputs,
+ * validates them, and calls logPitcherPropBet with full context.
+ *
+ * ctx (from the inline data-attr) contains: formId, gamePk, date, pitcherId,
+ * pitcherName, away, home, propType, modelCtx (projection / lineGradeTier / modelEdge).
+ */
+function ppLogSubmit(ctx) {
+  if (!ctx || !ctx.formId) {
+    showToast('Form context missing', true);
+    return;
+  }
+  const form = document.getElementById(ctx.formId);
+  if (!form) {
+    showToast('Form not found', true);
+    return;
+  }
+
+  // Read side from the toggle group's data-current-side attr
+  const sideGroup = form.querySelector('.pp-log-side-group');
+  const side = sideGroup?.dataset?.currentSide || null;
+  if (!side) {
+    showToast('Pick a side first', true);
+    return;
+  }
+
+  // Read inputs
+  const lineInput = form.querySelector('.pp-log-line');
+  const oddsInput = form.querySelector('.pp-log-odds');
+  const unitsInput = form.querySelector('.pp-log-units');
+
+  // Line is required for numeric props (non-binary). WIN/QS/NH have no line.
+  const isBinary = (ctx.propType === 'WIN' || ctx.propType === 'QS' || ctx.propType === 'NH');
+  let line = null;
+  if (!isBinary) {
+    const v = parseFloat(lineInput?.value);
+    if (isNaN(v) || v <= 0) {
+      showToast('Enter a valid line', true);
+      return;
+    }
+    line = v;
+  }
+
+  // Odds optional but parse if provided. Strip leading +.
+  let odds = null;
+  const oddsRaw = (oddsInput?.value || '').replace(/^\+/, '').trim();
+  if (oddsRaw) {
+    const v = parseInt(oddsRaw);
+    if (!isNaN(v)) odds = v;
+  }
+
+  // Units default to 1 if blank
+  let units = parseFloat(unitsInput?.value);
+  if (isNaN(units) || units <= 0) units = 1;
+
+  // Build full bet context — includes the model snapshot at time of bet
+  logPitcherPropBet({
+    date: ctx.date,
+    gamePk: ctx.gamePk,
+    pitcherId: ctx.pitcherId,
+    pitcherName: ctx.pitcherName,
+    away: ctx.away,
+    home: ctx.home,
+    propType: ctx.propType,
+    line,
+    side,
+    odds,
+    units,
+    projection: ctx.modelCtx?.projection,
+    lineGradeTier: ctx.modelCtx?.lineGradeTier,
+    modelEdge: ctx.modelCtx?.modelEdge
+  });
+
+  // Hide the form after successful log
+  form.style.display = 'none';
 }
 
 // Helper: check if an entity is banned

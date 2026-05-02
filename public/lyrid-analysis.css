@@ -3896,3 +3896,152 @@ button.tag-btn:hover,
   font-family: var(--font-mono);
   font-size: 11px;
 }
+
+/* ===========================================================
+   PITCHER PROP BET LOGGING — Inline form on the pp-row
+   The "+ LOG" toggle button + the expanded form for capturing bet details.
+   =========================================================== */
+
+.pp-log-toggle {
+  font-family: var(--font-sans);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  background: var(--surface-card);
+  color: var(--brand-primary);
+  border: 0.5px solid var(--brand-primary);
+  padding: 3px 9px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background var(--duration-fast) var(--easing-standard);
+  margin-left: auto;
+  align-self: center;
+  white-space: nowrap;
+}
+
+.pp-log-toggle:hover {
+  background: var(--brand-tint);
+}
+
+.pp-log-form {
+  flex-basis: 100%;
+  margin-top: 8px;
+  padding: 8px 10px;
+  background: var(--surface-muted);
+  border: 0.5px dashed var(--border-strong);
+  border-radius: var(--radius-md);
+}
+
+.pp-log-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  font-family: var(--font-sans);
+}
+
+.pp-log-side-group {
+  display: inline-flex;
+  border: 0.5px solid var(--border-hairline);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.pp-log-side {
+  font-family: var(--font-sans);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  padding: 5px 12px;
+  background: var(--surface-card);
+  color: var(--text-secondary);
+  border: none;
+  cursor: pointer;
+  border-right: 0.5px solid var(--border-hairline);
+  transition: all var(--duration-fast) var(--easing-standard);
+}
+
+.pp-log-side:last-child {
+  border-right: none;
+}
+
+.pp-log-side:hover:not(.active) {
+  background: var(--surface-muted);
+}
+
+.pp-log-side.active {
+  background: var(--brand-primary);
+  color: var(--text-on-primary);
+}
+
+.pp-log-input {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  padding: 4px 8px;
+  border: 0.5px solid var(--border-hairline);
+  border-radius: var(--radius-sm);
+  background: var(--surface-card);
+  color: var(--text-primary);
+  width: 80px;
+  font-variant-numeric: tabular-nums;
+}
+
+.pp-log-input.pp-log-line {
+  width: 60px;
+}
+
+.pp-log-input.pp-log-units {
+  width: 60px;
+}
+
+.pp-log-input:focus {
+  outline: none;
+  border-color: var(--brand-primary);
+}
+
+.pp-log-submit {
+  font-family: var(--font-sans);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  background: var(--brand-primary);
+  color: var(--text-on-primary);
+  border: none;
+  padding: 5px 14px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  margin-left: auto;
+  transition: background var(--duration-fast) var(--easing-standard);
+}
+
+.pp-log-submit:hover {
+  background: var(--brand-primary-hover);
+}
+
+/* Mobile: stack the form fields vertically when narrow */
+@media (max-width: 600px) {
+  .pp-log-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .pp-log-side-group {
+    width: 100%;
+    justify-content: stretch;
+  }
+  .pp-log-side {
+    flex: 1;
+  }
+  .pp-log-input {
+    width: 100%;
+  }
+  .pp-log-submit {
+    margin-left: 0;
+  }
+}
+
+/* Result class for "didnotplay" on pitcher prop bet entries */
+.bb-entry-result.res-dnp {
+  background: var(--surface-muted) !important;
+  color: var(--text-muted) !important;
+  border: 0.5px solid var(--border-strong) !important;
+}
